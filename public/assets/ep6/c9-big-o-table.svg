@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 460" role="img" aria-label="Big-O cheat sheet for List, Set, and Map operations">
+  <style>
+    .d-bo-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-bo-title { font-size: 16px; font-weight: 600; }
+    .d-bo-hdr { font-size: 14px; font-weight: 700; fill: #1e293b; }
+    .d-bo-op { font-size: 12px; font-weight: 600; fill: #475569; }
+    .d-bo-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; font-weight: 600; fill: #1e293b; }
+    .d-bo-na { font-size: 13px; font-weight: 600; fill: #94a3b8; }
+    .d-bo-good { font-size: 13px; font-weight: 700; fill: #047857; }
+    .d-bo-mid { font-size: 13px; font-weight: 700; fill: #b45309; }
+    .d-bo-bad { font-size: 13px; font-weight: 700; fill: #b91c1c; }
+    .d-bo-legend { font-size: 11px; fill: #475569; }
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="d-bo-t d-bo-title">Big-O cheat sheet — pick by access pattern</text>
+
+  <!-- Header row -->
+  <rect x="20" y="50" width="240" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="140" y="80" text-anchor="middle" class="d-bo-t d-bo-hdr">Operation</text>
+
+  <rect x="260" y="50" width="153" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/>
+  <text x="336" y="80" text-anchor="middle" class="d-bo-t d-bo-hdr">List</text>
+
+  <rect x="413" y="50" width="153" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="490" y="80" text-anchor="middle" class="d-bo-t d-bo-hdr">Set</text>
+
+  <rect x="566" y="50" width="134" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/>
+  <text x="633" y="80" text-anchor="middle" class="d-bo-t d-bo-hdr">Map</text>
+
+  <!-- Row: Access by index list[i] -->
+  <rect x="20" y="100" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="120" class="d-bo-t d-bo-op">Access by index</text>
+  <text x="32" y="135" class="d-bo-t d-bo-mn">list[i]</text>
+
+  <rect x="260" y="100" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="127" text-anchor="middle" class="d-bo-t d-bo-good">O(1)</text>
+
+  <rect x="413" y="100" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="127" text-anchor="middle" class="d-bo-t d-bo-na">— not applicable</text>
+
+  <rect x="566" y="100" width="134" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="127" text-anchor="middle" class="d-bo-t d-bo-na">— n/a</text>
+
+  <!-- Row: Add at end -->
+  <rect x="20" y="142" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="162" class="d-bo-t d-bo-op">Add at end</text>
+  <text x="32" y="177" class="d-bo-t d-bo-mn">add(x)</text>
+
+  <rect x="260" y="142" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="169" text-anchor="middle" class="d-bo-t d-bo-good">O(1) amortized</text>
+
+  <rect x="413" y="142" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="169" text-anchor="middle" class="d-bo-t d-bo-good">O(1) average</text>
+
+  <rect x="566" y="142" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="163" text-anchor="middle" class="d-bo-t d-bo-good">O(1) avg</text>
+  <text x="633" y="178" text-anchor="middle" class="d-bo-t d-bo-mn">m[k] = v</text>
+
+  <!-- Row: Insert at start/middle -->
+  <rect x="20" y="184" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="204" class="d-bo-t d-bo-op">Insert at start / middle</text>
+  <text x="32" y="219" class="d-bo-t d-bo-mn">insert(i, x)</text>
+
+  <rect x="260" y="184" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="211" text-anchor="middle" class="d-bo-t d-bo-bad">O(n)</text>
+
+  <rect x="413" y="184" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="211" text-anchor="middle" class="d-bo-t d-bo-na">— unordered</text>
+
+  <rect x="566" y="184" width="134" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="211" text-anchor="middle" class="d-bo-t d-bo-na">— n/a</text>
+
+  <!-- Row: Remove by value -->
+  <rect x="20" y="226" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="246" class="d-bo-t d-bo-op">Remove by value</text>
+  <text x="32" y="261" class="d-bo-t d-bo-mn">remove(x)</text>
+
+  <rect x="260" y="226" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="253" text-anchor="middle" class="d-bo-t d-bo-bad">O(n)</text>
+
+  <rect x="413" y="226" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="253" text-anchor="middle" class="d-bo-t d-bo-good">O(1) average</text>
+
+  <rect x="566" y="226" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="247" text-anchor="middle" class="d-bo-t d-bo-good">O(1) avg</text>
+  <text x="633" y="262" text-anchor="middle" class="d-bo-t d-bo-mn">remove(k)</text>
+
+  <!-- Row: Contains -->
+  <rect x="20" y="268" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="288" class="d-bo-t d-bo-op">Check membership</text>
+  <text x="32" y="303" class="d-bo-t d-bo-mn">contains(x)</text>
+
+  <rect x="260" y="268" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="295" text-anchor="middle" class="d-bo-t d-bo-bad">O(n)</text>
+
+  <rect x="413" y="268" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="295" text-anchor="middle" class="d-bo-t d-bo-good">O(1) average</text>
+
+  <rect x="566" y="268" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="290" text-anchor="middle" class="d-bo-t d-bo-good">O(1) avg</text>
+  <text x="633" y="305" text-anchor="middle" class="d-bo-t d-bo-mn">containsKey</text>
+
+  <!-- Row: Lookup by key -->
+  <rect x="20" y="310" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="330" class="d-bo-t d-bo-op">Lookup by key</text>
+  <text x="32" y="345" class="d-bo-t d-bo-mn">m[k]</text>
+
+  <rect x="260" y="310" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="337" text-anchor="middle" class="d-bo-t d-bo-na">— no keys</text>
+
+  <rect x="413" y="310" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="337" text-anchor="middle" class="d-bo-t d-bo-na">— use contains</text>
+
+  <rect x="566" y="310" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="337" text-anchor="middle" class="d-bo-t d-bo-good">O(1) average</text>
+
+  <!-- Row: Iterate all -->
+  <rect x="20" y="352" width="240" height="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="32" y="372" class="d-bo-t d-bo-op">Iterate every element</text>
+  <text x="32" y="387" class="d-bo-t d-bo-mn">for (var x in c)</text>
+
+  <rect x="260" y="352" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="336" y="379" text-anchor="middle" class="d-bo-t d-bo-good">O(n)</text>
+
+  <rect x="413" y="352" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="490" y="379" text-anchor="middle" class="d-bo-t d-bo-good">O(n)</text>
+
+  <rect x="566" y="352" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="633" y="379" text-anchor="middle" class="d-bo-t d-bo-good">O(n)</text>
+
+  <!-- Legend -->
+  <rect x="20" y="410" width="14" height="14" fill="#dcfce7" stroke="#10b981" stroke-width="1"/>
+  <text x="40" y="421" class="d-bo-t d-bo-legend">fast (constant time)</text>
+
+  <rect x="180" y="410" width="14" height="14" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="200" y="421" class="d-bo-t d-bo-legend">O(log n) — acceptable</text>
+
+  <rect x="370" y="410" width="14" height="14" fill="#fee2e2" stroke="#dc2626" stroke-width="1"/>
+  <text x="390" y="421" class="d-bo-t d-bo-legend">O(n) — gets slow at scale</text>
+
+  <rect x="560" y="410" width="14" height="14" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="580" y="421" class="d-bo-t d-bo-legend">not applicable</text>
+
+  <text x="360" y="448" text-anchor="middle" class="d-bo-t" font-size="12" fill="#475569" font-style="italic">Default Set/Map are LinkedHashSet/LinkedHashMap. Averages assume a healthy hash distribution.</text>
+</svg>

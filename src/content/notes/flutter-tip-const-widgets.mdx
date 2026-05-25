@@ -1,0 +1,33 @@
+---
+title: "Quick tip: Always use const widgets when possible"
+publishedAt: 2024-04-05
+tags:
+  - flutter
+  - dart
+---
+
+A reminder I keep giving myself: mark widgets as `const` whenever possible.
+
+```dart
+// Bad: Creates new instance on every rebuild
+child: Icon(Icons.home)
+
+// Good: Reuses the same instance
+child: const Icon(Icons.home)
+```
+
+Why it matters:
+
+- `const` widgets are created at compile time, not runtime
+- They're cached and reused, reducing memory allocations
+- Flutter can skip rebuilding them entirely during reconciliation
+
+Enable the `prefer_const_constructors` lint in `analysis_options.yaml`:
+
+```yaml
+linter:
+  rules:
+    - prefer_const_constructors
+```
+
+Your IDE will then highlight every opportunity to add `const`. Small change, real performance gains.

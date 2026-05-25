@@ -1,0 +1,353 @@
+---
+title: "Null Safety in Dart — The Billion-Dollar Mistake, Fixed"
+description: "The most common runtime crash in programming history, and how Dart eliminates it at compile time. A deep dive into nullable types, null-aware operators, flow analysis, and the late keyword."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 1
+publishedAt: 2026-05-24
+topics:
+  - id: billion-dollar-mistake
+    title: "The billion-dollar mistake"
+    summary: |
+      In 1965, Tony Hoare invented the null reference. Decades later, he called it his "billion-dollar mistake" — because null reference errors have caused more crashes, more bugs, and more wasted debugging hours than perhaps any other single language feature.
+      <br><br>
+      The problem is simple. In most languages, any variable can secretly hold <code>null</code>. We write code assuming a value exists, and then — at runtime — it turns out it does not.
+      <br><br>
+      <pre><code>// In a language without null safety
+      String name = fetchUserName();   // might return null
+      print(name.length);              // CRASH at runtime</code></pre>
+      The crash comes with no warning. The compiler happily compiled the code. The bug only appears when a user hits the exact path that returns null.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Null reference crash timeline" style="max-width: 100%; height: auto;"><style>.ns1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ns1-title{font-size:16px;font-weight:600}.ns1-label{font-size:12px;fill:#64748b}.ns1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.ns1-note{font-size:13px;fill:#475569;font-weight:500}.ns1-bad{fill:#dc2626;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="ns1-t ns1-title">The null reference crash — invisible until runtime</text><rect x="40" y="60" width="180" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="130" y="95" text-anchor="middle" class="ns1-t ns1-mn">String name = ...</text><text x="130" y="115" text-anchor="middle" class="ns1-t ns1-label">Compiles fine</text><text x="130" y="155" text-anchor="middle" class="ns1-t ns1-label" fill="#059669">No warnings</text><line x1="220" y1="100" x2="270" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#ns1-arrow)"/><rect x="280" y="60" width="180" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="370" y="95" text-anchor="middle" class="ns1-t ns1-mn">name.length</text><text x="370" y="115" text-anchor="middle" class="ns1-t ns1-label">Compiles fine</text><text x="370" y="155" text-anchor="middle" class="ns1-t ns1-label" fill="#059669">Still no warnings</text><line x1="460" y1="100" x2="510" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#ns1-arrow)"/><rect x="520" y="60" width="160" height="80" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="600" y="90" text-anchor="middle" class="ns1-t ns1-mn ns1-bad">CRASH</text><text x="600" y="115" text-anchor="middle" class="ns1-t ns1-label">Runtime error</text><text x="600" y="155" text-anchor="middle" class="ns1-t ns1-label" fill="#dc2626">User sees it first</text><text x="360" y="200" text-anchor="middle" class="ns1-t ns1-note">The compiler saw nothing wrong. The bug hid until production.</text><rect x="120" y="220" width="480" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="6"/><text x="360" y="245" text-anchor="middle" class="ns1-t ns1-label">Null reference errors account for a huge percentage of app crashes.</text><text x="360" y="262" text-anchor="middle" class="ns1-t ns1-label">The fix: make null visible in the type system.</text><defs><marker id="ns1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      Dart 2.12 (released March 2021) introduced <strong>sound null safety</strong>. The idea is simple but powerful: make nullability part of the type. If a variable can be null, the type says so. If it cannot, the compiler enforces it.
+      <br><br>
+      The result is that null reference errors — the most common crash in programming history — become compile-time errors instead of runtime surprises.
+
+  - id: nullable-vs-non-nullable
+    title: "Nullable vs non-nullable types"
+    summary: |
+      In Dart, types are <strong>non-nullable by default</strong>. A plain <code>String</code> cannot be null. Ever.
+      <br><br>
+      <pre><code>String name = 'Ankit';   // fine
+      name = null;             // compile error — String cannot be null</code></pre>
+      To allow null, we add a <code>?</code> to the type. This creates a nullable type.
+      <br><br>
+      <pre><code>String? name = 'Ankit';  // fine
+      name = null;             // also fine — String? allows null</code></pre>
+      The <code>?</code> is not decoration. It changes the type entirely. <code>String</code> and <code>String?</code> are different types in Dart's type system.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Type hierarchy with null" style="max-width: 100%; height: auto;"><style>.ns2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ns2-title{font-size:16px;font-weight:600}.ns2-type{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:15px;font-weight:700}.ns2-label{font-size:12px;fill:#64748b}.ns2-note{font-size:13px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="ns2-t ns2-title">The type hierarchy — non-nullable and nullable</text><rect x="280" y="50" width="160" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="360" y="82" text-anchor="middle" class="ns2-t ns2-type">Object?</text><line x1="320" y1="100" x2="200" y2="140" stroke="#9333ea" stroke-width="1.5"/><line x1="400" y1="100" x2="520" y2="140" stroke="#9333ea" stroke-width="1.5"/><rect x="100" y="140" width="160" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="180" y="172" text-anchor="middle" class="ns2-t ns2-type">Object</text><rect x="460" y="140" width="160" height="50" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" rx="6"/><text x="540" y="172" text-anchor="middle" class="ns2-t ns2-type">Null</text><line x1="140" y1="190" x2="100" y2="230" stroke="#0175C2" stroke-width="1.5"/><line x1="220" y1="190" x2="260" y2="230" stroke="#0175C2" stroke-width="1.5"/><rect x="40" y="230" width="120" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/><text x="100" y="260" text-anchor="middle" class="ns2-t ns2-type">String</text><rect x="200" y="230" width="120" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/><text x="260" y="260" text-anchor="middle" class="ns2-t ns2-type">int</text><rect x="360" y="230" width="120" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/><text x="420" y="260" text-anchor="middle" class="ns2-t ns2-type">List</text><text x="180" y="300" text-anchor="middle" class="ns2-t ns2-label">Non-nullable types (cannot hold null)</text><text x="540" y="220" text-anchor="middle" class="ns2-t ns2-label">Only holds null</text><text x="540" y="300" text-anchor="middle" class="ns2-t ns2-note">String? = String | Null</text></svg>
+      <br><br>
+      The diagram shows how Dart's type hierarchy works. <code>Object</code> is the root of all non-nullable types. <code>Null</code> is its own separate type. A nullable type like <code>String?</code> is actually a union: it can hold a <code>String</code> or <code>Null</code>.
+      <br><br>
+      This means we cannot use a <code>String?</code> where a <code>String</code> is expected — the compiler blocks it.
+      <br><br>
+      <pre><code>void greet(String name) {
+        print('Hello, $name');
+      }
+
+      String? maybeName = getUserName();
+      greet(maybeName);   // compile error — String? is not String</code></pre>
+      The fix is to handle the null case first. Dart gives us several tools to do that.
+
+  - id: null-aware-operators
+    title: "Null-aware operators"
+    summary: |
+      Dart provides four operators specifically designed for working with nullable values. They make null handling concise without sacrificing safety.
+      <br><br>
+      <strong>The null-aware access operator: <code>?.</code></strong>
+      <br><br>
+      Use this when the object itself might be null. If it is, the whole expression evaluates to null instead of crashing.
+      <br><br>
+      <pre><code>String? name = null;
+      print(name?.length);     // null (not a crash)
+      print(name?.toUpperCase());  // null
+
+      String? name2 = 'Ankit';
+      print(name2?.length);    // 5</code></pre>
+      <strong>The null-coalescing operator: <code>??</code></strong>
+      <br><br>
+      Provides a default value when the left side is null.
+      <br><br>
+      <pre><code>String? name = null;
+      String displayName = name ?? 'Guest';
+      print(displayName);   // 'Guest'
+
+      String? name2 = 'Ankit';
+      String displayName2 = name2 ?? 'Guest';
+      print(displayName2);  // 'Ankit'</code></pre>
+      <strong>The null-aware assignment operator: <code>??=</code></strong>
+      <br><br>
+      Assigns a value only if the variable is currently null.
+      <br><br>
+      <pre><code>String? name;
+      name ??= 'Default';   // name is now 'Default'
+      name ??= 'Other';     // no change — name is already non-null
+      print(name);          // 'Default'</code></pre>
+      <strong>The null-aware index operator: <code>?[]</code></strong>
+      <br><br>
+      Access a list or map element when the collection itself might be null.
+      <br><br>
+      <pre><code>List&lt;int&gt;? numbers = null;
+      print(numbers?[0]);   // null (not a crash)
+
+      List&lt;int&gt;? numbers2 = [1, 2, 3];
+      print(numbers2?[0]);  // 1</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Null-aware operators reference" style="max-width: 100%; height: auto;"><style>.ns3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ns3-title{font-size:16px;font-weight:600}.ns3-op{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:18px;font-weight:700;fill:#0175C2}.ns3-desc{font-size:12px;fill:#475569}.ns3-ex{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="ns3-t ns3-title">Null-aware operators at a glance</text><rect x="30" y="50" width="160" height="100" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="110" y="80" text-anchor="middle" class="ns3-t ns3-op">?.</text><text x="110" y="105" text-anchor="middle" class="ns3-t ns3-desc">null-aware access</text><text x="110" y="130" text-anchor="middle" class="ns3-t ns3-ex">name?.length</text><rect x="200" y="50" width="160" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="280" y="80" text-anchor="middle" class="ns3-t ns3-op">??</text><text x="280" y="105" text-anchor="middle" class="ns3-t ns3-desc">null-coalescing</text><text x="280" y="130" text-anchor="middle" class="ns3-t ns3-ex">name ?? 'Guest'</text><rect x="370" y="50" width="160" height="100" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="450" y="80" text-anchor="middle" class="ns3-t ns3-op">??=</text><text x="450" y="105" text-anchor="middle" class="ns3-t ns3-desc">null-aware assign</text><text x="450" y="130" text-anchor="middle" class="ns3-t ns3-ex">name ??= 'Default'</text><rect x="540" y="50" width="160" height="100" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="620" y="80" text-anchor="middle" class="ns3-t ns3-op">?[]</text><text x="620" y="105" text-anchor="middle" class="ns3-t ns3-desc">null-aware index</text><text x="620" y="130" text-anchor="middle" class="ns3-t ns3-ex">list?[0]</text><rect x="100" y="175" width="520" height="80" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="205" text-anchor="middle" class="ns3-t ns3-desc">These operators short-circuit: if the left side is null, the right side never executes.</text><text x="360" y="230" text-anchor="middle" class="ns3-t ns3-desc">They return null instead of crashing, letting us chain safely: <code>user?.address?.city</code></text></svg>
+      <br><br>
+      These operators chain naturally. <code>user?.address?.city?.toUpperCase()</code> safely navigates a potentially null chain — if any link is null, the whole expression is null.
+
+  - id: bang-operator
+    title: "The bang operator (!)"
+    summary: |
+      Sometimes we know a value is not null, but the compiler does not. The bang operator <code>!</code> tells Dart: "Trust me, this is not null."
+      <br><br>
+      <pre><code>String? name = fetchName();   // might be null
+
+      // We've checked elsewhere or have external knowledge
+      String definitelyName = name!;   // assert non-null
+      print(definitelyName.length);    // safe to use</code></pre>
+      <strong>But here is the catch.</strong> If we are wrong — if the value actually is null — the program crashes at runtime. We have just opted out of null safety for that expression.
+      <br><br>
+      <pre><code>String? name = null;
+      String definitelyName = name!;   // CRASH — TypeError at runtime</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" role="img" aria-label="Bang operator warning" style="max-width: 100%; height: auto;"><style>.ns4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ns4-title{font-size:16px;font-weight:600}.ns4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:14px;font-weight:700}.ns4-label{font-size:12px;fill:#64748b}.ns4-warn{font-size:13px;fill:#b45309;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="ns4-t ns4-title">The bang operator: a sharp tool</text><rect x="80" y="55" width="240" height="90" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="200" y="85" text-anchor="middle" class="ns4-t ns4-mn">name!</text><text x="200" y="110" text-anchor="middle" class="ns4-t ns4-label">When you are RIGHT:</text><text x="200" y="130" text-anchor="middle" class="ns4-t ns4-label" fill="#059669">Compiles and runs fine</text><rect x="400" y="55" width="240" height="90" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="520" y="85" text-anchor="middle" class="ns4-t ns4-mn">name!</text><text x="520" y="110" text-anchor="middle" class="ns4-t ns4-label">When you are WRONG:</text><text x="520" y="130" text-anchor="middle" class="ns4-t ns4-label" fill="#dc2626">Runtime crash (TypeError)</text><rect x="120" y="165" width="480" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="360" y="190" text-anchor="middle" class="ns4-t ns4-warn">Rule: avoid ! unless you have a genuinely good reason. Prefer null checks.</text></svg>
+      <br><br>
+      <strong>When is <code>!</code> appropriate?</strong>
+      <br><br>
+      • When we have already checked for null in a way the compiler cannot see (e.g., an <code>assert</code> or a check in a different function).
+      <br>
+      • In tests, where a crash is acceptable and explicit.
+      <br>
+      • In initialisation code where we know the value is set before use.
+      <br><br>
+      <strong>When to avoid <code>!</code>:</strong>
+      <br><br>
+      • When we are not 100% certain the value is non-null.
+      <br>
+      • When a safer alternative exists (use <code>??</code>, <code>?.</code>, or a proper null check instead).
+      <br><br>
+      Think of <code>!</code> as a contract with the compiler: "I promise this is not null. If I'm wrong, let it crash." Use it sparingly.
+
+  - id: late-variables
+    title: "Late variables"
+    summary: |
+      Sometimes we cannot initialise a variable when we declare it, but we know it will be set before we use it. The <code>late</code> keyword tells Dart: "I promise to initialise this later."
+      <br><br>
+      <pre><code>late String name;
+
+      void init() {
+        name = 'Ankit';   // initialised here
+      }
+
+      void greet() {
+        print('Hello, $name');   // used here — after init()
+      }</code></pre>
+      Without <code>late</code>, Dart would complain that <code>name</code> is not initialised. With <code>late</code>, the check moves to runtime.
+      <br><br>
+      <strong>Lazy initialisation.</strong> <code>late</code> also enables lazy evaluation. If we provide an initialiser, it runs only when the variable is first accessed.
+      <br><br>
+      <pre><code>late String expensiveValue = computeExpensiveValue();
+
+      void main() {
+        // expensiveValue has NOT been computed yet
+        print('Program started');
+
+        // Now it computes
+        print(expensiveValue);   // computeExpensiveValue() runs here
+        print(expensiveValue);   // cached — does not recompute
+      }</code></pre>
+      This is useful for fields that are expensive to compute and might not always be needed.
+      <br><br>
+      <strong>The danger of <code>late</code>.</strong> If we read a <code>late</code> variable before it has been initialised, we get a runtime error.
+      <br><br>
+      <pre><code>late String name;
+
+      void main() {
+        print(name);   // CRASH — LateInitializationError
+      }</code></pre>
+      <strong>When to use <code>late</code>:</strong>
+      <br><br>
+      • Instance variables initialised in a constructor body or <code>initState()</code>.
+      <br>
+      • Lazy fields that should compute only when accessed.
+      <br>
+      • Variables set by framework callbacks (Flutter's <code>didChangeDependencies</code>, etc.).
+      <br><br>
+      <strong>When to avoid <code>late</code>:</strong>
+      <br><br>
+      • When the variable might genuinely not be set — use nullable instead.
+      <br>
+      • When we can initialise directly or in the initialiser list.
+
+  - id: required-named
+    title: "Required named parameters"
+    summary: |
+      Named parameters in Dart are optional by default. But sometimes a parameter is both named (for clarity) and required (for correctness). The <code>required</code> keyword combines both.
+      <br><br>
+      <pre><code>void createUser({
+        required String name,
+        required String email,
+        int age = 0,
+      }) {
+        print('$name ($email), age $age');
+      }
+
+      createUser(name: 'Ankit', email: 'a@b.com');         // works
+      createUser(name: 'Ankit');                           // compile error — email required
+      createUser(email: 'a@b.com');                        // compile error — name required</code></pre>
+      Before null safety, named parameters had to be nullable or have defaults. Now we can have non-nullable named parameters by marking them <code>required</code>.
+      <br><br>
+      <strong>This is crucial for Flutter widgets.</strong> Most widget constructors use named parameters extensively, and <code>required</code> makes the API self-documenting.
+      <br><br>
+      <pre><code>class UserCard extends StatelessWidget {
+        final String name;
+        final String email;
+        final int? age;
+
+        const UserCard({
+          super.key,
+          required this.name,     // must provide
+          required this.email,    // must provide
+          this.age,               // optional — nullable
+        });
+
+        @override
+        Widget build(BuildContext context) { ... }
+      }</code></pre>
+      The <code>required</code> keyword shifts a potential runtime error ("forgot to pass name") into a compile-time error. The IDE shows the error before we even run the code.
+
+  - id: flow-analysis
+    title: "Flow analysis and type promotion"
+    summary: |
+      Dart's compiler is smart. When we check for null, the compiler remembers — and automatically promotes the type from nullable to non-nullable within the safe scope.
+      <br><br>
+      <pre><code>void greet(String? name) {
+        if (name == null) {
+          print('Hello, Guest');
+          return;
+        }
+
+        // Here, Dart KNOWS name is not null
+        // Type is promoted from String? to String
+        print('Hello, $name');
+        print(name.length);   // no error — name is now String
+      }</code></pre>
+      We did not use <code>!</code>. We did not cast. Dart's <strong>flow analysis</strong> tracked that after the <code>if (name == null) return</code>, name must be non-null in the remaining code.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Flow analysis and type promotion" style="max-width: 100%; height: auto;"><defs><marker id="ns5-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.ns5-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ns5-title{font-size:16px;font-weight:600}.ns5-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.ns5-label{font-size:12px;fill:#64748b}.ns5-type{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700}</style><text x="360" y="26" text-anchor="middle" class="ns5-t ns5-title">Flow analysis promotes types automatically</text><rect x="260" y="50" width="200" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="360" y="72" text-anchor="middle" class="ns5-t ns5-mn">String? name</text><text x="360" y="90" text-anchor="middle" class="ns5-t ns5-label">nullable — could be null</text><line x1="360" y1="100" x2="360" y2="130" stroke="#475569" stroke-width="2" marker-end="url(#ns5-arrow)"/><path d="M 260 140 L 360 170 L 460 140" fill="none" stroke="#f59e0b" stroke-width="2"/><path d="M 260 140 L 360 170 L 460 140 L 360 200 Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="360" y="175" text-anchor="middle" class="ns5-t ns5-mn">name == null?</text><line x1="260" y1="170" x2="160" y2="220" stroke="#dc2626" stroke-width="2" marker-end="url(#ns5-arrow)"/><text x="195" y="190" class="ns5-t ns5-label" fill="#dc2626">yes</text><line x1="460" y1="170" x2="560" y2="220" stroke="#10b981" stroke-width="2" marker-end="url(#ns5-arrow)"/><text x="525" y="190" class="ns5-t ns5-label" fill="#10b981">no</text><rect x="60" y="225" width="200" height="70" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="160" y="255" text-anchor="middle" class="ns5-t ns5-mn">return early</text><text x="160" y="280" text-anchor="middle" class="ns5-t ns5-label">exit the function</text><rect x="460" y="225" width="200" height="70" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="560" y="250" text-anchor="middle" class="ns5-t ns5-type" fill="#10b981">String name</text><text x="560" y="275" text-anchor="middle" class="ns5-t ns5-label">promoted to non-nullable</text><text x="360" y="325" text-anchor="middle" class="ns5-t ns5-label">After the null check, Dart knows name cannot be null in the remaining code.</text></svg>
+      <br><br>
+      <strong>Promotion works with many patterns:</strong>
+      <br><br>
+      <pre><code>// Pattern 1: if-return (shown above)
+      if (name == null) return;
+
+      // Pattern 2: if-else
+      if (name != null) {
+        print(name.length);   // promoted inside the block
+      }
+
+      // Pattern 3: logical AND
+      if (name != null && name.length > 5) {
+        // promoted after the && check
+      }
+
+      // Pattern 4: throw
+      if (name == null) throw ArgumentError('name required');
+      print(name.length);   // promoted after the throw</code></pre>
+      <strong>When promotion does NOT work:</strong>
+      <br><br>
+      Instance fields and top-level variables cannot be promoted. Another piece of code might change them between the check and the use. For those, use a local variable.
+      <br><br>
+      <pre><code>class User {
+        String? name;
+
+        void greet() {
+          if (name != null) {
+            // name is NOT promoted here
+            // because another thread could set name = null
+            print(name!.length);   // must use ! or assign to local
+          }
+
+          // Better pattern:
+          final localName = name;
+          if (localName != null) {
+            print(localName.length);   // localName IS promoted
+          }
+        }
+      }</code></pre>
+      Flow analysis is what makes null safety feel lightweight. We write natural null checks, and the compiler does the bookkeeping.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering null safety fundamentals, operators, late variables, and flow analysis."
+  questions:
+    - question: "What does sound null safety mean in Dart?"
+      options:
+        - "All variables must be explicitly typed"
+        - "The compiler guarantees that non-nullable types can never be null at runtime"
+        - "Null values are automatically converted to default values"
+        - "The program runs faster because null checks are skipped"
+      correctIndex: 1
+      explanation: "Sound null safety means the type system's guarantees hold at runtime, not just at compile time. If a variable is typed as String (non-nullable), the compiler guarantees it can never be null — no exceptions. This is achieved through static analysis and runtime checks at boundaries like interop."
+
+    - question: "What is the difference between String and String? in Dart?"
+      options:
+        - "String? is a deprecated legacy syntax"
+        - "String is the primitive and String? is the object wrapper"
+        - "String cannot be null; String? can be null"
+        - "They are aliases for the same type"
+      correctIndex: 2
+      explanation: "String is a non-nullable type — it can only hold actual String values, never null. String? is a nullable type — it can hold a String or null. They are different types in Dart's type system, and you cannot assign a String? to a String without handling the null case first."
+
+    - question: "What does the expression `name?.length` evaluate to when name is null?"
+      options:
+        - "0"
+        - "An empty string"
+        - "null"
+        - "Throws a NullPointerException"
+      correctIndex: 2
+      explanation: "The null-aware access operator ?. short-circuits when the left side is null. Instead of crashing, the entire expression evaluates to null. This is the safe alternative to the regular dot operator, which would crash on a null receiver."
+
+    - question: "When should you use the bang operator (!) in Dart?"
+      options:
+        - "Always, to make code more concise"
+        - "When you are certain a nullable value is not null, but the compiler cannot prove it"
+        - "To convert any type to non-nullable"
+        - "To silence all null-related warnings"
+      correctIndex: 1
+      explanation: "The bang operator asserts that a nullable value is actually non-null. Use it only when you have knowledge the compiler lacks — like when a value was validated elsewhere or set by framework code you trust. If you are wrong, the program crashes at runtime. Prefer null checks when possible."
+
+    - question: "What happens if you access a late variable before it has been initialised?"
+      options:
+        - "It returns null"
+        - "It returns the type's default value"
+        - "A LateInitializationError is thrown at runtime"
+        - "A compile-time error prevents this"
+      correctIndex: 2
+      explanation: "The late keyword defers the initialisation check from compile time to runtime. If you read a late variable before assigning a value to it, Dart throws a LateInitializationError at runtime. This is why late should only be used when you can guarantee initialisation before use."
+
+    - question: "Why does flow analysis not promote instance fields like `this.name`?"
+      options:
+        - "It is a bug in the Dart compiler"
+        - "Instance fields are always non-nullable"
+        - "Another piece of code could change the field between the check and use"
+        - "Flow analysis only works on function parameters"
+      correctIndex: 2
+      explanation: "Instance fields and top-level variables cannot be promoted because they could be modified by other code between the null check and subsequent use — for example, by another method, a callback, or another isolate. Local variables are safe because only the current code block can access them. The workaround is to copy the field to a local variable first."
+
+    - question: "What is the purpose of the required keyword on named parameters?"
+      options:
+        - "It makes the parameter positional instead of named"
+        - "It requires the parameter to have a default value"
+        - "It makes the named parameter mandatory — callers must provide it"
+        - "It requires the parameter type to be non-nullable"
+      correctIndex: 2
+      explanation: "Named parameters in Dart are optional by default. The required keyword makes them mandatory — the caller must provide a value, or the code will not compile. This is especially useful for non-nullable named parameters, which need either required or a default value to satisfy null safety."
+---
+
+{/* All content lives in frontmatter `topics` and `quiz`. Four inline SVG
+    diagrams cover the billion-dollar mistake timeline, type hierarchy,
+    null-aware operators reference, bang operator warning, and flow analysis. */}

@@ -1,0 +1,45 @@
+---
+const socialLinks = [
+  { href: 'mailto:ankitranjan.dev@gmail.com', label: 'Email' },
+  { href: 'https://github.com/ankitranjandev', label: 'GitHub' },
+  { href: 'https://x.com/CubeRootX', label: 'X' },
+  { href: 'https://linkedin.com/in/ankit-ranjan-a874b6101', label: 'LinkedIn' },
+  { href: 'https://instagram.com/ankitranjandev', label: 'Instagram' },
+  { href: 'https://substack.com/@ankitranjandev', label: 'Substack' },
+];
+---
+
+<footer class="border-t border-[var(--border)] bg-[var(--bg)]">
+  <div class="mx-auto max-w-5xl px-4 py-10 md:px-6">
+    <div class="flex flex-col gap-6">
+      <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <a href="/" class="group flex items-center gap-2 no-underline">
+          <img
+            src="/images/android-chrome-192x192.png"
+            alt="Ankit Ranjan"
+            class="h-7 w-7 rounded-full object-cover transition-transform group-hover:scale-105"
+          />
+          <span class="font-mono text-sm font-medium text-[var(--text)]">ankitranjan.dev</span>
+        </a>
+        <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          {socialLinks.map(({ href, label }) => (
+            <a
+              href={href}
+              class="text-sm text-[var(--text-secondary)] no-underline transition-colors hover:text-accent"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {label}
+            </a>
+          ))}
+          <a
+            href="/rss.xml"
+            class="text-sm text-[var(--text-secondary)] no-underline transition-colors hover:text-accent"
+          >
+            RSS
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>

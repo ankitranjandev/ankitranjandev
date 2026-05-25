@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+
+const allProjects = await getCollection('projects');
+const projects = allProjects.sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout
+  title="Work"
+  description="Portfolio of mobile applications built by Ankit Ranjan - Android, iOS, and Flutter projects."
+>
+  <div class="content-grid py-12 md:py-16">
+    <header class="mb-10">
+      <h1 class="mb-4 text-3xl font-bold tracking-tight md:text-4xl">Work</h1>
+      <p class="text-lg text-[var(--text-secondary)]">
+        A collection of mobile applications I've built across Android, iOS, and Flutter.
+      </p>
+    </header>
+
+    {projects.length > 0 ? (
+      <div class="grid gap-4 md:grid-cols-2">
+        {projects.map((project) => (
+          <ProjectCard
+            title={project.data.title}
+            description={project.data.description}
+            technologies={project.data.technologies}
+            links={project.data.links}
+          />
+        ))}
+      </div>
+    ) : (
+      <p class="text-[var(--text-secondary)]">No projects yet.</p>
+    )}
+  </div>
+</BaseLayout>

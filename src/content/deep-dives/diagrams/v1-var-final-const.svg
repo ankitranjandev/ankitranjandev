@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="Comparison of var, final, and const keywords showing mutability">
+  <style>
+    .v1-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .v1-label { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .v1-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .v1-code { font: 600 12px "SF Mono", Menlo, Monaco, monospace; fill: #475569; }
+    .v1-yes { font: bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #10b981; }
+    .v1-no { font: bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #dc2626; }
+    .v1-box { rx: 8; }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="v1-title">var vs final vs const</text>
+
+  <!-- var -->
+  <g transform="translate(30, 55)">
+    <rect x="0" y="0" width="200" height="220" fill="#dbeafe" stroke="#0175C2" stroke-width="2" class="v1-box"/>
+    <text x="100" y="30" text-anchor="middle" class="v1-label">var</text>
+    <line x1="20" y1="45" x2="180" y2="45" stroke="#0175C2" stroke-width="1"/>
+
+    <text x="100" y="70" text-anchor="middle" class="v1-code">var name = 'Dart';</text>
+    <text x="100" y="90" text-anchor="middle" class="v1-code">name = 'Flutter';</text>
+
+    <text x="20" y="125" class="v1-desc">Can reassign?</text>
+    <text x="170" y="125" text-anchor="end" class="v1-yes">✓ Yes</text>
+
+    <text x="20" y="150" class="v1-desc">Type inferred?</text>
+    <text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text>
+
+    <text x="20" y="175" class="v1-desc">When resolved?</text>
+    <text x="170" y="175" text-anchor="end" class="v1-code">runtime</text>
+
+    <rect x="20" y="190" width="160" height="20" fill="#eff6ff" rx="4"/>
+    <text x="100" y="204" text-anchor="middle" class="v1-desc">Mutable reference</text>
+  </g>
+
+  <!-- final -->
+  <g transform="translate(260, 55)">
+    <rect x="0" y="0" width="200" height="220" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" class="v1-box"/>
+    <text x="100" y="30" text-anchor="middle" class="v1-label">final</text>
+    <line x1="20" y1="45" x2="180" y2="45" stroke="#f59e0b" stroke-width="1"/>
+
+    <text x="100" y="70" text-anchor="middle" class="v1-code">final name = 'Dart';</text>
+    <text x="100" y="90" text-anchor="middle" class="v1-code" style="fill: #dc2626; text-decoration: line-through;">name = 'Flutter';</text>
+
+    <text x="20" y="125" class="v1-desc">Can reassign?</text>
+    <text x="170" y="125" text-anchor="end" class="v1-no">✗ No</text>
+
+    <text x="20" y="150" class="v1-desc">Type inferred?</text>
+    <text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text>
+
+    <text x="20" y="175" class="v1-desc">When resolved?</text>
+    <text x="170" y="175" text-anchor="end" class="v1-code">runtime</text>
+
+    <rect x="20" y="190" width="160" height="20" fill="#fefce8" rx="4"/>
+    <text x="100" y="204" text-anchor="middle" class="v1-desc">Immutable reference</text>
+  </g>
+
+  <!-- const -->
+  <g transform="translate(490, 55)">
+    <rect x="0" y="0" width="200" height="220" fill="#d1fae5" stroke="#10b981" stroke-width="2" class="v1-box"/>
+    <text x="100" y="30" text-anchor="middle" class="v1-label">const</text>
+    <line x1="20" y1="45" x2="180" y2="45" stroke="#10b981" stroke-width="1"/>
+
+    <text x="100" y="70" text-anchor="middle" class="v1-code">const pi = 3.14159;</text>
+    <text x="100" y="90" text-anchor="middle" class="v1-code" style="fill: #dc2626; text-decoration: line-through;">pi = 3.14;</text>
+
+    <text x="20" y="125" class="v1-desc">Can reassign?</text>
+    <text x="170" y="125" text-anchor="end" class="v1-no">✗ No</text>
+
+    <text x="20" y="150" class="v1-desc">Type inferred?</text>
+    <text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text>
+
+    <text x="20" y="175" class="v1-desc">When resolved?</text>
+    <text x="170" y="175" text-anchor="end" class="v1-code">compile-time</text>
+
+    <rect x="20" y="190" width="160" height="20" fill="#ecfdf5" rx="4"/>
+    <text x="100" y="204" text-anchor="middle" class="v1-desc">Compile-time constant</text>
+  </g>
+</svg>

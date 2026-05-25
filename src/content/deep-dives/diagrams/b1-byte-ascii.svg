@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" style="max-width: 100%; height: auto;" role="img" aria-label="A byte representing the ASCII character A with decimal value 65">
+  <style>
+    .b1a-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .b1a-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }
+    .b1a-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .b1a-bit { font: bold 18px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }
+    .b1a-char { font: bold 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #0175C2; }
+    .b1a-num { font: bold 20px "SF Mono", Menlo, Monaco, monospace; fill: #10b981; }
+    .b1a-box-on { fill: #dbeafe; stroke: #0175C2; stroke-width: 2; }
+    .b1a-box-off { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; }
+    .b1a-result { fill: #f0fdf4; stroke: #10b981; stroke-width: 2; rx: 12; }
+  </style>
+
+  <!-- Title -->
+  <text x="360" y="28" text-anchor="middle" class="b1a-title">One Byte = One Character (ASCII)</text>
+
+  <!-- Bit position labels -->
+  <g transform="translate(100, 50)">
+    <text x="30" y="18" text-anchor="middle" class="b1a-small">bit 7</text>
+    <text x="95" y="18" text-anchor="middle" class="b1a-small">bit 6</text>
+    <text x="160" y="18" text-anchor="middle" class="b1a-small">bit 5</text>
+    <text x="225" y="18" text-anchor="middle" class="b1a-small">bit 4</text>
+    <text x="290" y="18" text-anchor="middle" class="b1a-small">bit 3</text>
+    <text x="355" y="18" text-anchor="middle" class="b1a-small">bit 2</text>
+    <text x="420" y="18" text-anchor="middle" class="b1a-small">bit 1</text>
+    <text x="485" y="18" text-anchor="middle" class="b1a-small">bit 0</text>
+  </g>
+
+  <!-- Byte boxes: 01000001 = 65 = 'A' -->
+  <g transform="translate(100, 75)">
+    <!-- 0 -->
+    <rect x="0" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="30" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 1 (64) -->
+    <rect x="65" y="0" width="60" height="50" rx="6" class="b1a-box-on"/>
+    <text x="95" y="33" text-anchor="middle" class="b1a-bit">1</text>
+
+    <!-- 0 -->
+    <rect x="130" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="160" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 0 -->
+    <rect x="195" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="225" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 0 -->
+    <rect x="260" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="290" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 0 -->
+    <rect x="325" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="355" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 0 -->
+    <rect x="390" y="0" width="60" height="50" rx="6" class="b1a-box-off"/>
+    <text x="420" y="33" text-anchor="middle" class="b1a-bit">0</text>
+
+    <!-- 1 -->
+    <rect x="455" y="0" width="60" height="50" rx="6" class="b1a-box-on"/>
+    <text x="485" y="33" text-anchor="middle" class="b1a-bit">1</text>
+  </g>
+
+  <!-- Equals and results -->
+  <g transform="translate(100, 155)">
+    <text x="258" y="20" text-anchor="middle" class="b1a-label">64 + 1 =</text>
+
+    <!-- Decimal result -->
+    <rect x="320" y="-10" width="80" height="40" class="b1a-result"/>
+    <text x="360" y="22" text-anchor="middle" class="b1a-num">65</text>
+
+    <!-- Character result -->
+    <rect x="430" y="-25" width="70" height="70" fill="#eff6ff" stroke="#0175C2" stroke-width="2" rx="12"/>
+    <text x="465" y="30" text-anchor="middle" class="b1a-char">A</text>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="360" y="235" text-anchor="middle" class="b1a-small">ASCII maps numbers 0–127 to characters. The letter 'A' is 65, 'B' is 66, and so on.</text>
+</svg>

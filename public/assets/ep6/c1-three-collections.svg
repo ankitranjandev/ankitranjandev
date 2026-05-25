@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Three collections side by side comparison">
+  <style>
+    .d-3col-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-3col-title { font-size: 16px; font-weight: 600; }
+    .d-3col-head { font-size: 16px; font-weight: 700; }
+    .d-3col-sub { font-size: 11px; fill: #64748b; font-style: italic; }
+    .d-3col-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 12px; }
+    .d-3col-idx { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: #94a3b8; font-weight: 700; }
+    .d-3col-dup { fill: #dc2626; font-weight: 700; }
+    .d-3col-cap { font-size: 12px; fill: #475569; font-style: italic; }
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="d-3col-t d-3col-title">Three answers to the contacts problem</text>
+
+  <!-- LIST column -->
+  <text x="120" y="60" text-anchor="middle" class="d-3col-t d-3col-head" fill="#0175C2">List</text>
+  <text x="120" y="78" text-anchor="middle" class="d-3col-t d-3col-sub">ordered · duplicates allowed</text>
+
+  <rect x="30" y="95" width="180" height="200" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/>
+  <text x="46" y="120" class="d-3col-t d-3col-idx">[0]</text>
+  <text x="80" y="120" class="d-3col-t d-3col-mn">987654321</text>
+  <text x="46" y="148" class="d-3col-t d-3col-idx">[1]</text>
+  <text x="80" y="148" class="d-3col-t d-3col-mn">123456789</text>
+  <text x="46" y="176" class="d-3col-t d-3col-idx">[2]</text>
+  <text x="80" y="176" class="d-3col-t d-3col-mn">9876102345</text>
+  <text x="46" y="204" class="d-3col-t d-3col-idx">[3]</text>
+  <text x="80" y="204" class="d-3col-t d-3col-mn">7876413232</text>
+  <text x="46" y="232" class="d-3col-t d-3col-idx">[4]</text>
+  <text x="80" y="232" class="d-3col-t d-3col-mn d-3col-dup">123456789</text>
+  <text x="120" y="265" text-anchor="middle" class="d-3col-t d-3col-cap" fill="#dc2626">duplicate at [4]</text>
+
+  <!-- SET column -->
+  <text x="360" y="60" text-anchor="middle" class="d-3col-t d-3col-head" fill="#10b981">Set</text>
+  <text x="360" y="78" text-anchor="middle" class="d-3col-t d-3col-sub">unique items · insertion-ordered</text>
+
+  <rect x="270" y="95" width="180" height="200" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/>
+  <text x="290" y="120" class="d-3col-t d-3col-mn">987654321</text>
+  <text x="290" y="148" class="d-3col-t d-3col-mn">123456789</text>
+  <text x="290" y="176" class="d-3col-t d-3col-mn">9876102345</text>
+  <text x="290" y="204" class="d-3col-t d-3col-mn">7876413232</text>
+  <text x="290" y="232" class="d-3col-t d-3col-sub" fill="#64748b">(duplicate dropped)</text>
+  <text x="360" y="265" text-anchor="middle" class="d-3col-t d-3col-cap" fill="#059669">4 entries, 5 inputs</text>
+
+  <!-- MAP column -->
+  <text x="600" y="60" text-anchor="middle" class="d-3col-t d-3col-head" fill="#9333ea">Map</text>
+  <text x="600" y="78" text-anchor="middle" class="d-3col-t d-3col-sub">key → value · lookup by name</text>
+
+  <rect x="500" y="95" width="200" height="200" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="6"/>
+  <text x="515" y="120" class="d-3col-t d-3col-mn">Ankit  →  987654321</text>
+  <text x="515" y="148" class="d-3col-t d-3col-mn">Mom    →  123456789</text>
+  <text x="515" y="176" class="d-3col-t d-3col-mn">Dad    →  9876102345</text>
+  <text x="515" y="204" class="d-3col-t d-3col-mn">Brother→  7876413232</text>
+  <text x="515" y="232" class="d-3col-t d-3col-mn">Sister →  123456789</text>
+  <text x="600" y="265" text-anchor="middle" class="d-3col-t d-3col-cap" fill="#7e22ce">same number, different name — OK</text>
+
+  <text x="360" y="340" text-anchor="middle" class="d-3col-t d-3col-cap">Same data, three structures. Each one loses something the others keep.</text>
+</svg>

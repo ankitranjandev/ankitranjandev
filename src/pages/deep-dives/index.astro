@@ -1,0 +1,199 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const allDeepDives = await getCollection('deepDives');
+
+// Group by category first, then by subject
+const groupedByCategory = allDeepDives.reduce((acc, dive) => {
+  const category = dive.data.category || 'Dart';
+  const subject = dive.data.subject;
+
+  if (!acc[category]) {
+    acc[category] = {};
+  }
+  if (!acc[category][subject]) {
+    acc[category][subject] = [];
+  }
+  acc[category][subject].push(dive);
+  return acc;
+}, {} as Record<string, Record<string, typeof allDeepDives>>);
+
+// Sort items within each subject by order
+Object.keys(groupedByCategory).forEach(category => {
+  Object.keys(groupedByCategory[category]).forEach(subject => {
+    groupedByCategory[category][subject].sort((a, b) => a.data.order - b.data.order);
+  });
+});
+
+const categories = Object.keys(groupedByCategory).sort();
+
+// Category metadata for styling
+const categoryMeta: Record<string, { color: string; description: string }> = {
+  'Dart': {
+    color: '#0175C2',
+    description: 'Master the Dart programming language from first principles to advanced features.'
+  },
+  'Design Patterns': {
+    color: '#9333ea',
+    description: 'Battle-tested solutions to common software design problems.'
+  },
+  'Flutter': {
+    color: '#02569B',
+    description: 'Build beautiful, natively compiled applications from a single codebase.'
+  },
+  'System Design': {
+    color: '#dc2626',
+    description: 'Architecture patterns for scalable, maintainable applications.'
+  },
+};
+---
+
+<BaseLayout
+  title="Deep Dives | ankitranjan.dev"
+  description="In-depth technical explorations of mobile development, architecture patterns, and system design."
+>
+  <div class="content-grid py-12 md:py-20">
+    <header class="mb-8">
+      <h1 class="mb-4 text-4xl font-bold tracking-tight md:text-5xl">Deep Dives</h1>
+      <p class="max-w-[60ch] text-lg text-[var(--text-secondary)]">
+        In-depth technical explorations of mobile development, architecture patterns, and system design.
+      </p>
+    </header>
+
+    <!-- Category Tabs -->
+    <div class="mb-10">
+      <div class="flex flex-wrap gap-2 border-b border-[var(--border)] pb-4" role="tablist">
+        {categories.map((category, idx) => (
+          <button
+            role="tab"
+            aria-selected={idx === 0 ? 'true' : 'false'}
+            aria-controls={`panel-${category.toLowerCase().replace(/\s+/g, '-')}`}
+            data-category={category}
+            class:list={[
+              'category-tab px-4 py-2 rounded-lg font-medium text-sm transition-all',
+              idx === 0
+                ? 'bg-accent text-white'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)]'
+            ]}
+            style={idx === 0 ? `background-color: ${categoryMeta[category]?.color || '#0175C2'}` : ''}
+          >
+            {category}
+            <span class="ml-2 text-xs opacity-75">
+              ({Object.values(groupedByCategory[category]).flat().length})
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <!-- Category Panels -->
+    {categories.map((category, idx) => {
+      const subjects = Object.keys(groupedByCategory[category]).sort();
+      const meta = categoryMeta[category] || { color: '#0175C2', description: '' };
+
+      return (
+        <div
+          role="tabpanel"
+          id={`panel-${category.toLowerCase().replace(/\s+/g, '-')}`}
+          data-category={category}
+          class:list={['category-panel', idx !== 0 && 'hidden']}
+        >
+          {meta.description && (
+            <p class="mb-8 text-[var(--text-secondary)] max-w-[70ch]">
+              {meta.description}
+            </p>
+          )}
+
+          {subjects.map(subject => {
+            // Extract the part after the colon for cleaner display
+            const displaySubject = subject.includes(':')
+              ? subject.split(':').slice(1).join(':').trim()
+              : subject;
+
+            return (
+              <section class="mb-10">
+                <h2 class="mb-5 text-xl font-semibold flex items-center gap-3">
+                  <span
+                    class="w-1 h-6 rounded-full"
+                    style={`background-color: ${meta.color}`}
+                  />
+                  {displaySubject}
+                </h2>
+                <div class="grid gap-3">
+                  {groupedByCategory[category][subject].map((dive, index) => (
+                    <a
+                      href={`/deep-dives/${dive.id}/`}
+                      class="group block rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 no-underline transition-all hover:border-accent hover:shadow-md"
+                    >
+                      <div class="flex items-start gap-4">
+                        <span
+                          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                          style={`background-color: ${meta.color}`}
+                        >
+                          {index + 1}
+                        </span>
+                        <div>
+                          <h3 class="mb-1 font-medium text-[var(--text)] group-hover:text-accent transition-colors">
+                            {dive.data.title}
+                          </h3>
+                          <p class="text-sm text-[var(--text-secondary)] line-clamp-2">
+                            {dive.data.description}
+                          </p>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      );
+    })}
+  </div>
+
+  <script>
+    // Tab switching logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('.category-tab');
+      const panels = document.querySelectorAll('.category-panel');
+
+      // Get category metadata colors
+      const categoryColors: Record<string, string> = {
+        'Dart': '#0175C2',
+        'Design Patterns': '#9333ea',
+        'Flutter': '#02569B',
+        'System Design': '#dc2626',
+      };
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const category = tab.getAttribute('data-category');
+
+          // Update tabs
+          tabs.forEach(t => {
+            const isActive = t.getAttribute('data-category') === category;
+            t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+
+            if (isActive) {
+              t.classList.remove('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]');
+              t.classList.add('text-white');
+              (t as HTMLElement).style.backgroundColor = categoryColors[category!] || '#0175C2';
+            } else {
+              t.classList.add('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]');
+              t.classList.remove('text-white');
+              (t as HTMLElement).style.backgroundColor = '';
+            }
+          });
+
+          // Update panels
+          panels.forEach(panel => {
+            const isActive = panel.getAttribute('data-category') === category;
+            panel.classList.toggle('hidden', !isActive);
+          });
+        });
+      });
+    });
+  </script>
+</BaseLayout>

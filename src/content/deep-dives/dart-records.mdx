@@ -1,0 +1,342 @@
+---
+title: "Records in Dart — Lightweight, Immutable, and Structural"
+description: "Dart 3 introduced records — anonymous, immutable data structures with built-in equality. They fill the gap between ad-hoc Maps and full-blown classes."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 4
+publishedAt: 2026-05-24
+topics:
+  - id: what-are-records
+    title: "What are records?"
+    summary: |
+      We have all been there. We need to return two values from a function. Maybe a status and a message. Maybe coordinates. Maybe a parsed result and an error flag.
+      <br><br>
+      Before Dart 3, we had three choices. Create a class for it — heavyweight for such a small thing. Return a Map — no type safety, stringly-typed keys. Return a List — positional access with no names, easy to mix up.
+      <br><br>
+      Records solve this. They are lightweight, anonymous data structures that group values together. They are immutable. They have structural equality. And they require zero boilerplate.
+      <br><br>
+      <pre><code>// Before records — awkward Map
+      Map&lt;String, dynamic&gt; getUser() {
+        return {'name': 'Ankit', 'age': 25};
+      }
+      var user = getUser();
+      print(user['name']);   // no type safety
+
+      // With records — clean and typed
+      (String, int) getUser() {
+        return ('Ankit', 25);
+      }
+      var user = getUser();
+      print(user.$1);   // 'Ankit' — typed as String</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Records solve the multiple return values problem" style="max-width: 100%; height: auto;"><style>.r1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.r1-title{font-size:16px;font-weight:600}.r1-hdr{font-size:14px;font-weight:700}.r1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.r1-label{font-size:12px;fill:#64748b}.r1-bad{fill:#dc2626}.r1-good{fill:#059669}</style><text x="360" y="26" text-anchor="middle" class="r1-t r1-title">The multiple return values problem — solved</text><rect x="30" y="50" width="200" height="100" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="130" y="75" text-anchor="middle" class="r1-t r1-hdr r1-bad">Map approach</text><text x="45" y="100" class="r1-t r1-mn">{'name': 'Ankit', 'age': 25}</text><text x="45" y="120" class="r1-t r1-label">No type safety</text><text x="45" y="138" class="r1-t r1-label">Stringly-typed keys</text><rect x="260" y="50" width="200" height="100" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="360" y="75" text-anchor="middle" class="r1-t r1-hdr r1-bad">List approach</text><text x="275" y="100" class="r1-t r1-mn">['Ankit', 25]</text><text x="275" y="120" class="r1-t r1-label">No field names</text><text x="275" y="138" class="r1-t r1-label">Easy to mix up positions</text><rect x="490" y="50" width="200" height="100" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="590" y="75" text-anchor="middle" class="r1-t r1-hdr r1-bad">Custom class</text><text x="505" y="100" class="r1-t r1-mn">class User { ... }</text><text x="505" y="120" class="r1-t r1-label">Boilerplate for simple data</text><text x="505" y="138" class="r1-t r1-label">Overkill for one-off use</text><rect x="180" y="180" width="360" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="210" text-anchor="middle" class="r1-t r1-hdr r1-good">Record</text><text x="200" y="235" class="r1-t r1-mn">('Ankit', 25) or (name: 'Ankit', age: 25)</text><text x="200" y="260" class="r1-t r1-label">Type-safe, immutable, structural equality, zero boilerplate</text></svg>
+      <br><br>
+      Records arrived in Dart 3.0 (May 2023). They fill the gap between throwaway tuples and proper classes — perfect for grouping values without the ceremony of defining a type.
+
+  - id: record-syntax
+    title: "Record syntax — positional and named fields"
+    summary: |
+      Records use parentheses. Inside the parentheses, we can have positional fields, named fields, or both.
+      <br><br>
+      <strong>Positional fields</strong> — values separated by commas. Access them with <code>$1</code>, <code>$2</code>, and so on (1-indexed).
+      <br><br>
+      <pre><code>var point = (10, 20);
+      print(point.$1);   // 10
+      print(point.$2);   // 20
+
+      var rgb = (255, 128, 64);
+      print(rgb.$3);   // 64</code></pre>
+      <strong>Named fields</strong> — use a colon, just like Map literals. Access them by name.
+      <br><br>
+      <pre><code>var user = (name: 'Ankit', age: 25);
+      print(user.name);   // 'Ankit'
+      print(user.age);    // 25</code></pre>
+      <strong>Mixed</strong> — positional first, then named. The positional indices skip the named fields.
+      <br><br>
+      <pre><code>var person = ('Ankit', age: 25, city: 'Delhi');
+      print(person.$1);     // 'Ankit'
+      print(person.age);    // 25
+      print(person.city);   // 'Delhi'</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Record field access patterns" style="max-width: 100%; height: auto;"><style>.r2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.r2-title{font-size:16px;font-weight:600}.r2-hdr{font-size:13px;font-weight:700}.r2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.r2-label{font-size:11px;fill:#64748b}.r2-idx{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:10px;fill:#0175C2;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="r2-t r2-title">Accessing record fields</text><rect x="30" y="50" width="200" height="90" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="130" y="75" text-anchor="middle" class="r2-t r2-hdr">Positional only</text><text x="130" y="100" text-anchor="middle" class="r2-t r2-mn">(10, 20, 30)</text><text x="60" y="125" class="r2-t r2-idx">$1=10  $2=20  $3=30</text><rect x="260" y="50" width="200" height="90" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="75" text-anchor="middle" class="r2-t r2-hdr">Named only</text><text x="360" y="100" text-anchor="middle" class="r2-t r2-mn">(x: 10, y: 20)</text><text x="290" y="125" class="r2-t r2-idx">.x=10  .y=20</text><rect x="490" y="50" width="200" height="90" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="590" y="75" text-anchor="middle" class="r2-t r2-hdr">Mixed</text><text x="590" y="100" text-anchor="middle" class="r2-t r2-mn">('A', id: 1)</text><text x="520" y="125" class="r2-t r2-idx">$1='A'  .id=1</text><rect x="100" y="170" width="520" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="200" text-anchor="middle" class="r2-t r2-hdr">One-element record gotcha</text><text x="360" y="225" text-anchor="middle" class="r2-t r2-mn">(42) is just 42 — add a trailing comma: (42,)</text><text x="360" y="248" text-anchor="middle" class="r2-t r2-label">The comma makes it a record. Without it, parentheses are just grouping.</text></svg>
+      <br><br>
+      <strong>The trailing comma rule.</strong> A single-element record needs a trailing comma to distinguish it from a grouped expression. <code>(42)</code> is just <code>42</code>. To make it a record, write <code>(42,)</code>.
+
+  - id: record-types
+    title: "Record types and type annotations"
+    summary: |
+      Every record has a type. The type describes the structure — the number of fields, their types, and for named fields, their names.
+      <br><br>
+      <pre><code>// Positional record type
+      (int, int) point = (10, 20);
+
+      // Named record type
+      ({String name, int age}) user = (name: 'Ankit', age: 25);
+
+      // Mixed record type
+      (String, {int id}) tagged = ('item', id: 42);
+
+      // Function returning a record
+      (bool, String) validate(String input) {
+        if (input.isEmpty) return (false, 'Input is empty');
+        return (true, 'OK');
+      }</code></pre>
+      <strong>Type equivalence is structural.</strong> Two record types are the same if they have the same fields in the same positions with the same types. The variable names we use don't matter.
+      <br><br>
+      <pre><code>(int, int) point = (10, 20);
+      (int, int) dimensions = (100, 200);
+
+      // These have the same type
+      point = dimensions;   // works fine
+
+      // But named fields must match
+      ({int x, int y}) coord = (x: 1, y: 2);
+      ({int a, int b}) size = (a: 3, b: 4);
+      // coord = size;   // error — different field names</code></pre>
+      The structural typing means we don't have to declare record types anywhere. They emerge from the shape of the data. But it also means two records with the same shape but different semantics (like a Point and a Size) are interchangeable — be careful when that's not what we want.
+
+  - id: destructuring
+    title: "Destructuring records"
+    summary: |
+      We can pull values out of records by position or name directly in a declaration. This is called destructuring.
+      <br><br>
+      <pre><code>var point = (10, 20);
+
+      // Destructure into separate variables
+      var (x, y) = point;
+      print(x);   // 10
+      print(y);   // 20
+
+      // With named fields
+      var user = (name: 'Ankit', age: 25);
+      var (:name, :age) = user;   // shorthand for (name: name, age: age)
+      print(name);   // 'Ankit'
+      print(age);    // 25</code></pre>
+      <strong>Destructuring in function returns.</strong> This is where records really shine.
+      <br><br>
+      <pre><code>(int, int) divide(int a, int b) {
+        return (a ~/ b, a % b);   // quotient and remainder
+      }
+
+      var (quotient, remainder) = divide(17, 5);
+      print('17 / 5 = $quotient remainder $remainder');
+      // 17 / 5 = 3 remainder 2</code></pre>
+      <strong>Destructuring in switch and if-case.</strong> Records pair beautifully with Dart 3's pattern matching.
+      <br><br>
+      <pre><code>var result = (success: true, data: 'payload');
+
+      if (result case (success: true, data: var d)) {
+        print('Got data: $d');
+      }
+
+      // Or in a switch
+      switch (result) {
+        case (success: true, data: var d):
+          print('Success: $d');
+        case (success: false, :var data):
+          print('Failed: $data');
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Destructuring syntax" style="max-width: 100%; height: auto;"><style>.r3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.r3-title{font-size:16px;font-weight:600}.r3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.r3-mns{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.r3-label{font-size:12px;fill:#64748b}.r3-arrow{font-size:16px;fill:#475569;font-weight:700}</style><text x="360" y="26" text-anchor="middle" class="r3-t r3-title">Destructuring patterns</text><rect x="30" y="55" width="300" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="180" y="85" text-anchor="middle" class="r3-t r3-mn">var (x, y) = (10, 20);</text><text x="180" y="108" text-anchor="middle" class="r3-t r3-label">Positional destructuring</text><rect x="390" y="55" width="300" height="70" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="85" text-anchor="middle" class="r3-t r3-mn">var (:name, :age) = user;</text><text x="540" y="108" text-anchor="middle" class="r3-t r3-label">Named destructuring (shorthand)</text><rect x="30" y="150" width="300" height="70" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="180" y="180" text-anchor="middle" class="r3-t r3-mn">var (a, b: renamed) = rec;</text><text x="180" y="203" text-anchor="middle" class="r3-t r3-label">Rename while destructuring</text><rect x="390" y="150" width="300" height="70" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="540" y="180" text-anchor="middle" class="r3-t r3-mn">if (r case (ok: true, :var d))</text><text x="540" y="203" text-anchor="middle" class="r3-t r3-label">Pattern matching in if-case</text><text x="360" y="260" text-anchor="middle" class="r3-t r3-label">Destructuring unpacks records into individual variables in one statement.</text></svg>
+      <br><br>
+      Destructuring eliminates the awkward dance of extracting fields one at a time. Combined with multiple return values, it makes functions much more expressive.
+
+  - id: records-vs-classes
+    title: "Records vs classes vs maps"
+    summary: |
+      We now have three ways to bundle data: records, classes, and maps. When should we use each?
+      <br><br>
+      <strong>Records</strong> are best for:
+      <br>
+      - Multiple return values from a function<br>
+      - Short-lived groupings (local to one function or file)<br>
+      - Destructuring into separate variables<br>
+      - When we don't need methods or identity
+      <br><br>
+      <strong>Classes</strong> are best for:
+      <br>
+      - Named types that appear across the codebase<br>
+      - Behaviour (methods) attached to data<br>
+      - When identity matters (two users with the same name are not the same user)<br>
+      - Inheritance, interfaces, encapsulation
+      <br><br>
+      <strong>Maps</strong> are best for:
+      <br>
+      - Dynamic keys (user input, JSON with unknown structure)<br>
+      - When the set of keys varies at runtime<br>
+      - String-keyed lookups where we don't know keys ahead of time
+      <br><br>
+      <pre><code>// Record — simple grouping, no methods
+      var point = (x: 10, y: 20);
+
+      // Class — reusable type with methods
+      class Point {
+        final int x, y;
+        Point(this.x, this.y);
+        double distanceTo(Point other) => ...;
+      }
+
+      // Map — dynamic keys
+      var config = {'host': 'localhost', 'port': 8080};</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="When to use records vs classes vs maps" style="max-width: 100%; height: auto;"><style>.r4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.r4-title{font-size:16px;font-weight:600}.r4-hdr{font-size:14px;font-weight:700}.r4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.r4-cell{font-size:12px;fill:#1e293b}.r4-yes{font-size:14px;font-weight:700;fill:#059669}.r4-no{font-size:14px;font-weight:700;fill:#dc2626}.r4-mid{font-size:12px;font-weight:600;fill:#b45309}</style><text x="360" y="26" text-anchor="middle" class="r4-t r4-title">Choosing between Record, Class, and Map</text><rect x="20" y="50" width="180" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="110" y="78" text-anchor="middle" class="r4-t r4-hdr">Feature</text><rect x="200" y="50" width="160" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="280" y="78" text-anchor="middle" class="r4-t r4-hdr">Record</text><rect x="360" y="50" width="160" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="440" y="78" text-anchor="middle" class="r4-t r4-hdr">Class</text><rect x="520" y="50" width="180" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="610" y="78" text-anchor="middle" class="r4-t r4-hdr">Map</text><rect x="20" y="95" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="120" text-anchor="middle" class="r4-t r4-cell">Type safety</text><rect x="200" y="95" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="120" text-anchor="middle" class="r4-t r4-yes">Strong</text><rect x="360" y="95" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="120" text-anchor="middle" class="r4-t r4-yes">Strong</text><rect x="520" y="95" width="180" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="120" text-anchor="middle" class="r4-t r4-no">Weak</text><rect x="20" y="135" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="160" text-anchor="middle" class="r4-t r4-cell">Immutable by default</text><rect x="200" y="135" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="160" text-anchor="middle" class="r4-t r4-yes">Yes</text><rect x="360" y="135" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="160" text-anchor="middle" class="r4-t r4-no">No (opt-in)</text><rect x="520" y="135" width="180" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="160" text-anchor="middle" class="r4-t r4-no">No</text><rect x="20" y="175" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="200" text-anchor="middle" class="r4-t r4-cell">Structural equality</text><rect x="200" y="175" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="200" text-anchor="middle" class="r4-t r4-yes">Yes</text><rect x="360" y="175" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="200" text-anchor="middle" class="r4-t r4-no">No (opt-in)</text><rect x="520" y="175" width="180" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="200" text-anchor="middle" class="r4-t r4-no">No</text><rect x="20" y="215" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="240" text-anchor="middle" class="r4-t r4-cell">Can have methods</text><rect x="200" y="215" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="240" text-anchor="middle" class="r4-t r4-no">No</text><rect x="360" y="215" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="240" text-anchor="middle" class="r4-t r4-yes">Yes</text><rect x="520" y="215" width="180" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="240" text-anchor="middle" class="r4-t r4-no">No</text><rect x="20" y="255" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="280" text-anchor="middle" class="r4-t r4-cell">Dynamic keys</text><rect x="200" y="255" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="280" text-anchor="middle" class="r4-t r4-no">No</text><rect x="360" y="255" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="280" text-anchor="middle" class="r4-t r4-no">No</text><rect x="520" y="255" width="180" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="280" text-anchor="middle" class="r4-t r4-yes">Yes</text><rect x="20" y="295" width="180" height="45" fill="#fff" stroke="#cbd5e1"/><text x="110" y="322" text-anchor="middle" class="r4-t r4-cell">Boilerplate</text><rect x="200" y="295" width="160" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="280" y="322" text-anchor="middle" class="r4-t r4-yes">None</text><rect x="360" y="295" width="160" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="440" y="322" text-anchor="middle" class="r4-t r4-mid">Some</text><rect x="520" y="295" width="180" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="610" y="322" text-anchor="middle" class="r4-t r4-yes">None</text></svg>
+      <br><br>
+      The rule of thumb: if we're tempted to create a class with just two or three final fields, a constructor, and maybe an override of <code>==</code> — reach for a record instead.
+
+  - id: records-in-practice
+    title: "Records in practice"
+    summary: |
+      Let's see records solving real problems.
+      <br><br>
+      <strong>Multiple return values.</strong> The classic use case.
+      <br><br>
+      <pre><code>(bool isValid, String? error) validateEmail(String email) {
+        if (!email.contains('@')) {
+          return (false, 'Missing @ symbol');
+        }
+        if (email.length &lt; 5) {
+          return (false, 'Too short');
+        }
+        return (true, null);
+      }
+
+      var (isValid, error) = validateEmail('test');
+      if (!isValid) print('Error: $error');</code></pre>
+      <strong>Records as Map keys.</strong> Because records have structural equality and a valid <code>hashCode</code>, they work as Map keys. This is something regular objects cannot do (unless we override <code>==</code> and <code>hashCode</code> ourselves).
+      <br><br>
+      <pre><code>var grid = &lt;(int, int), String&gt;{};
+      grid[(0, 0)] = 'origin';
+      grid[(1, 2)] = 'point A';
+      grid[(3, 4)] = 'point B';
+
+      print(grid[(1, 2)]);   // 'point A'
+
+      // Works because (1, 2) == (1, 2) structurally
+      var key = (1, 2);
+      print(grid[key]);      // 'point A'</code></pre>
+      <strong>Swapping values.</strong> Destructuring makes swapping elegant.
+      <br><br>
+      <pre><code>var a = 1;
+      var b = 2;
+
+      (a, b) = (b, a);   // swap in one line
+
+      print(a);   // 2
+      print(b);   // 1</code></pre>
+      <strong>Parsing structured data.</strong> When a function needs to return success/failure plus data.
+      <br><br>
+      <pre><code>(int? value, String? error) parseInt(String s) {
+        try {
+          return (int.parse(s), null);
+        } catch (_) {
+          return (null, 'Not a valid integer');
+        }
+      }
+
+      var (value, error) = parseInt('42');
+      if (error == null) {
+        print('Parsed: $value');
+      }</code></pre>
+      Records make these patterns readable without introducing named types for every small grouping.
+
+  - id: performance-and-memory
+    title: "Performance and memory"
+    summary: |
+      Records are value types with structural equality. What does that mean for performance?
+      <br><br>
+      <strong>Equality is field-by-field.</strong> Two records are equal if all their fields are equal. Dart computes this automatically — we don't override <code>==</code>.
+      <br><br>
+      <pre><code>var a = (1, 2);
+      var b = (1, 2);
+      var c = (1, 3);
+
+      print(a == b);   // true — same fields
+      print(a == c);   // false — different second field
+      print(identical(a, b));   // could be true or false — see below</code></pre>
+      <strong>Canonicalisation.</strong> The Dart compiler is allowed to canonicalise records with the same constant values. If we write <code>const (1, 2)</code> twice, we may get the same object. But for non-const records, each expression creates a fresh instance (though the VM may optimise this).
+      <br><br>
+      <pre><code>const r1 = (1, 2);
+      const r2 = (1, 2);
+      print(identical(r1, r2));   // true — const records are canonicalised
+
+      var r3 = (1, 2);
+      var r4 = (1, 2);
+      print(identical(r3, r4));   // likely false — not const</code></pre>
+      <strong>Immutability.</strong> Records are always immutable. There is no way to change a field after creation. This makes them safe to share between functions and even across isolates (when the field types are also sendable).
+      <br><br>
+      <strong>Memory layout.</strong> Records are compact. A two-field record of small integers uses roughly the same memory as storing two integers separately — there is no per-instance metadata overhead like a full class object would have. For hot paths returning multiple values, records avoid the allocation overhead of creating a wrapper class.
+      <br><br>
+      <strong>Hash codes.</strong> The <code>hashCode</code> of a record combines the hash codes of its fields. This is computed on demand and makes records suitable as Map keys or Set elements without extra work.
+      <br><br>
+      <pre><code>var points = &lt;(int, int)&gt;{};
+      points.add((1, 2));
+      points.add((1, 2));   // duplicate — Set keeps one
+      print(points.length);   // 1</code></pre>
+      Records bring the convenience of tuples from other languages, with full type safety and the structural equality semantics that make them usable anywhere we need value-based comparison.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on Dart records — syntax, destructuring, equality, and when to use them."
+  questions:
+    - question: "What is the type of the expression `(10, 'hello')`?"
+      options:
+        - "List<Object>"
+        - "(int, String)"
+        - "Tuple<int, String>"
+        - "Record<int, String>"
+      correctIndex: 1
+      explanation: "Record types are written with parentheses containing the field types. A positional record with an int and a String has type (int, String). Dart does not have a Tuple or Record generic class — the parentheses syntax is the type."
+
+    - question: "How do we access the second positional field of a record `var r = (1, 2, 3)`?"
+      options:
+        - "r[1]"
+        - "r.1"
+        - "r.$2"
+        - "r.get(2)"
+      correctIndex: 2
+      explanation: "Positional record fields are accessed using $1, $2, $3, and so on (1-indexed). The syntax r.$2 returns the second positional field. Square-bracket indexing and dot-number syntax are not valid for records."
+
+    - question: "What does `var (:name, :age) = user;` do?"
+      options:
+        - "Creates a new record with fields name and age"
+        - "Destructures user, creating local variables name and age from the named fields"
+        - "Assigns null to name and age"
+        - "Throws an error because the colon is in the wrong place"
+      correctIndex: 1
+      explanation: "This is shorthand destructuring syntax for named fields. It extracts the name and age fields from the record user into local variables of the same names. The colon prefix is shorthand for (name: name, age: age)."
+
+    - question: "Can records be used as Map keys?"
+      options:
+        - "No — records don't have a hashCode"
+        - "Yes — records have structural equality and a valid hashCode by default"
+        - "Only if we override == and hashCode manually"
+        - "Only const records can be Map keys"
+      correctIndex: 1
+      explanation: "Records automatically have structural equality (two records with the same field values are equal) and a hashCode computed from their fields. This makes them usable as Map keys without any extra work — unlike regular class instances which use identity equality by default."
+
+    - question: "What is the value of `(42)` in Dart?"
+      options:
+        - "A single-element record containing 42"
+        - "Just the integer 42 — parentheses are grouping, not a record"
+        - "A compile error"
+        - "A List with one element"
+      correctIndex: 1
+      explanation: "Parentheses around a single expression are just grouping in Dart. (42) evaluates to 42, not a record. To create a single-element record, add a trailing comma: (42,). This disambiguates records from grouped expressions."
+
+    - question: "Two records `(x: 1, y: 2)` and `(a: 1, b: 2)` have the same field values but different field names. Are they equal?"
+      options:
+        - "Yes — only the values matter for equality"
+        - "No — the field names are part of the record type and must match"
+        - "Yes — but only if both are const"
+        - "It depends on the order of fields"
+      correctIndex: 1
+      explanation: "Named field names are part of the record's type. (x: 1, y: 2) has type ({int x, int y}) while (a: 1, b: 2) has type ({int a, int b}). These are different types and cannot be compared with == — it's a compile-time error to even try."
+
+    - question: "When should we prefer a class over a record?"
+      options:
+        - "When we need more than two fields"
+        - "When we need methods, identity semantics, or a named type used across the codebase"
+        - "When the data is immutable"
+        - "When we need to use the data in a switch statement"
+      correctIndex: 1
+      explanation: "Records are best for lightweight, anonymous data groupings. Classes are better when we need methods attached to data, identity-based equality (two users with the same name are still different users), inheritance, or a named type that appears throughout the codebase. The number of fields doesn't determine which to use."
+---
+
+{/* All content is in frontmatter topics and quiz. Four inline SVG diagrams cover the problems records solve, field access patterns, destructuring syntax, and the comparison table. */}

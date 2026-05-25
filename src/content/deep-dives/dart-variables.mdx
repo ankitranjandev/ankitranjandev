@@ -1,0 +1,183 @@
+---
+title: "Variables and Keywords — var, final, const, and Friends"
+description: "How Dart stores and protects data. Understanding var, final, const, late, and dynamic unlocks safe, predictable code."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Data Foundations"
+order: 2
+publishedAt: 2025-05-24
+topics:
+  - id: variables-are-boxes
+    title: "Variables are labelled boxes"
+    summary: |
+      A variable is a name attached to a value. Think of it as a labelled box: the label is the variable name, the contents are the value. When we write <code>var name = 'Dart';</code>, we're creating a box labelled "name" and putting the string 'Dart' inside.
+
+      In Dart, every variable has a type. The type describes what kind of values the box can hold. A <code>String</code> variable can only hold strings. An <code>int</code> variable can only hold integers. Try putting a string into an int box, and the compiler will refuse.
+
+      <pre><code>// Creating variables&#10;var name = 'Dart';      // Type inferred as String&#10;String language = 'Dart'; // Type explicitly stated&#10;int count = 42;         // Integer variable&#10;double pi = 3.14159;    // Floating-point variable&#10;bool isReady = true;    // Boolean variable</code></pre>
+
+      The key question is: what can we do with this box once it's created? Can we replace the contents? Can we change them after the program is compiled? This is where keywords like <code>var</code>, <code>final</code>, and <code>const</code> come in.
+
+  - id: var-the-mutable-default
+    title: "var — the mutable default"
+    summary: |
+      The <code>var</code> keyword creates a variable whose value can be changed. It's the most flexible option. Declare it once, reassign it as many times as you want.
+
+      <pre><code>var score = 0;&#10;score = 10;      // OK&#10;score = 100;     // OK&#10;score = 'high';  // ERROR: can't change type</code></pre>
+
+      Notice the last line. With <code>var</code>, we can change the <em>value</em>, but not the <em>type</em>. Once Dart infers that <code>score</code> is an <code>int</code>, it stays an <code>int</code> forever. This is static typing at work — the type is fixed at compile time, even though the value isn't.
+
+      When should we use <code>var</code>? When we genuinely need to reassign the variable. Loop counters, accumulators, state that changes over time. But if we don't need to reassign, there's a better option.
+
+  - id: final-set-once
+    title: "final — set once, keep forever"
+    summary: |
+      A <code>final</code> variable can only be assigned once. After that first assignment, the reference is locked.
+
+      <pre><code>final name = 'Dart';&#10;name = 'Flutter';  // ERROR: can't reassign final variable</code></pre>
+
+      The value of <code>final</code> is computed at runtime. This means we can assign the result of a function call, user input, or any expression that evaluates when the program runs.
+
+      <pre><code>final now = DateTime.now();     // Computed at runtime&#10;final user = fetchCurrentUser(); // From a function&#10;final config = loadConfig();    // Loaded from file</code></pre>
+
+      Using <code>final</code> tells other developers (and ourselves): "This value won't change after it's set." It makes code easier to reason about. We don't have to track whether the variable might have been reassigned somewhere else.
+
+      The Dart style guide recommends <code>final</code> over <code>var</code> when reassignment isn't needed. It's a good default.
+
+  - id: const-compile-time
+    title: "const — known at compile time"
+    summary: |
+      A <code>const</code> variable is a compile-time constant. Its value must be determinable before the program even runs. The compiler bakes the value directly into the program.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="Comparison of var, final, and const keywords showing mutability"><style>.v1-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1-label { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }.v1-code { font: 600 12px "SF Mono", Menlo, Monaco, monospace; fill: #475569; }.v1-yes { font: bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #10b981; }.v1-no { font: bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #dc2626; }.v1-box { rx: 8; }</style><text x="360" y="28" text-anchor="middle" class="v1-title">var vs final vs const</text><g transform="translate(30, 55)"><rect x="0" y="0" width="200" height="220" fill="#dbeafe" stroke="#0175C2" stroke-width="2" class="v1-box"/><text x="100" y="30" text-anchor="middle" class="v1-label">var</text><line x1="20" y1="45" x2="180" y2="45" stroke="#0175C2" stroke-width="1"/><text x="100" y="70" text-anchor="middle" class="v1-code">var name = 'Dart';</text><text x="100" y="90" text-anchor="middle" class="v1-code">name = 'Flutter';</text><text x="20" y="125" class="v1-desc">Can reassign?</text><text x="170" y="125" text-anchor="end" class="v1-yes">✓ Yes</text><text x="20" y="150" class="v1-desc">Type inferred?</text><text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text><text x="20" y="175" class="v1-desc">When resolved?</text><text x="170" y="175" text-anchor="end" class="v1-code">runtime</text><rect x="20" y="190" width="160" height="20" fill="#eff6ff" rx="4"/><text x="100" y="204" text-anchor="middle" class="v1-desc">Mutable reference</text></g><g transform="translate(260, 55)"><rect x="0" y="0" width="200" height="220" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" class="v1-box"/><text x="100" y="30" text-anchor="middle" class="v1-label">final</text><line x1="20" y1="45" x2="180" y2="45" stroke="#f59e0b" stroke-width="1"/><text x="100" y="70" text-anchor="middle" class="v1-code">final name = 'Dart';</text><text x="100" y="90" text-anchor="middle" class="v1-code" style="fill: #dc2626; text-decoration: line-through;">name = 'Flutter';</text><text x="20" y="125" class="v1-desc">Can reassign?</text><text x="170" y="125" text-anchor="end" class="v1-no">✗ No</text><text x="20" y="150" class="v1-desc">Type inferred?</text><text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text><text x="20" y="175" class="v1-desc">When resolved?</text><text x="170" y="175" text-anchor="end" class="v1-code">runtime</text><rect x="20" y="190" width="160" height="20" fill="#fefce8" rx="4"/><text x="100" y="204" text-anchor="middle" class="v1-desc">Immutable reference</text></g><g transform="translate(490, 55)"><rect x="0" y="0" width="200" height="220" fill="#d1fae5" stroke="#10b981" stroke-width="2" class="v1-box"/><text x="100" y="30" text-anchor="middle" class="v1-label">const</text><line x1="20" y1="45" x2="180" y2="45" stroke="#10b981" stroke-width="1"/><text x="100" y="70" text-anchor="middle" class="v1-code">const pi = 3.14159;</text><text x="100" y="90" text-anchor="middle" class="v1-code" style="fill: #dc2626; text-decoration: line-through;">pi = 3.14;</text><text x="20" y="125" class="v1-desc">Can reassign?</text><text x="170" y="125" text-anchor="end" class="v1-no">✗ No</text><text x="20" y="150" class="v1-desc">Type inferred?</text><text x="170" y="150" text-anchor="end" class="v1-yes">✓ Yes</text><text x="20" y="175" class="v1-desc">When resolved?</text><text x="170" y="175" text-anchor="end" class="v1-code">compile-time</text><rect x="20" y="190" width="160" height="20" fill="#ecfdf5" rx="4"/><text x="100" y="204" text-anchor="middle" class="v1-desc">Compile-time constant</text></g></svg>
+
+      <pre><code>const pi = 3.14159;           // OK: literal value&#10;const doubled = pi * 2;       // OK: computed from const&#10;const now = DateTime.now();   // ERROR: not compile-time</code></pre>
+
+      The third line fails because <code>DateTime.now()</code> returns a different value each time the program runs. The compiler can't know what "now" will be.
+
+      <code>const</code> is powerful because identical <code>const</code> values share memory. Create the same <code>const</code> list in two places, and Dart stores only one copy. This matters for performance and equality checks.
+
+  - id: type-inference
+    title: "Type inference — let the compiler work"
+    summary: |
+      Dart is statically typed, meaning every variable has a fixed type. But we don't always have to write that type explicitly. The compiler can often figure it out from context. This is type inference.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" style="max-width: 100%; height: auto;" role="img" aria-label="Type inference in Dart: explicit vs inferred types"><defs><marker id="v1t-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0175C2"/></marker></defs><style>.v1t-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1t-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }.v1t-code { font: 600 13px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }.v1t-type { font: bold 13px "SF Mono", Menlo, Monaco, monospace; fill: #0175C2; }.v1t-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }.v1t-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 8; }</style><text x="360" y="28" text-anchor="middle" class="v1t-title">Type Inference: The Compiler Figures It Out</text><g transform="translate(40, 50)"><rect x="0" y="0" width="280" height="160" class="v1t-box"/><text x="140" y="28" text-anchor="middle" class="v1t-label">Explicit Type</text><line x1="20" y1="40" x2="260" y2="40" stroke="#cbd5e1" stroke-width="1"/><text x="30" y="75" class="v1t-type">String</text><text x="85" y="75" class="v1t-code">name = 'Dart';</text><text x="30" y="105" class="v1t-type">int</text><text x="60" y="105" class="v1t-code">count = 42;</text><text x="30" y="135" class="v1t-type">List&lt;int&gt;</text><text x="100" y="135" class="v1t-code">nums = [1, 2, 3];</text></g><text x="360" y="135" text-anchor="middle" style="font: bold 24px sans-serif; fill: #10b981;">=</text><g transform="translate(400, 50)"><rect x="0" y="0" width="280" height="160" class="v1t-box"/><text x="140" y="28" text-anchor="middle" class="v1t-label">Inferred Type</text><line x1="20" y1="40" x2="260" y2="40" stroke="#cbd5e1" stroke-width="1"/><text x="30" y="75" class="v1t-code">var name = 'Dart';</text><text x="220" y="75" class="v1t-type">→ String</text><text x="30" y="105" class="v1t-code">var count = 42;</text><text x="220" y="105" class="v1t-type">→ int</text><text x="30" y="135" class="v1t-code">var nums = [1, 2, 3];</text><text x="220" y="135" class="v1t-type">→ List&lt;int&gt;</text></g><text x="360" y="225" text-anchor="middle" class="v1t-desc">Both are statically typed. The compiler infers the type from the right-hand side.</text></svg>
+
+      When should we use explicit types? The Dart style guide says: prefer <code>var</code> for local variables when the type is obvious. Use explicit types for public APIs (function parameters, return types, class fields) where clarity matters more.
+
+      <pre><code>// Local variables: var is fine&#10;var items = fetchItems();&#10;&#10;// Public API: explicit types are clearer&#10;List&lt;Item&gt; fetchItems() { ... }&#10;void addItem(Item item) { ... }</code></pre>
+
+  - id: late-deferred-init
+    title: "late — promise to initialise later"
+    summary: |
+      The <code>late</code> keyword tells Dart: "I'm not assigning this now, but I promise it will be assigned before anyone reads it."
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width: 100%; height: auto;" role="img" aria-label="The late keyword: deferred initialization"><defs><marker id="v1l-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0175C2"/></marker></defs><style>.v1l-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1l-label { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1l-code { font: 600 12px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }.v1l-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }.v1l-warn { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #dc2626; }.v1l-ok { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #10b981; }</style><text x="360" y="28" text-anchor="middle" class="v1l-title">late — Promise to Initialise Later</text><line x1="60" y1="80" x2="660" y2="80" stroke="#cbd5e1" stroke-width="2"/><g transform="translate(100, 60)"><circle cx="0" cy="20" r="8" fill="#f59e0b"/><text x="0" y="50" text-anchor="middle" class="v1l-label">Declaration</text><text x="0" y="70" text-anchor="middle" class="v1l-code">late String name;</text><text x="0" y="90" text-anchor="middle" class="v1l-desc">No value yet</text></g><rect x="150" y="100" width="200" height="30" fill="#fee2e2" rx="4"/><text x="250" y="120" text-anchor="middle" class="v1l-warn">⚠ Access here = LateInitializationError</text><g transform="translate(400, 60)"><circle cx="0" cy="20" r="8" fill="#10b981"/><text x="0" y="50" text-anchor="middle" class="v1l-label">Assignment</text><text x="0" y="70" text-anchor="middle" class="v1l-code">name = fetchName();</text><text x="0" y="90" text-anchor="middle" class="v1l-desc">Value assigned</text></g><rect x="450" y="100" width="160" height="30" fill="#d1fae5" rx="4"/><text x="530" y="120" text-anchor="middle" class="v1l-ok">✓ Safe to access</text><g transform="translate(60, 170)"><rect x="0" y="0" width="600" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="8"/><text x="20" y="25" class="v1l-label">Common Use Cases</text><text x="20" y="50" class="v1l-desc">• Dependency injection — assign after constructor</text><text x="20" y="70" class="v1l-desc">• Expensive computation — lazy initialisation with late final</text><text x="320" y="50" class="v1l-desc">• Circular references — A needs B, B needs A</text><text x="320" y="70" class="v1l-desc">• Test setup — assign in setUp(), use in tests</text></g></svg>
+
+      If we break the promise and read before assignment, Dart throws a <code>LateInitializationError</code> at runtime. It's a contract: we take responsibility for ensuring initialisation happens.
+
+      <pre><code>class UserService {&#10;  late final Database _db;&#10;&#10;  void init(Database db) {&#10;    _db = db;  // Assigned after constructor&#10;  }&#10;&#10;  User getUser(int id) => _db.query('...');&#10;}</code></pre>
+
+      The <code>late final</code> combination is powerful: lazy initialisation that can only happen once. The expensive computation runs only when first accessed.
+
+  - id: dynamic-escape-hatch
+    title: "dynamic — the escape hatch"
+    summary: |
+      Sometimes we genuinely don't know the type. JSON from a server, values from reflection, interop with JavaScript. For these cases, Dart offers <code>dynamic</code> — a way to opt out of static type checking.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" style="max-width: 100%; height: auto;" role="img" aria-label="Comparison of dynamic and Object types"><style>.v1d-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1d-label { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.v1d-code { font: 600 12px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }.v1d-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }.v1d-warn { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #dc2626; }.v1d-safe { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #10b981; }</style><text x="360" y="28" text-anchor="middle" class="v1d-title">dynamic vs Object — Escaping the Type System</text><g transform="translate(40, 50)"><rect x="0" y="0" width="300" height="190" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="8"/><text x="150" y="28" text-anchor="middle" class="v1d-label">dynamic</text><line x1="20" y1="40" x2="280" y2="40" stroke="#dc2626" stroke-width="1"/><text x="20" y="65" class="v1d-code">dynamic value = 'hello';</text><text x="20" y="85" class="v1d-code">value = 42;</text><text x="200" y="85" class="v1d-desc">// OK</text><text x="20" y="105" class="v1d-code">value = true;</text><text x="200" y="105" class="v1d-desc">// OK</text><text x="20" y="135" class="v1d-code">value.foo();</text><text x="130" y="135" class="v1d-desc">// Compiles! Crashes at runtime</text><rect x="20" y="155" width="260" height="25" fill="#fef2f2" rx="4"/><text x="150" y="172" text-anchor="middle" class="v1d-warn">⚠ No compile-time checks</text></g><g transform="translate(380, 50)"><rect x="0" y="0" width="300" height="190" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="150" y="28" text-anchor="middle" class="v1d-label">Object</text><line x1="20" y1="40" x2="280" y2="40" stroke="#10b981" stroke-width="1"/><text x="20" y="65" class="v1d-code">Object value = 'hello';</text><text x="20" y="85" class="v1d-code">value = 42;</text><text x="200" y="85" class="v1d-desc">// OK</text><text x="20" y="105" class="v1d-code">value = true;</text><text x="200" y="105" class="v1d-desc">// OK</text><text x="20" y="135" class="v1d-code">value.foo();</text><text x="130" y="135" class="v1d-desc">// Compile error!</text><rect x="20" y="155" width="260" height="25" fill="#ecfdf5" rx="4"/><text x="150" y="172" text-anchor="middle" class="v1d-safe">✓ Only Object methods allowed</text></g></svg>
+
+      With <code>dynamic</code>, any method call compiles — but might crash at runtime. The alternative is <code>Object</code> (or <code>Object?</code>), which accepts any value but only allows methods that exist on all objects.
+
+      <pre><code>dynamic d = 'hello';&#10;print(d.length);    // OK at compile and runtime&#10;print(d.foo());     // Compiles, crashes at runtime&#10;&#10;Object o = 'hello';&#10;print(o.length);    // Compile error: Object has no length</code></pre>
+
+      Use <code>dynamic</code> sparingly. Every use is a place where the compiler can't help us catch mistakes.
+
+  - id: practical-guidelines
+    title: "Practical guidelines"
+    summary: |
+      So what should we actually use? Here's a decision tree:
+      <br><br>
+      • <strong>Will the value change?</strong> No → use <code>final</code><br>
+      • <strong>Is it a compile-time constant?</strong> Yes → use <code>const</code><br>
+      • <strong>Do you need to reassign?</strong> Yes → use <code>var</code><br>
+      • <strong>Can't initialise in constructor?</strong> Consider <code>late</code><br>
+      • <strong>Don't know the type at all?</strong> Use <code>Object</code> first, <code>dynamic</code> as last resort<br><br>
+
+      <pre><code>// Good defaults&#10;final name = 'Dart';           // Won't change&#10;const pi = 3.14159;            // Compile-time constant&#10;var count = 0;                 // Needs to change&#10;late final config = loadConfig(); // Lazy + immutable</code></pre>
+
+      The goal is to give the compiler (and future readers) as much information as possible. <code>final</code> says "this won't change." <code>const</code> says "this can't change, ever, and is known at compile time." These constraints help us write safer code.
+
+      As a rule of thumb: default to <code>final</code>, reach for <code>const</code> when possible, use <code>var</code> only when reassignment is genuinely needed.
+
+quiz:
+  title: "Variables and Keywords Quiz"
+  description: "Test your understanding of Dart's variable declaration keywords."
+  questions:
+    - question: "What is the main difference between final and const?"
+      options:
+        - "final is for strings, const is for numbers"
+        - "final is computed at runtime, const at compile-time"
+        - "const allows reassignment, final doesn't"
+        - "There is no difference"
+      correctIndex: 1
+      explanation: "final variables are assigned once at runtime — they can hold values computed when the program runs. const variables must be compile-time constants — their values are known before execution."
+
+    - question: "What happens if you try to reassign a final variable?"
+      options:
+        - "It updates silently"
+        - "A runtime exception is thrown"
+        - "A compile-time error occurs"
+        - "The new value is ignored"
+      correctIndex: 2
+      explanation: "Dart catches final reassignment at compile time. The code won't even compile if you try to assign to a final variable twice."
+
+    - question: "Which keyword allows type inference while permitting reassignment?"
+      options:
+        - "final"
+        - "const"
+        - "var"
+        - "late"
+      correctIndex: 2
+      explanation: "var infers the type from the initial value and allows the variable to be reassigned (to values of the same type)."
+
+    - question: "What error occurs when reading a late variable before assignment?"
+      options:
+        - "TypeError"
+        - "NullPointerException"
+        - "LateInitializationError"
+        - "AssignmentError"
+      correctIndex: 2
+      explanation: "Dart throws LateInitializationError at runtime if you read a late variable before it has been assigned. It's a contract: you promise to initialise before reading."
+
+    - question: "Can a const variable hold the result of DateTime.now()?"
+      options:
+        - "Yes, it's just an expression"
+        - "No, DateTime.now() isn't a compile-time constant"
+        - "Only in debug mode"
+        - "Only with explicit type annotation"
+      correctIndex: 1
+      explanation: "const values must be determinable at compile time. DateTime.now() returns a different value each time, so it cannot be const."
+
+    - question: "What is the advantage of using Object over dynamic?"
+      options:
+        - "Object is faster at runtime"
+        - "Object allows any method call"
+        - "Object provides compile-time safety — only Object methods are allowed"
+        - "Object can be null"
+      correctIndex: 2
+      explanation: "Object accepts any value but only allows methods defined on Object itself (like toString, hashCode). This catches method-call errors at compile time, unlike dynamic."
+
+    - question: "Which combination creates a lazy, one-time-only initialisation?"
+      options:
+        - "var"
+        - "final"
+        - "late final"
+        - "const"
+      correctIndex: 2
+      explanation: "late final delays initialisation until first access (lazy) and allows only one assignment (final). The expensive computation runs only when needed, only once."
+---
+
+{/* Episode 2 of Dart: Data Foundations. Variable declaration keywords: var, final,
+    const, late, dynamic, Object. Type inference. 4 inline SVG diagrams. */}

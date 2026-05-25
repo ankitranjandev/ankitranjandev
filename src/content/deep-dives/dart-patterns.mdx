@@ -1,0 +1,426 @@
+---
+title: "Patterns in Dart — Destructuring and Matching in One"
+description: "Dart 3 introduced patterns — a way to destructure data and match its shape at the same time. They make switch statements powerful, if-case expressive, and variable declarations cleaner."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 5
+publishedAt: 2026-05-24
+topics:
+  - id: what-are-patterns
+    title: "What are patterns?"
+    summary: |
+      Before Dart 3, we had two separate tools. To pull values out of a structure, we wrote multiple assignment statements. To check if data matched a certain shape, we wrote chains of if-else conditions. Both felt verbose.
+      <br><br>
+      Patterns solve both problems at once. A pattern does two things:
+      <br><br>
+      <strong>1. Destructuring</strong> — extracting values from data structures
+      <br>
+      <strong>2. Matching</strong> — checking if data has a certain shape
+      <br><br>
+      <pre><code>// Before patterns
+      var list = [1, 2, 3];
+      var first = list[0];
+      var second = list[1];
+
+      // With patterns — destructure in one line
+      var [a, b, c] = [1, 2, 3];
+      print(a);  // 1
+      print(b);  // 2</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Pattern destructuring and matching diagram" style="max-width: 100%; height: auto;"><style>.p1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.p1-title{font-size:16px;font-weight:600}.p1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.p1-label{font-size:12px;fill:#64748b}.p1-action{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="28" text-anchor="middle" class="p1-t p1-title">Patterns do two things at once</text><rect x="40" y="60" width="280" height="90" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="180" y="90" text-anchor="middle" class="p1-t p1-action">Destructuring</text><text x="180" y="115" text-anchor="middle" class="p1-t p1-label">Pull values out of structures</text><text x="180" y="135" text-anchor="middle" class="p1-t p1-mn">var [a, b] = list;</text><rect x="400" y="60" width="280" height="90" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="90" text-anchor="middle" class="p1-t p1-action">Matching</text><text x="540" y="115" text-anchor="middle" class="p1-t p1-label">Check if data has a shape</text><text x="540" y="135" text-anchor="middle" class="p1-t p1-mn">case [int a, int b]:</text><rect x="180" y="180" width="360" height="70" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="360" y="210" text-anchor="middle" class="p1-t p1-action">Patterns combine both</text><text x="360" y="232" text-anchor="middle" class="p1-t p1-mn">if (list case [int a, int b]) { ... }</text><line x1="180" y1="150" x2="280" y2="180" stroke="#475569" stroke-width="1.5"/><line x1="540" y1="150" x2="440" y2="180" stroke="#475569" stroke-width="1.5"/></svg>
+      <br><br>
+      The syntax might look unfamiliar at first, but the idea is simple: we write a shape on the left side, and if the data on the right matches, we get variables bound to the values inside. If it doesn't match, we either get an error (in declarations) or move to the next case (in switch/if-case).
+
+  - id: variable-patterns
+    title: "Variable patterns and destructuring"
+    summary: |
+      The most basic pattern is just a variable name. It matches anything and binds the value to that name.
+      <br><br>
+      <pre><code>var x = 42;        // x matches anything, binds to 42
+      final y = 'hello'; // y matches anything, binds to 'hello'</code></pre>
+      We've been using this all along — it's just variable declaration. But patterns let us go deeper.
+      <br><br>
+      <strong>List patterns</strong> destructure lists.
+      <br><br>
+      <pre><code>var numbers = [1, 2, 3];
+      var [a, b, c] = numbers;
+      print('$a, $b, $c');  // 1, 2, 3
+
+      // With type annotations
+      var [int x, int y, int z] = [10, 20, 30];</code></pre>
+      <strong>Record patterns</strong> destructure records (Dart 3's lightweight data structures).
+      <br><br>
+      <pre><code>var point = (3, 4);
+      var (x, y) = point;
+      print('x=$x, y=$y');  // x=3, y=4
+
+      // Named fields in records
+      var user = (name: 'Ankit', age: 25);
+      var (name: n, age: a) = user;
+      print('$n is $a');  // Ankit is 25</code></pre>
+      <strong>The underscore pattern</strong> ignores a position.
+      <br><br>
+      <pre><code>var [first, _, third] = [1, 2, 3];
+      print(first);  // 1
+      print(third);  // 3
+      // We don't care about the middle value</code></pre>
+      <strong>The rest pattern (...)</strong> collects remaining elements.
+      <br><br>
+      <pre><code>var [first, ...rest] = [1, 2, 3, 4, 5];
+      print(first);  // 1
+      print(rest);   // [2, 3, 4, 5]
+
+      var [head, ...middle, tail] = [1, 2, 3, 4, 5];
+      print(head);    // 1
+      print(middle);  // [2, 3, 4]
+      print(tail);    // 5</code></pre>
+
+  - id: object-patterns
+    title: "Object patterns — matching class properties"
+    summary: |
+      Object patterns let us match against the properties of a class instance. The syntax uses the class name followed by the properties we want to extract.
+      <br><br>
+      <pre><code>class Point {
+        final int x;
+        final int y;
+        Point(this.x, this.y);
+      }
+
+      void main() {
+        var point = Point(3, 4);
+
+        // Object pattern — extract x and y
+        var Point(x: px, y: py) = point;
+        print('$px, $py');  // 3, 4
+
+        // If the variable name matches the property, use shorthand
+        var Point(:x, :y) = point;
+        print('$x, $y');  // 3, 4
+      }</code></pre>
+      The <code>:x</code> shorthand is equivalent to <code>x: x</code> — it binds the property <code>x</code> to a variable also called <code>x</code>.
+      <br><br>
+      <strong>In switch statements</strong>, object patterns are even more powerful. We can match and extract in one step.
+      <br><br>
+      <pre><code>void describe(Object obj) {
+        switch (obj) {
+          case Point(x: 0, y: 0):
+            print('Origin');
+          case Point(:var x, :var y) when x == y:
+            print('On the diagonal at $x');
+          case Point(:var x, :var y):
+            print('Point at ($x, $y)');
+          default:
+            print('Not a point');
+        }
+      }
+
+      describe(Point(0, 0));    // Origin
+      describe(Point(5, 5));    // On the diagonal at 5
+      describe(Point(3, 7));    // Point at (3, 7)</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Object pattern syntax diagram" style="max-width: 100%; height: auto;"><style>.p2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.p2-title{font-size:16px;font-weight:600}.p2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.p2-label{font-size:12px;fill:#64748b}.p2-note{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="26" text-anchor="middle" class="p2-t p2-title">Object pattern syntax</text><rect x="40" y="55" width="300" height="100" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="190" y="80" text-anchor="middle" class="p2-t p2-note">Full form</text><text x="190" y="110" text-anchor="middle" class="p2-t p2-mn">Point(x: px, y: py)</text><text x="190" y="135" text-anchor="middle" class="p2-t p2-label">property x binds to variable px</text><rect x="380" y="55" width="300" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="80" text-anchor="middle" class="p2-t p2-note">Shorthand (same name)</text><text x="530" y="110" text-anchor="middle" class="p2-t p2-mn">Point(:x, :y)</text><text x="530" y="135" text-anchor="middle" class="p2-t p2-label">property x binds to variable x</text><rect x="40" y="180" width="300" height="100" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="190" y="205" text-anchor="middle" class="p2-t p2-note">With var/final</text><text x="190" y="235" text-anchor="middle" class="p2-t p2-mn">Point(:var x, :final y)</text><text x="190" y="260" text-anchor="middle" class="p2-t p2-label">declares new variables</text><rect x="380" y="180" width="300" height="100" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="530" y="205" text-anchor="middle" class="p2-t p2-note">Matching literal values</text><text x="530" y="235" text-anchor="middle" class="p2-t p2-mn">Point(x: 0, y: 0)</text><text x="530" y="260" text-anchor="middle" class="p2-t p2-label">only matches if x and y are 0</text></svg>
+
+  - id: list-map-patterns
+    title: "List and map patterns"
+    summary: |
+      We've seen list patterns for destructuring. They also work for matching in switch and if-case.
+      <br><br>
+      <pre><code>void process(List&lt;int&gt; items) {
+        switch (items) {
+          case []:
+            print('Empty list');
+          case [var single]:
+            print('Single item: $single');
+          case [var first, var second]:
+            print('Pair: $first and $second');
+          case [var first, ...var rest]:
+            print('First: $first, rest: $rest');
+        }
+      }
+
+      process([]);           // Empty list
+      process([42]);         // Single item: 42
+      process([1, 2]);       // Pair: 1 and 2
+      process([1, 2, 3, 4]); // First: 1, rest: [2, 3, 4]</code></pre>
+      <strong>Map patterns</strong> match key-value pairs. They're useful for JSON-like data.
+      <br><br>
+      <pre><code>void handleResponse(Map&lt;String, dynamic&gt; json) {
+        switch (json) {
+          case {'error': var message}:
+            print('Error: $message');
+          case {'data': var data, 'count': int count}:
+            print('Got $count items: $data');
+          case {'status': 'ok'}:
+            print('Success with no data');
+          default:
+            print('Unknown response format');
+        }
+      }
+
+      handleResponse({'error': 'Not found'});
+      // Error: Not found
+
+      handleResponse({'data': [1, 2, 3], 'count': 3});
+      // Got 3 items: [1, 2, 3]
+
+      handleResponse({'status': 'ok'});
+      // Success with no data</code></pre>
+      <strong>Key point:</strong> Map patterns only check for the keys we specify. The map can have additional keys — the pattern still matches. This makes them perfect for partial matching of JSON responses where we only care about certain fields.
+      <br><br>
+      <pre><code>var json = {'name': 'Ankit', 'age': 25, 'city': 'Delhi'};
+
+      // This matches — we only check for 'name'
+      if (json case {'name': var name}) {
+        print(name);  // Ankit
+      }</code></pre>
+
+  - id: logical-patterns
+    title: "Logical patterns — and, or, parenthesised"
+    summary: |
+      Sometimes one pattern isn't enough. Dart lets us combine patterns with logical operators.
+      <br><br>
+      <strong>Or patterns (||)</strong> match if either side matches.
+      <br><br>
+      <pre><code>void classifyNumber(int n) {
+        switch (n) {
+          case 0 || 1:
+            print('Binary digit');
+          case 2 || 3 || 5 || 7:
+            print('Small prime');
+          case &lt; 0 || &gt; 100:
+            print('Out of range');
+          default:
+            print('Regular number');
+        }
+      }
+
+      classifyNumber(1);    // Binary digit
+      classifyNumber(5);    // Small prime
+      classifyNumber(-5);   // Out of range</code></pre>
+      <strong>And patterns (&&)</strong> require both sides to match. These are especially useful with type checks and guards.
+      <br><br>
+      <pre><code>void process(Object value) {
+        switch (value) {
+          case int n && &gt; 0:
+            print('Positive integer: $n');
+          case String s && != '':
+            print('Non-empty string: $s');
+          default:
+            print('Something else');
+        }
+      }
+
+      process(42);      // Positive integer: 42
+      process(-5);      // Something else (int but not > 0)
+      process('hello'); // Non-empty string: hello
+      process('');      // Something else</code></pre>
+      <strong>Parenthesised patterns</strong> group patterns to control precedence.
+      <br><br>
+      <pre><code>switch (value) {
+        case (int || double) && &gt; 0:
+          print('Positive number');
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Logical pattern operators" style="max-width: 100%; height: auto;"><style>.p3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.p3-title{font-size:16px;font-weight:600}.p3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.p3-label{font-size:12px;fill:#64748b}.p3-note{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="26" text-anchor="middle" class="p3-t p3-title">Combining patterns with logical operators</text><rect x="40" y="55" width="200" height="80" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="140" y="85" text-anchor="middle" class="p3-t p3-mn">A || B</text><text x="140" y="110" text-anchor="middle" class="p3-t p3-label">matches if A OR B matches</text><text x="140" y="125" text-anchor="middle" class="p3-t p3-label">(either one)</text><rect x="260" y="55" width="200" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="85" text-anchor="middle" class="p3-t p3-mn">A &amp;&amp; B</text><text x="360" y="110" text-anchor="middle" class="p3-t p3-label">matches if A AND B match</text><text x="360" y="125" text-anchor="middle" class="p3-t p3-label">(both required)</text><rect x="480" y="55" width="200" height="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="580" y="85" text-anchor="middle" class="p3-t p3-mn">(A || B) &amp;&amp; C</text><text x="580" y="110" text-anchor="middle" class="p3-t p3-label">parentheses for grouping</text><text x="580" y="125" text-anchor="middle" class="p3-t p3-label">(control precedence)</text><text x="360" y="175" text-anchor="middle" class="p3-t p3-note">Relational patterns: &lt; 0, &gt;= 10, == 'hello', != null</text><text x="360" y="200" text-anchor="middle" class="p3-t p3-label">These check values directly — combine them with &amp;&amp; for powerful matching</text></svg>
+      <br><br>
+      <strong>Relational patterns</strong> are particularly useful for range checking.
+      <br><br>
+      <pre><code>String gradeFor(int score) {
+        return switch (score) {
+          &lt; 0 || &gt; 100 =&gt; 'Invalid',
+          &gt;= 90 =&gt; 'A',
+          &gt;= 80 =&gt; 'B',
+          &gt;= 70 =&gt; 'C',
+          &gt;= 60 =&gt; 'D',
+          _ =&gt; 'F',
+        };
+      }</code></pre>
+
+  - id: switch-expressions
+    title: "Switch expressions and exhaustiveness"
+    summary: |
+      Dart 3 introduced switch expressions — a compact form of switch that returns a value. Combined with patterns, they replace many verbose if-else chains.
+      <br><br>
+      <pre><code>// Old switch statement
+      String describe(int n) {
+        switch (n) {
+          case 0:
+            return 'zero';
+          case 1:
+            return 'one';
+          default:
+            return 'many';
+        }
+      }
+
+      // New switch expression
+      String describe(int n) =&gt; switch (n) {
+        0 =&gt; 'zero',
+        1 =&gt; 'one',
+        _ =&gt; 'many',
+      };</code></pre>
+      The <code>=&gt;</code> replaces <code>case</code> and <code>return</code>. The underscore <code>_</code> is the wildcard that matches anything.
+      <br><br>
+      <strong>Exhaustiveness checking.</strong> The compiler verifies that switch expressions cover all possible values. This is especially powerful with enums and sealed classes.
+      <br><br>
+      <pre><code>enum Status { pending, approved, rejected }
+
+      String icon(Status s) =&gt; switch (s) {
+        Status.pending =&gt; '...',
+        Status.approved =&gt; 'tick',
+        Status.rejected =&gt; 'cross',
+      };
+      // No default needed — compiler knows all cases are covered</code></pre>
+      <strong>Sealed classes</strong> unlock the full power. When a class is sealed, its subclasses are known at compile time.
+      <br><br>
+      <pre><code>sealed class Result {}
+      class Success extends Result {
+        final String data;
+        Success(this.data);
+      }
+      class Failure extends Result {
+        final String error;
+        Failure(this.error);
+      }
+
+      String handle(Result r) =&gt; switch (r) {
+        Success(:var data) =&gt; 'Got: $data',
+        Failure(:var error) =&gt; 'Error: $error',
+      };
+      // Exhaustive — no default needed</code></pre>
+      If we add a new subclass to <code>Result</code>, the compiler will warn us about every switch that doesn't handle it. No runtime surprises.
+      <br><br>
+      <strong>The if-case statement</strong> uses patterns in a single branch.
+      <br><br>
+      <pre><code>var json = {'name': 'Ankit', 'age': 25};
+
+      if (json case {'name': String name, 'age': int age}) {
+        print('$name is $age years old');
+      } else {
+        print('Invalid format');
+      }</code></pre>
+      This is cleaner than manual type checks and key lookups. The pattern either matches and binds, or the else branch runs.
+
+  - id: guard-clauses
+    title: "Guard clauses with when"
+    summary: |
+      Sometimes a pattern match isn't enough — we need an additional condition. That's what the <code>when</code> keyword provides.
+      <br><br>
+      <pre><code>void process(int n) {
+        switch (n) {
+          case var x when x &lt; 0:
+            print('Negative: $x');
+          case var x when x == 0:
+            print('Zero');
+          case var x when x.isEven:
+            print('Positive even: $x');
+          case var x:
+            print('Positive odd: $x');
+        }
+      }</code></pre>
+      The <code>when</code> clause adds a boolean condition after the pattern. The case only matches if the pattern matches AND the condition is true.
+      <br><br>
+      <strong>Guards can use destructured values.</strong> This is where they shine.
+      <br><br>
+      <pre><code>void classifyPoint(Point p) {
+        switch (p) {
+          case Point(:var x, :var y) when x == y:
+            print('On diagonal');
+          case Point(:var x, :var y) when x == 0:
+            print('On Y axis');
+          case Point(:var x, :var y) when y == 0:
+            print('On X axis');
+          case Point(:var x, :var y):
+            print('Somewhere at ($x, $y)');
+        }
+      }</code></pre>
+      <strong>In switch expressions:</strong>
+      <br><br>
+      <pre><code>String describe(int n) =&gt; switch (n) {
+        var x when x &lt; 0 =&gt; 'negative',
+        0 =&gt; 'zero',
+        var x when x &lt; 10 =&gt; 'small positive',
+        var x when x &lt; 100 =&gt; 'medium',
+        _ =&gt; 'large',
+      };</code></pre>
+      <strong>In if-case:</strong>
+      <br><br>
+      <pre><code>var user = {'name': 'Ankit', 'age': 25, 'role': 'admin'};
+
+      if (user case {'name': String name, 'role': 'admin'} when name.isNotEmpty) {
+        print('Admin: $name');
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img" aria-label="Guard clause syntax" style="max-width: 100%; height: auto;"><style>.p4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.p4-title{font-size:16px;font-weight:600}.p4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.p4-label{font-size:12px;fill:#64748b}.p4-note{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="26" text-anchor="middle" class="p4-t p4-title">Guard clauses refine pattern matches</text><rect x="40" y="55" width="640" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="88" text-anchor="middle" class="p4-t p4-mn">case Point(:var x, :var y) when x == y:</text><rect x="60" y="120" width="180" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/><text x="150" y="142" text-anchor="middle" class="p4-t p4-label">Pattern</text><text x="150" y="158" text-anchor="middle" class="p4-t p4-mn">Point(:var x, :var y)</text><rect x="270" y="120" width="80" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="310" y="150" text-anchor="middle" class="p4-t p4-mn">when</text><rect x="380" y="120" width="200" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/><text x="480" y="142" text-anchor="middle" class="p4-t p4-label">Guard condition</text><text x="480" y="158" text-anchor="middle" class="p4-t p4-mn">x == y</text><line x1="150" y1="105" x2="150" y2="120" stroke="#475569" stroke-width="1.5"/><line x1="310" y1="105" x2="310" y2="120" stroke="#475569" stroke-width="1.5"/><line x1="480" y1="105" x2="480" y2="120" stroke="#475569" stroke-width="1.5"/></svg>
+      <br><br>
+      Guards let patterns do the structural matching while conditions handle the value logic. This separation keeps each part simple and readable.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering Dart 3 patterns — destructuring, matching, switch expressions, and guards."
+  questions:
+    - question: "What two things does a pattern do in Dart?"
+      options:
+        - "Validate and serialize data"
+        - "Destructure data and match its shape"
+        - "Compress and encrypt values"
+        - "Parse and format strings"
+      correctIndex: 1
+      explanation: "Patterns do two things at once: they destructure (extract values from structures) and match (check if data has a certain shape). This combination makes code more concise — we can check structure and extract values in a single expression."
+
+    - question: "What does `var [first, ...rest] = [1, 2, 3, 4]` bind to `rest`?"
+      options:
+        - "2"
+        - "[2, 3, 4]"
+        - "[1, 2, 3, 4]"
+        - "4"
+      correctIndex: 1
+      explanation: "The rest pattern (...rest) collects all remaining elements after the ones explicitly matched. Here, `first` gets 1, and `rest` gets the remaining elements [2, 3, 4]. The rest pattern can appear at the start, middle, or end of a list pattern."
+
+    - question: "What does `:x` mean in the pattern `Point(:x, :y)`?"
+      options:
+        - "It checks if x is null"
+        - "It's shorthand for `x: x` — bind property x to variable x"
+        - "It ignores the x property"
+        - "It makes x immutable"
+      correctIndex: 1
+      explanation: "The colon prefix is shorthand syntax when the variable name matches the property name. `Point(:x, :y)` is equivalent to `Point(x: x, y: y)`. It binds the property `x` to a new variable also called `x`. This makes common patterns more concise."
+
+    - question: "Will this map pattern match? `{'name': var n}` against `{'name': 'Ankit', 'age': 25}`"
+      options:
+        - "No — the pattern must list all keys in the map"
+        - "Yes — map patterns do partial matching on specified keys only"
+        - "It causes a compile error"
+        - "Only if age is also null"
+      correctIndex: 1
+      explanation: "Map patterns match partially — they only check for the keys specified in the pattern. The map can have additional keys that aren't mentioned. This is by design, making map patterns perfect for matching JSON responses where we only care about certain fields."
+
+    - question: "What is the purpose of the `when` keyword in a pattern?"
+      options:
+        - "It delays pattern matching until runtime"
+        - "It adds a boolean condition that must also be true for the case to match"
+        - "It makes the pattern optional"
+        - "It converts the pattern to a string"
+      correctIndex: 1
+      explanation: "The `when` keyword adds a guard clause — an additional boolean condition. The case only matches if the pattern matches AND the guard condition is true. Guards can reference variables bound by the pattern, making them useful for value-based conditions after structural matching."
+
+    - question: "What makes switch expressions with sealed classes special?"
+      options:
+        - "They run faster than regular switches"
+        - "The compiler checks exhaustiveness — all subclasses must be handled"
+        - "They can only have two cases"
+        - "They work only with strings"
+      correctIndex: 1
+      explanation: "When switching on a sealed class, the compiler knows all possible subclasses at compile time. It verifies that every subclass is handled, so no default case is needed. If a new subclass is added later, the compiler warns about every unhandled switch — preventing runtime surprises."
+
+    - question: "How would you match a positive even integer in a switch expression?"
+      options:
+        - "`case even && positive:`"
+        - "`case int n when n > 0 && n.isEven:`"
+        - "`case > 0 & isEven:`"
+        - "`case positiveEven(n):`"
+      correctIndex: 1
+      explanation: "Use a type pattern (`int n`) to bind the value, then a `when` clause with the conditions. The pattern `int n when n > 0 && n.isEven` first matches any int and binds it to `n`, then checks that n is positive and even. This separates type matching from value conditions."
+---
+
+{/* Episode: Patterns in Dart. Part of the Dart: Modern Features series.
+    7 topics covering pattern fundamentals, variable/record/list/map/object patterns,
+    logical operators, switch expressions with exhaustiveness, and guard clauses.
+    4 inline SVG diagrams illustrating core concepts. */}

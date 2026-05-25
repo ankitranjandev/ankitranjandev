@@ -1,0 +1,103 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Prose from '@/components/Prose.astro';
+import TagPill from '@/components/TagPill.astro';
+import ShareLinks from '@/components/ShareLinks.astro';
+import { formatDate } from '@/lib/utils';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+const canonicalURL = new URL(`/notes/${note.id}/`, Astro.site).href;
+const description = `A note about ${note.data.tags.join(', ')}`;
+
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: note.data.title,
+  description: description,
+  datePublished: note.data.publishedAt.toISOString(),
+  author: {
+    '@type': 'Person',
+    name: 'Ankit Ranjan',
+    url: 'https://ankitranjan.dev',
+  },
+  publisher: {
+    '@type': 'Person',
+    name: 'Ankit Ranjan',
+  },
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': canonicalURL,
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://ankitranjan.dev',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Notes',
+      item: 'https://ankitranjan.dev/notes/',
+    },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: note.data.title,
+      item: canonicalURL,
+    },
+  ],
+};
+---
+
+<BaseLayout
+  title={note.data.title}
+  description={description}
+  ogType="article"
+  publishedAt={note.data.publishedAt}
+  tags={note.data.tags}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(articleLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+  <article class="content-grid py-12 md:py-16">
+    <header class="mb-8">
+      <time datetime={note.data.publishedAt.toISOString()} class="text-sm text-[var(--text-secondary)]">
+        {formatDate(note.data.publishedAt)}
+      </time>
+      <h1 class="mb-4 mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+        {note.data.title}
+      </h1>
+      {note.data.tags.length > 0 && (
+        <div class="flex flex-wrap gap-2">
+          {note.data.tags.map((tag) => (
+            <TagPill tag={tag} linked />
+          ))}
+        </div>
+      )}
+    </header>
+
+    <Prose>
+      <Content />
+    </Prose>
+
+    <div class="mt-8 border-t border-[var(--border)] pt-6">
+      <ShareLinks title={note.data.title} url={new URL(`/notes/${note.id}/`, Astro.site).href} />
+    </div>
+  </article>
+</BaseLayout>

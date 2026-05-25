@@ -1,0 +1,90 @@
+---
+title: "Understanding Flutter's Main Method and Custom Entrypoints"
+description: "A deep dive into how Flutter's main() function works, and how you can customize the app's entrypoint for different build configurations."
+publishedAt: 2024-03-25
+tags:
+  - flutter
+  - dart
+  - architecture
+---
+
+Every Flutter app starts with `main()`. But what actually happens when Flutter bootstraps your app? And how can you leverage custom entrypoints for different environments?
+
+## The Default Main Function
+
+Here's the typical Flutter main function you've seen a thousand times:
+
+```dart
+void main() {
+  runApp(const MyApp());
+}
+```
+
+Simple, right? But there's more going on under the hood than meets the eye.
+
+## What runApp Actually Does
+
+When you call `runApp()`, Flutter:
+
+1. **Initializes the binding** — Sets up the connection between the framework and the engine
+2. **Schedules the first frame** — Tells the engine to render your widget tree
+3. **Attaches the root widget** — Makes your app the root of the widget tree
+
+```dart
+void runApp(Widget app) {
+  WidgetsFlutterBinding.ensureInitialized();
+  // ... more initialization
+  WidgetsFlutterBinding.instance.attachRootWidget(app);
+  WidgetsFlutterBinding.instance.scheduleWarmUpFrame();
+}
+```
+
+## Custom Entrypoints
+
+You can create multiple entrypoints for different scenarios:
+
+```dart
+// lib/main_dev.dart
+void main() {
+  const environment = 'development';
+  runApp(const MyApp(environment: environment));
+}
+
+// lib/main_prod.dart
+void main() {
+  const environment = 'production';
+  runApp(const MyApp(environment: environment));
+}
+```
+
+Run them with:
+
+```bash
+flutter run -t lib/main_dev.dart
+flutter run -t lib/main_prod.dart
+```
+
+## Async Initialization
+
+Need to do async work before your app starts? Use `WidgetsFlutterBinding.ensureInitialized()`:
+
+```dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Now you can do async work
+  await Firebase.initializeApp();
+  await Hive.initFlutter();
+
+  runApp(const MyApp());
+}
+```
+
+## Key Takeaways
+
+- `main()` is just a regular Dart function that Flutter looks for
+- `runApp()` handles all the framework initialization
+- Custom entrypoints let you configure different builds without changing code
+- Always call `ensureInitialized()` before any async work
+
+Understanding these fundamentals helps you build more flexible, configurable apps. Next time you write `main()`, you'll know exactly what's happening.

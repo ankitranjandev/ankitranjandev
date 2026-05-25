@@ -1,0 +1,478 @@
+---
+title: "Enhanced Enums in Dart — Fields, Methods, and Type-Safe Switching"
+description: "Enums are more than named constants. Dart 2.17 lets enums hold data, implement interfaces, and provide methods — bringing the power of classes to the simplicity of enumeration."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 3
+publishedAt: 2026-05-24
+topics:
+  - id: basic-enums
+    title: "Basic enums — simple enumerated types"
+    summary: |
+      Sometimes a value can only be one of a small, fixed set of options. Days of the week. Directions on a compass. HTTP request methods. We could use strings or integers, but that leads to bugs.
+      <br><br>
+      <pre><code>// The fragile way — strings
+      String status = 'loading';  // typo: 'laoding' compiles fine
+      if (status == 'Loading') {  // case mismatch — always false
+        // ...
+      }</code></pre>
+      Strings are flexible, but they're too flexible. The compiler can't catch our typos. Enter enums.
+      <br><br>
+      <pre><code>enum Status { loading, success, error }
+
+      void main() {
+        var current = Status.loading;
+        print(current);        // Status.loading
+        print(current.name);   // 'loading'
+        print(current.index);  // 0
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Basic enum structure showing values with index and name" style="max-width: 100%; height: auto;"><style>.en1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.en1-title{font-size:16px;font-weight:600}.en1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.en1-idx{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#64748b}.en1-label{font-size:12px;fill:#475569}.en1-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="en1-t en1-title">enum Status { loading, success, error }</text><rect x="80" y="55" width="180" height="80" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="170" y="90" text-anchor="middle" class="en1-t en1-mn" font-weight="600">Status.loading</text><text x="170" y="115" text-anchor="middle" class="en1-t en1-idx">index: 0</text><rect x="270" y="55" width="180" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="360" y="90" text-anchor="middle" class="en1-t en1-mn" font-weight="600">Status.success</text><text x="360" y="115" text-anchor="middle" class="en1-t en1-idx">index: 1</text><rect x="460" y="55" width="180" height="80" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="8"/><text x="550" y="90" text-anchor="middle" class="en1-t en1-mn" font-weight="600">Status.error</text><text x="550" y="115" text-anchor="middle" class="en1-t en1-idx">index: 2</text><rect x="120" y="165" width="480" height="55" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="188" text-anchor="middle" class="en1-t en1-mn">Status.values = [loading, success, error]</text><text x="360" y="206" text-anchor="middle" class="en1-t en1-idx">list of all enum values in declaration order</text><text x="360" y="255" text-anchor="middle" class="en1-t en1-label">Every enum value has a .name (the string) and .index (its position)</text><text x="360" y="280" text-anchor="middle" class="en1-t en1-note">The .values static getter returns all values as a list</text></svg>
+      <br><br>
+      Every enum automatically has three things:
+      <br><br>
+      1. <strong>.index</strong> — the position in the declaration (0, 1, 2...)
+      <br>
+      2. <strong>.name</strong> — the string representation ('loading', 'success', 'error')
+      <br>
+      3. <strong>EnumType.values</strong> — a list of all values in declaration order
+      <br><br>
+      <pre><code>// Iterate all values
+      for (var s in Status.values) {
+        print('${s.name} is at index ${s.index}');
+      }
+      // loading is at index 0
+      // success is at index 1
+      // error is at index 2
+
+      // Parse from string (Dart 2.15+)
+      var parsed = Status.values.byName('success');  // Status.success
+      var maybe = Status.values.asNameMap()['error']; // Status.error</code></pre>
+      With enums, misspelling a value is a compile error. That alone makes them worth using. But basic enums have a limitation — they're just names. What if we want each value to carry data?
+
+  - id: enhanced-enums
+    title: "Enhanced enums — adding fields and constructors"
+    summary: |
+      Before Dart 2.17 (May 2022), enums were limited to bare values. If we wanted to attach data to enum values, we had to use a separate Map or a class hierarchy. Enhanced enums changed everything.
+      <br><br>
+      <pre><code>enum HttpStatus {
+        ok(200, 'OK'),
+        created(201, 'Created'),
+        badRequest(400, 'Bad Request'),
+        notFound(404, 'Not Found'),
+        serverError(500, 'Internal Server Error');
+
+        final int code;
+        final String message;
+
+        const HttpStatus(this.code, this.message);
+      }</code></pre>
+      Now each enum value carries its own data. We access it just like any other field.
+      <br><br>
+      <pre><code>void main() {
+        var status = HttpStatus.notFound;
+        print(status.code);     // 404
+        print(status.message);  // 'Not Found'
+        print(status.name);     // 'notFound' (still works)
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Enhanced enum with fields showing data attached to each value" style="max-width: 100%; height: auto;"><style>.en2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.en2-title{font-size:16px;font-weight:600}.en2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.en2-val{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.en2-label{font-size:11px;fill:#64748b}.en2-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="en2-t en2-title">Enhanced enum: HttpStatus with code and message fields</text><rect x="40" y="55" width="200" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="140" y="82" text-anchor="middle" class="en2-t en2-mn" font-weight="700">HttpStatus.ok</text><line x1="60" y1="95" x2="220" y2="95" stroke="#10b981" stroke-width="1"/><text x="70" y="115" class="en2-t en2-val">code: 200</text><text x="70" y="135" class="en2-t en2-val">message: 'OK'</text><rect x="260" y="55" width="200" height="100" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/><text x="360" y="82" text-anchor="middle" class="en2-t en2-mn" font-weight="700">HttpStatus.notFound</text><line x1="280" y1="95" x2="440" y2="95" stroke="#f59e0b" stroke-width="1"/><text x="290" y="115" class="en2-t en2-val">code: 404</text><text x="290" y="135" class="en2-t en2-val">message: 'Not Found'</text><rect x="480" y="55" width="200" height="100" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="8"/><text x="580" y="82" text-anchor="middle" class="en2-t en2-mn" font-weight="700">HttpStatus.serverError</text><line x1="500" y1="95" x2="660" y2="95" stroke="#dc2626" stroke-width="1"/><text x="510" y="115" class="en2-t en2-val">code: 500</text><text x="510" y="135" class="en2-t en2-val">message: 'Internal...'</text><rect x="100" y="185" width="520" height="70" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="210" text-anchor="middle" class="en2-t en2-mn">final int code;</text><text x="360" y="228" text-anchor="middle" class="en2-t en2-mn">final String message;</text><text x="360" y="246" text-anchor="middle" class="en2-t en2-mn">const HttpStatus(this.code, this.message);</text><text x="360" y="290" text-anchor="middle" class="en2-t en2-note">Fields must be final. Constructors must be const.</text><text x="360" y="315" text-anchor="middle" class="en2-t en2-label">Each enum value calls the constructor with its specific data</text></svg>
+      <br><br>
+      <strong>The rules for enhanced enums:</strong>
+      <br><br>
+      1. <strong>All fields must be final.</strong> Enum values are constants — they cannot change after creation.
+      <br><br>
+      2. <strong>Constructors must be const.</strong> Every enum value is a compile-time constant.
+      <br><br>
+      3. <strong>All values must be declared before any members.</strong> The values come first, then the semicolon, then fields/constructors/methods.
+      <br><br>
+      4. <strong>Values must call a constructor.</strong> Each value is an instance created by calling one of the enum's constructors.
+      <br><br>
+      <pre><code>// Named constructors work too
+      enum Priority {
+        low.withLevel(1),
+        medium.withLevel(5),
+        high.withLevel(10),
+        critical.withLevel(100);
+
+        final int level;
+        const Priority.withLevel(this.level);
+      }</code></pre>
+
+  - id: enum-methods
+    title: "Enum methods and getters"
+    summary: |
+      Enhanced enums aren't just data holders — they can have methods and computed properties. This lets us encapsulate behaviour right where the data lives.
+      <br><br>
+      <pre><code>enum Planet {
+        mercury(3.7),
+        venus(8.87),
+        earth(9.81),
+        mars(3.72),
+        jupiter(24.79),
+        saturn(10.44),
+        uranus(8.87),
+        neptune(11.15);
+
+        final double gravity;  // m/s²
+        const Planet(this.gravity);
+
+        // Computed property
+        double get weightFactor => gravity / earth.gravity;
+
+        // Method
+        double calculateWeight(double earthWeight) {
+          return earthWeight * weightFactor;
+        }
+
+        // Static method for lookup
+        static Planet? fromName(String name) {
+          return values.cast&lt;Planet?&gt;().firstWhere(
+            (p) => p?.name.toLowerCase() == name.toLowerCase(),
+            orElse: () => null,
+          );
+        }
+      }
+
+      void main() {
+        var mars = Planet.mars;
+        print(mars.gravity);                    // 3.72
+        print(mars.weightFactor);               // ~0.38
+        print(mars.calculateWeight(70));        // ~26.55 kg
+
+        var found = Planet.fromName('JUPITER');
+        print(found?.gravity);                  // 24.79
+      }</code></pre>
+      The pattern is powerful. Instead of scattering planet-related calculations across utility functions, we put them on the enum itself. The data and its behaviour live together.
+      <br><br>
+      <pre><code>// Another example: HTTP status categories
+      enum HttpStatus {
+        ok(200, 'OK'),
+        created(201, 'Created'),
+        badRequest(400, 'Bad Request'),
+        unauthorized(401, 'Unauthorized'),
+        notFound(404, 'Not Found'),
+        serverError(500, 'Internal Server Error');
+
+        final int code;
+        final String message;
+        const HttpStatus(this.code, this.message);
+
+        bool get isSuccess => code >= 200 && code < 300;
+        bool get isClientError => code >= 400 && code < 500;
+        bool get isServerError => code >= 500;
+
+        String toHeader() => '$code $message';
+      }
+
+      void main() {
+        var status = HttpStatus.notFound;
+        print(status.isClientError);  // true
+        print(status.toHeader());     // '404 Not Found'
+      }</code></pre>
+      The methods make the enum self-documenting. We don't need to remember which ranges mean what — the enum tells us.
+
+  - id: enums-implementing-interfaces
+    title: "Enums implementing interfaces"
+    summary: |
+      Enums can implement interfaces. This is how we integrate them into larger type hierarchies. The enum values must satisfy the interface contract.
+      <br><br>
+      <pre><code>abstract class Describable {
+        String describe();
+      }
+
+      enum Colour implements Describable {
+        red(0xFF0000),
+        green(0x00FF00),
+        blue(0x0000FF),
+        white(0xFFFFFF),
+        black(0x000000);
+
+        final int hex;
+        const Colour(this.hex);
+
+        @override
+        String describe() => '$name (#${hex.toRadixString(16).padLeft(6, '0')})';
+
+        String get hexString => '#${hex.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+      }
+
+      void printDescription(Describable item) {
+        print(item.describe());
+      }
+
+      void main() {
+        printDescription(Colour.red);    // 'red (#ff0000)'
+        printDescription(Colour.blue);   // 'blue (#0000ff)'
+      }</code></pre>
+      The <code>implements</code> keyword works the same as with classes. The enum must provide implementations for all abstract members.
+      <br><br>
+      <strong>Important limitation:</strong> Enums cannot extend other classes. The enum type already extends <code>Enum</code>, and Dart doesn't allow multiple inheritance. But they can implement any number of interfaces.
+      <br><br>
+      <pre><code>// Multiple interfaces work fine
+      abstract class Serialisable {
+        Map&lt;String, dynamic&gt; toJson();
+      }
+
+      abstract class Comparable&lt;T&gt; {
+        int compareTo(T other);
+      }
+
+      enum Priority implements Serialisable, Comparable&lt;Priority&gt; {
+        low(1),
+        medium(5),
+        high(10);
+
+        final int level;
+        const Priority(this.level);
+
+        @override
+        Map&lt;String, dynamic&gt; toJson() => {'name': name, 'level': level};
+
+        @override
+        int compareTo(Priority other) => level.compareTo(other.level);
+      }
+
+      void main() {
+        var sorted = [Priority.high, Priority.low, Priority.medium]..sort();
+        print(sorted.map((p) => p.name));  // (low, medium, high)
+      }</code></pre>
+      By implementing <code>Comparable</code>, our enum values can be sorted. By implementing <code>Serialisable</code>, they can be converted to JSON. The enum participates in the type system like any other class.
+
+  - id: enums-with-generics
+    title: "Enums with generics"
+    summary: |
+      Enhanced enums can be generic. This is useful when each enum value handles a specific type of data.
+      <br><br>
+      <pre><code>enum JsonType&lt;T&gt; {
+        string&lt;String&gt;(),
+        number&lt;num&gt;(),
+        boolean&lt;bool&gt;(),
+        array&lt;List&gt;(),
+        object&lt;Map&gt;(),
+        nil&lt;Null&gt;();
+
+        Type get dartType => T;
+
+        bool matches(dynamic value) {
+          if (this == nil) return value == null;
+          return value is T;
+        }
+      }
+
+      void main() {
+        print(JsonType.string.dartType);           // String
+        print(JsonType.string.matches('hello'));   // true
+        print(JsonType.string.matches(42));        // false
+        print(JsonType.nil.matches(null));         // true
+      }</code></pre>
+      The generic parameter <code>T</code> is specified for each value. This creates a type-safe association between the enum value and a Dart type.
+      <br><br>
+      <pre><code>// A more practical example: form field types
+      enum FieldType&lt;T&gt; {
+        text&lt;String&gt;(''),
+        number&lt;int&gt;(0),
+        decimal&lt;double&gt;(0.0),
+        toggle&lt;bool&gt;(false),
+        date&lt;DateTime?&gt;(null);
+
+        final T defaultValue;
+        const FieldType(this.defaultValue);
+
+        bool isValid(dynamic value) => value is T;
+      }
+
+      class FormField&lt;T&gt; {
+        final String label;
+        final FieldType&lt;T&gt; type;
+        T value;
+
+        FormField(this.label, this.type) : value = type.defaultValue;
+      }
+
+      void main() {
+        var nameField = FormField('Name', FieldType.text);
+        nameField.value = 'Alice';  // type-safe: must be String
+
+        var ageField = FormField('Age', FieldType.number);
+        ageField.value = 25;        // type-safe: must be int
+      }</code></pre>
+      Generic enums shine when building type-safe APIs. The enum value carries type information that flows through the rest of the code.
+
+  - id: exhaustive-switching
+    title: "Exhaustive switching with enums"
+    summary: |
+      Enums have always enabled exhaustive switching in Dart. The compiler knows every possible value, so it can verify that a switch covers all cases.
+      <br><br>
+      <pre><code>enum Direction { north, south, east, west }
+
+      String getArrow(Direction d) {
+        return switch (d) {
+          Direction.north => '↑',
+          Direction.south => '↓',
+          Direction.east => '→',
+          Direction.west => '←',
+        };
+        // No default needed — compiler knows this is complete
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Exhaustive switch showing compiler verification" style="max-width: 100%; height: auto;"><style>.en3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.en3-title{font-size:16px;font-weight:600}.en3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.en3-label{font-size:11px;fill:#475569}.en3-good{font-size:12px;fill:#059669;font-weight:600}.en3-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="en3-t en3-title">Exhaustive switch — the compiler proves completeness</text><rect x="60" y="55" width="600" height="130" fill="#f0fdf4" stroke="#10b981" stroke-width="2" rx="8"/><text x="90" y="82" class="en3-t en3-mn">return switch (direction) {</text><text x="110" y="104" class="en3-t en3-mn">Direction.north => '↑',</text><text x="110" y="124" class="en3-t en3-mn">Direction.south => '↓',</text><text x="110" y="144" class="en3-t en3-mn">Direction.east  => '→',</text><text x="110" y="164" class="en3-t en3-mn">Direction.west  => '←',</text><text x="90" y="178" class="en3-t en3-mn">};</text><rect x="450" y="85" width="180" height="70" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="540" y="112" text-anchor="middle" class="en3-t en3-good">All 4 cases handled</text><text x="540" y="132" text-anchor="middle" class="en3-t en3-label">No default needed</text><text x="540" y="148" text-anchor="middle" class="en3-t en3-label">Compiler verified</text><rect x="60" y="210" width="600" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/><text x="360" y="235" text-anchor="middle" class="en3-t en3-mn">// Missing Direction.west?</text><text x="360" y="253" text-anchor="middle" class="en3-t en3-mn">Error: The type 'Direction' is not exhaustively matched.</text><text x="360" y="295" text-anchor="middle" class="en3-t en3-note">Add a new enum value? The compiler tells you everywhere to update.</text></svg>
+      <br><br>
+      The real power shows when we modify the enum. Add a new value, and the compiler flags every incomplete switch.
+      <br><br>
+      <pre><code>// Later, we add a new direction
+      enum Direction { north, south, east, west, up, down }
+
+      // Now getArrow() fails to compile:
+      // Error: The type 'Direction' is not exhaustively matched
+      // by the switch cases since it doesn't match 'Direction.up'
+      // or 'Direction.down'.</code></pre>
+      Compare this to a default case:
+      <br><br>
+      <pre><code>// With a default, new values are silently ignored
+      String getArrow(Direction d) {
+        return switch (d) {
+          Direction.north => '↑',
+          Direction.south => '↓',
+          Direction.east => '→',
+          Direction.west => '←',
+          _ => '?',  // catches up, down — no compiler warning
+        };
+      }</code></pre>
+      The default case hides the problem. We won't know we forgot to handle <code>up</code> and <code>down</code> until runtime. Avoid default cases with enums unless you genuinely want a fallback.
+      <br><br>
+      <strong>Pattern matching with enhanced enums:</strong>
+      <br><br>
+      <pre><code>enum HttpStatus {
+        ok(200), notFound(404), serverError(500);
+        final int code;
+        const HttpStatus(this.code);
+      }
+
+      String categorise(HttpStatus status) {
+        return switch (status) {
+          HttpStatus(:var code) when code < 400 => 'Success',
+          HttpStatus(:var code) when code < 500 => 'Client Error',
+          HttpStatus() => 'Server Error',
+        };
+      }</code></pre>
+      The <code>:var code</code> syntax destructures the enum's field. The <code>when</code> guard adds conditions. This is Dart 3 pattern matching at work.
+
+  - id: enums-vs-sealed-classes
+    title: "Enums vs sealed classes — when to use which"
+    summary: |
+      Both enums and sealed classes give us exhaustive switching. So when should we use which?
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Comparison table of enums vs sealed classes" style="max-width: 100%; height: auto;"><style>.en4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.en4-title{font-size:16px;font-weight:600}.en4-hdr{font-size:13px;font-weight:700}.en4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.en4-cell{font-size:11px;fill:#475569}.en4-yes{font-size:13px;font-weight:700;fill:#059669}.en4-no{font-size:13px;font-weight:700;fill:#dc2626}.en4-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="en4-t en4-title">Enums vs Sealed Classes</text><rect x="20" y="50" width="220" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="130" y="78" text-anchor="middle" class="en4-t en4-hdr">Feature</text><rect x="240" y="50" width="220" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="350" y="78" text-anchor="middle" class="en4-t en4-hdr">enum</text><rect x="460" y="50" width="240" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="580" y="78" text-anchor="middle" class="en4-t en4-hdr">sealed class</text><rect x="20" y="95" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="120" text-anchor="middle" class="en4-t en4-cell">Values are const</text><rect x="240" y="95" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="120" text-anchor="middle" class="en4-t en4-yes">Always</text><rect x="460" y="95" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="120" text-anchor="middle" class="en4-t en4-cell">Optional</text><rect x="20" y="135" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="160" text-anchor="middle" class="en4-t en4-cell">Different fields per variant</text><rect x="240" y="135" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="160" text-anchor="middle" class="en4-t en4-no">No (same for all)</text><rect x="460" y="135" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="160" text-anchor="middle" class="en4-t en4-yes">Yes</text><rect x="20" y="175" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="200" text-anchor="middle" class="en4-t en4-cell">Built-in .index / .values</text><rect x="240" y="175" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="200" text-anchor="middle" class="en4-t en4-yes">Yes</text><rect x="460" y="175" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="200" text-anchor="middle" class="en4-t en4-no">No</text><rect x="20" y="215" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="240" text-anchor="middle" class="en4-t en4-cell">Can extend a class</text><rect x="240" y="215" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="240" text-anchor="middle" class="en4-t en4-no">No (extends Enum)</text><rect x="460" y="215" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="240" text-anchor="middle" class="en4-t en4-yes">Yes</text><rect x="20" y="255" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="280" text-anchor="middle" class="en4-t en4-cell">Runtime instance creation</text><rect x="240" y="255" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="280" text-anchor="middle" class="en4-t en4-no">No (fixed set)</text><rect x="460" y="255" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="280" text-anchor="middle" class="en4-t en4-yes">Yes</text><rect x="20" y="295" width="220" height="40" fill="#fff" stroke="#cbd5e1"/><text x="130" y="320" text-anchor="middle" class="en4-t en4-cell">Best for</text><rect x="240" y="295" width="220" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="350" y="320" text-anchor="middle" class="en4-t en4-cell">Fixed options, config</text><rect x="460" y="295" width="240" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="580" y="320" text-anchor="middle" class="en4-t en4-cell">State with varying data</text><text x="360" y="365" text-anchor="middle" class="en4-t en4-note">Use enum when all values share the same shape. Use sealed when variants differ.</text></svg>
+      <br><br>
+      <strong>Use an enum when:</strong>
+      <br><br>
+      <strong>1. All values have the same fields.</strong> Every enum value has the same structure — just different data.
+      <br><br>
+      <pre><code>// Good enum: all values have code + message
+      enum HttpStatus {
+        ok(200, 'OK'),
+        notFound(404, 'Not Found');
+        final int code;
+        final String message;
+        const HttpStatus(this.code, this.message);
+      }</code></pre>
+      <br>
+      <strong>2. The set is truly fixed.</strong> Days of the week. Cardinal directions. HTTP methods. These won't change.
+      <br><br>
+      <strong>3. You need .index or .values.</strong> Enums provide these for free. Useful for serialisation, iteration, dropdowns.
+      <br><br>
+      <strong>Use a sealed class when:</strong>
+      <br><br>
+      <strong>1. Variants have different fields.</strong> Success has data; Error has a message and stack trace; Loading has nothing.
+      <br><br>
+      <pre><code>// Sealed is better: variants have different shapes
+      sealed class ApiResult {}
+      final class Loading extends ApiResult {}
+      final class Success extends ApiResult {
+        final Data data;
+        Success(this.data);
+      }
+      final class Error extends ApiResult {
+        final String message;
+        final StackTrace? trace;
+        Error(this.message, [this.trace]);
+      }</code></pre>
+      <br>
+      <strong>2. You need runtime instance creation.</strong> Sealed classes can be instantiated at runtime with different data. Enum values are fixed at compile time.
+      <br><br>
+      <strong>3. You need inheritance.</strong> Sealed subtypes can extend other classes; enums cannot.
+      <br><br>
+      <strong>The heuristic:</strong> If every variant looks the same (same fields, just different values), use an enum. If variants have different shapes, use a sealed class.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering basic enums, enhanced enums, methods, interfaces, generics, and exhaustive switching."
+  questions:
+    - question: "What does the .index property of an enum value represent?"
+      options:
+        - "The hash code of the value"
+        - "The position of the value in the declaration order, starting at 0"
+        - "A unique ID assigned at runtime"
+        - "The number of fields the value has"
+      correctIndex: 1
+      explanation: "The .index property returns the zero-based position of the enum value in the order it was declared. For 'enum Status { loading, success, error }', Status.loading.index is 0, Status.success.index is 1, and Status.error.index is 2."
+
+    - question: "What are the requirements for fields in an enhanced enum?"
+      options:
+        - "Fields can be mutable or immutable"
+        - "Fields must be static"
+        - "Fields must be final, and constructors must be const"
+        - "Fields must be private"
+      correctIndex: 2
+      explanation: "Enhanced enum fields must be final because enum values are compile-time constants. The constructors must be const for the same reason. This ensures that enum values are truly immutable and can be used in const contexts."
+
+    - question: "Can enums extend other classes in Dart?"
+      options:
+        - "Yes, enums can extend any class"
+        - "No, enums implicitly extend Enum and cannot extend other classes"
+        - "Yes, but only abstract classes"
+        - "Yes, but only the Object class"
+      correctIndex: 1
+      explanation: "Enums in Dart implicitly extend the Enum class, and Dart does not allow multiple inheritance. Therefore, enums cannot extend other classes. However, they can implement any number of interfaces."
+
+    - question: "What happens when you add a new value to an enum but don't update all switch statements?"
+      options:
+        - "The code compiles with a warning"
+        - "The code compiles but throws at runtime"
+        - "The compiler reports an error about incomplete exhaustive matching"
+        - "The new value is silently ignored"
+      correctIndex: 2
+      explanation: "This is the power of exhaustive switching. When you add a new enum value, the compiler knows the switch is no longer complete and reports an error. This forces you to handle the new case, preventing runtime surprises."
+
+    - question: "Which Dart version introduced enhanced enums with fields and methods?"
+      options:
+        - "Dart 2.12"
+        - "Dart 2.15"
+        - "Dart 2.17"
+        - "Dart 3.0"
+      correctIndex: 2
+      explanation: "Enhanced enums were introduced in Dart 2.17 (May 2022). Before this version, enums could only be simple lists of named constants without fields, methods, or constructors."
+
+    - question: "When should you prefer a sealed class over an enum?"
+      options:
+        - "When you need .index and .values"
+        - "When all values have exactly the same fields"
+        - "When different variants need different fields (different shapes)"
+        - "When you want compile-time constants"
+      correctIndex: 2
+      explanation: "Use sealed classes when variants have different shapes — for example, Success with data vs Error with a message. Enums require all values to have the same fields. Sealed classes allow each subtype to have its own unique set of fields."
+
+    - question: "What does the syntax ':var code' do in a switch pattern like 'HttpStatus(:var code) when code < 400'?"
+      options:
+        - "It declares a new field on the enum"
+        - "It destructures and extracts the 'code' field into a local variable"
+        - "It compares code to 400"
+        - "It creates a nullable reference to code"
+      correctIndex: 1
+      explanation: "The ':var code' syntax is destructuring. It extracts the 'code' field from the matched HttpStatus value and binds it to a local variable named 'code'. This variable can then be used in the 'when' guard or the case body."
+---
+
+{/* Episode 3 of Dart: Type System. Enhanced enums — fields, methods, interfaces,
+    generics, and exhaustive switching. Covers basic enum syntax, Dart 2.17
+    enhanced enums, methods and getters, implementing interfaces, generic enums,
+    exhaustive switch checking, and comparison with sealed classes. 4 inline
+    SVG diagrams. */}

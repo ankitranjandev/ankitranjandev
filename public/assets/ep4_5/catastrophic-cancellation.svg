@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Catastrophic cancellation when subtracting near-equal doubles">
+  <style>
+    .e3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .e3-title { font-size: 16px; font-weight: 600; }
+    .e3-sub { font-size: 13px; fill: #475569; }
+    .e3-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; }
+    .e3-mn-bold { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; font-weight: 700; }
+    .e3-label { font-size: 12px; fill: #64748b; }
+    .e3-note { font-size: 13px; fill: #475569; font-style: italic; }
+    .e3-cancel { fill: #94a3b8; }
+    .e3-survives { fill: #dc2626; font-weight: 700; }
+    .e3-bad { font-size: 13px; font-weight: 600; fill: #b45309; }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="e3-t e3-title">Catastrophic cancellation</text>
+  <text x="360" y="50" text-anchor="middle" class="e3-t e3-sub">Subtracting two nearly-equal doubles destroys most of the precision.</text>
+
+  <!-- The subtraction setup -->
+  <text x="60" y="105" class="e3-t e3-mn">a = </text>
+  <text x="100" y="105" class="e3-t e3-mn"><tspan class="e3-cancel">1.000000000000000</tspan><tspan class="e3-survives">2</tspan></text>
+
+  <text x="60" y="135" class="e3-t e3-mn">b = </text>
+  <text x="100" y="135" class="e3-t e3-mn"><tspan class="e3-cancel">1.000000000000000</tspan>0</text>
+
+  <line x1="60" y1="148" x2="430" y2="148" stroke="#1e293b" stroke-width="1.5"/>
+
+  <text x="60" y="175" class="e3-t e3-mn">a − b = </text>
+  <text x="130" y="175" class="e3-t e3-mn-bold"><tspan class="e3-cancel">0.000000000000000</tspan><tspan class="e3-survives">2</tspan></text>
+
+  <!-- Annotation -->
+  <text x="500" y="105" class="e3-t e3-label">these 16 digits</text>
+  <text x="500" y="125" class="e3-t e3-label">are identical</text>
+  <line x1="495" y1="93" x2="480" y2="93" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="495" y1="130" x2="480" y2="130" stroke="#94a3b8" stroke-width="1"/>
+
+  <text x="500" y="170" class="e3-t e3-label">only one digit</text>
+  <text x="500" y="185" class="e3-t e3-label">of meaning survives</text>
+  <line x1="495" y1="170" x2="445" y2="170" stroke="#dc2626" stroke-width="1.5"/>
+
+  <!-- Separator -->
+  <line x1="40" y1="220" x2="680" y2="220" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- In Dart -->
+  <text x="40" y="252" class="e3-t e3-sub">In Dart, this actually happens:</text>
+
+  <text x="40" y="285" class="e3-t e3-mn"><tspan>double a = 1.0 + 1e-15;</tspan></text>
+  <text x="40" y="305" class="e3-t e3-mn"><tspan>double b = 1.0;</tspan></text>
+  <text x="40" y="325" class="e3-t e3-mn"><tspan>print(a - b);</tspan>  <tspan class="e3-label">// 1.1102230246251565e-15, not 1e-15</tspan></text>
+
+  <text x="40" y="350" class="e3-t e3-bad">The difference is mostly rounding noise. Beware of subtraction near equality.</text>
+</svg>

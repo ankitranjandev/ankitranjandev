@@ -1,0 +1,214 @@
+---
+title: "Doubles in Dart, Part 2 — Memory and IEEE 754 Edge Cases"
+description: "How Dart actually stores doubles in memory, why doubles are always boxed, and the edge cases — subnormals, catastrophic cancellation, the 53-bit cliff, and rounding modes."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Data Foundations"
+order: 5
+publishedAt: 2026-05-22
+topics:
+  - id: how-doubles-are-stored
+    title: "Why doubles are always boxed"
+    summary: "In Episode 3 we saw that small integers get a clever optimization — Dart stores them directly inside the pointer slot using the Smi trick, saving a heap allocation entirely. Surely the same trick works for doubles?<br><br>Unfortunately, no.<br><br>A double needs all 64 of its bits to represent the sign, exponent, and mantissa. There is no spare bit. We can't steal one for a tag without losing information that the double is actively using. So unlike <code>int</code>, a <code>double</code> in Dart is stored as a heap object — every time.<br><br><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 720 360\" role=\"img\" aria-label=\"int can be Smi but doubles always box\" style=\"max-width: 100%; height: auto;\"><defs><marker id=\"ah-d45-1\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto\"><path d=\"M 0 0 L 10 5 L 0 10 z\" fill=\"#1e293b\"/></marker></defs><style>.e1-t { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Inter, sans-serif; fill: #1e293b; }.e1-title { font-size: 17px; font-weight: 600; }.e1-sub { font-size: 14px; font-weight: 500; fill: #475569; }.e1-label { font-size: 12px; fill: #64748b; }.e1-mn { font-family: \"SF Mono\", Menlo, Monaco, monospace; font-size: 13px; }.e1-var { font-size: 18px; font-weight: 700; font-family: \"SF Mono\", Menlo, monospace; fill: #1e293b; }.e1-tag { font-size: 11px; font-weight: 700; fill: #ffffff; font-family: \"SF Mono\", Menlo, monospace; }.e1-good { font-size: 12px; fill: #059669; }.e1-bad { font-size: 12px; fill: #b45309; }</style><text x=\"360\" y=\"30\" text-anchor=\"middle\" class=\"e1-t e1-title\">int can be inline. double cannot.</text><text x=\"180\" y=\"72\" text-anchor=\"middle\" class=\"e1-t e1-sub\">int x = 42</text><text x=\"40\" y=\"140\" class=\"e1-t e1-var\">x</text><line x1=\"60\" y1=\"135\" x2=\"92\" y2=\"135\" stroke=\"#1e293b\" stroke-width=\"1.5\" marker-end=\"url(#ah-d45-1)\"/><rect x=\"98\" y=\"112\" width=\"170\" height=\"50\" fill=\"#d1fae5\" stroke=\"#10b981\" stroke-width=\"2\" rx=\"4\"/><text x=\"183\" y=\"140\" text-anchor=\"middle\" class=\"e1-t e1-mn\">value: 42</text><rect x=\"268\" y=\"112\" width=\"35\" height=\"50\" fill=\"#10b981\" rx=\"4\"/><text x=\"285\" y=\"145\" text-anchor=\"middle\" class=\"e1-tag\">0</text><text x=\"180\" y=\"195\" text-anchor=\"middle\" class=\"e1-t e1-good\">✓ Smi — value lives in the pointer slot. Zero heap allocation.</text><line x1=\"360\" y1=\"60\" x2=\"360\" y2=\"320\" stroke=\"#e2e8f0\" stroke-width=\"1\" stroke-dasharray=\"4 4\"/><text x=\"540\" y=\"72\" text-anchor=\"middle\" class=\"e1-t e1-sub\">double x = 3.14</text><text x=\"395\" y=\"140\" class=\"e1-t e1-var\">x</text><line x1=\"415\" y1=\"135\" x2=\"447\" y2=\"135\" stroke=\"#1e293b\" stroke-width=\"1.5\" marker-end=\"url(#ah-d45-1)\"/><rect x=\"452\" y=\"112\" width=\"135\" height=\"50\" fill=\"#fef3c7\" stroke=\"#f59e0b\" stroke-width=\"2\" rx=\"4\"/><text x=\"519\" y=\"134\" text-anchor=\"middle\" class=\"e1-t e1-label\">pointer</text><text x=\"519\" y=\"154\" text-anchor=\"middle\" class=\"e1-t e1-mn\" font-size=\"11\">0xA1B2…</text><rect x=\"587\" y=\"112\" width=\"35\" height=\"50\" fill=\"#f59e0b\" rx=\"4\"/><text x=\"604\" y=\"145\" text-anchor=\"middle\" class=\"e1-tag\">1</text><line x1=\"519\" y1=\"167\" x2=\"519\" y2=\"200\" stroke=\"#1e293b\" stroke-width=\"2\" marker-end=\"url(#ah-d45-1)\"/><rect x=\"430\" y=\"205\" width=\"180\" height=\"55\" fill=\"#fef3c7\" stroke=\"#f59e0b\" stroke-width=\"2\" rx=\"4\"/><line x1=\"498\" y1=\"205\" x2=\"498\" y2=\"260\" stroke=\"#f59e0b\" stroke-width=\"1.5\"/><text x=\"464\" y=\"226\" text-anchor=\"middle\" class=\"e1-t e1-label\">header</text><text x=\"464\" y=\"248\" text-anchor=\"middle\" class=\"e1-t e1-label\" font-size=\"10\">+ GC tags</text><text x=\"554\" y=\"226\" text-anchor=\"middle\" class=\"e1-t e1-label\">value</text><text x=\"554\" y=\"250\" text-anchor=\"middle\" class=\"e1-t e1-mn\">8 bytes</text><text x=\"540\" y=\"290\" text-anchor=\"middle\" class=\"e1-t e1-bad\">✗ Always boxed. All 64 bits are needed for the value —</text><text x=\"540\" y=\"307\" text-anchor=\"middle\" class=\"e1-t e1-bad\">no spare bit for a Smi tag.</text></svg><br><br>The cost per double:<br><br>• <strong>Memory:</strong> object header plus 8 bytes for the value.<br>• <strong>Speed:</strong> pointer indirection on every read.<br>• <strong>Garbage collection:</strong> every double object has to be tracked and eventually freed.<br><br>For a single double, this is nothing. For a list of a million doubles, it is exactly the same boxing problem we saw with integers — and it shows up in the same places."
+
+  - id: escape-hatches
+    title: "Three ways to escape the boxing cost"
+    summary: |
+      We have three reliable ways to avoid the cost of boxing doubles.
+      <br><br>
+      <strong>1. Float64List for collections.</strong>
+      <br><br>
+      For lots of doubles, <code>Float64List</code> is the workhorse. Values are packed contiguously, no boxing, no pointers between elements.
+      <br><br>
+      <pre><code>import 'dart:typed_data';
+
+      // A million doubles, exactly 8 MB, no boxing
+      Float64List samples = Float64List(1000000);</code></pre>
+      <strong>2. FFI for native interop.</strong>
+      <br><br>
+      When passing doubles to C code via <code>dart:ffi</code>, the values are unboxed at the boundary. A <code>Float64List</code> can be handed to native code by pointer with zero copying — the same memory is seen from both sides.
+      <br><br>
+      <strong>3. VM optimization in hot paths.</strong>
+      <br><br>
+      When the optimizer can prove a value is always a <code>double</code> and never escapes to where its identity matters, it keeps the value in a CPU floating-point register or on the stack. We don't write any special syntax for this — it just happens when the JIT or AOT compiler can prove it is safe.
+      <br><br>
+      What defeats it:
+      <br><br>
+      • Storing the value in a <code>List&lt;double&gt;</code> or <code>List&lt;dynamic&gt;</code>
+      <br>
+      • Passing it to a function with <code>num</code> or <code>Object</code> parameter type
+      <br>
+      • Returning it from a function whose declared return type isn't <code>double</code>
+      <br>
+      • Calling <code>identical()</code> on it
+      <br><br>
+      In well-typed hot loops, the optimizer can be very effective. But we can't rely on it. When boxing cost matters and we want a guarantee, reach for <code>Float64List</code>.
+
+  - id: subnormals
+    title: "Subnormal numbers — the slow zone near zero"
+    summary: |
+      IEEE 754 has a special encoding for values too small to fit the normal floating-point format. We call them <strong>subnormal</strong> numbers (or, historically, denormalized).
+      <br><br>
+      The normal range of a double runs from about 2.2 × 10⁻³⁰⁸ up to 1.7 × 10³⁰⁸. Below the normal minimum, IEEE 754 reserves a special set of bit patterns to fill the gap — values down to about 5 × 10⁻³²⁴, with steadily decreasing precision as they shrink.
+      <br><br>
+      This is great in theory. It gives us <strong>gradual underflow</strong>: values approach zero smoothly instead of suddenly snapping to it. Without subnormals, the smallest non-zero double would be 2.2 × 10⁻³⁰⁸, and everything tinier would just become zero.
+      <br><br>
+      But there is a real-world catch. Many CPUs handle subnormal arithmetic via slow microcode that is 10–100 times slower than normal arithmetic. In audio processing, simulation, and tight numerical loops, this is a known performance trap. A simulation running fine can suddenly slow down when its values drift into the subnormal range.
+      <br><br>
+      <pre><code>double tiny = 1e-310;
+      print(tiny);                  // 1e-310
+      print(tiny.isFinite);         // true
+      print(tiny == 0);             // false
+      // But operations on tiny may run noticeably slower on some hardware.</code></pre>
+      The standard fixes (in native code or libraries that expose CPU flags):
+      <br><br>
+      • Enable "flush to zero" mode so subnormals are silently treated as zero.
+      <br>
+      • Clamp tiny intermediate values to zero explicitly.
+      <br><br>
+      Dart itself doesn't expose CPU-flag control — if we are hitting this problem, we'd typically use FFI to set it from native code. But just knowing the slow zone exists is half the battle.
+
+  - id: rounding
+    title: "Rounding modes — banker's versus away-from-zero"
+    summary: |
+      IEEE 754 defines five rounding modes, and Dart's behaviour involves a couple of subtleties worth knowing.
+      <br><br>
+      When the result of an arithmetic operation can't be represented exactly, the CPU picks the nearest representable value. The default IEEE 754 mode is <strong>round half to even</strong> — also called banker's rounding. When the value is exactly halfway between two representable numbers, the one whose last bit is even wins.
+      <br><br>
+      This is what every floating-point operation in Dart uses internally. It is deterministic and reproducible: everyone follows the same rule.
+      <br><br>
+      But Dart's <code>.round()</code> method is a different story. It rounds <strong>half away from zero</strong>:
+      <br><br>
+      <pre><code>print((0.5).round());   // 1
+      print((1.5).round());   // 2
+      print((2.5).round());   // 3
+      print((-0.5).round());  // -1
+      print((-1.5).round());  // -2</code></pre>
+      Compare with banker's rounding, which would give 0, 2, 2, 0, -2. They agree on 1.5 → 2 (both "away from zero" and "to even" land on 2), but disagree on 0.5 and 2.5.
+      <br><br>
+      This is a deliberate Dart language choice. Away-from-zero matches what humans normally mean by "rounding," which is why <code>.round()</code> uses it. Banker's rounding is for arithmetic correctness — it avoids the small statistical bias that always-away-from-zero introduces over many operations.
+      <br><br>
+      If we need banker's rounding specifically (often required for accounting standards like IEEE 754, financial regulations, or scientific publications), we'll need to implement it ourselves or use a decimal library that supports it.
+
+  - id: cancellation
+    title: "Catastrophic cancellation and non-associativity"
+    summary: "Two classic ways doubles surprise us, beyond the <code>0.1 + 0.2</code> case we met in Episode 4.<br><br><strong>Catastrophic cancellation.</strong> When we subtract two nearly-equal doubles, most of the precision cancels out and we are left with very few meaningful digits.<br><br><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 720 360\" role=\"img\" aria-label=\"Catastrophic cancellation visualisation\" style=\"max-width: 100%; height: auto;\"><style>.e3-t { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Inter, sans-serif; fill: #1e293b; }.e3-title { font-size: 16px; font-weight: 600; }.e3-sub { font-size: 13px; fill: #475569; }.e3-mn { font-family: \"SF Mono\", Menlo, Monaco, monospace; font-size: 14px; }.e3-mn-bold { font-family: \"SF Mono\", Menlo, Monaco, monospace; font-size: 14px; font-weight: 700; }.e3-label { font-size: 12px; fill: #64748b; }.e3-cancel { fill: #94a3b8; }.e3-survives { fill: #dc2626; font-weight: 700; }.e3-bad { font-size: 13px; font-weight: 600; fill: #b45309; }</style><text x=\"360\" y=\"28\" text-anchor=\"middle\" class=\"e3-t e3-title\">Catastrophic cancellation</text><text x=\"360\" y=\"50\" text-anchor=\"middle\" class=\"e3-t e3-sub\">Subtracting two nearly-equal doubles destroys most of the precision.</text><text x=\"60\" y=\"105\" class=\"e3-t e3-mn\">a = </text><text x=\"100\" y=\"105\" class=\"e3-t e3-mn\"><tspan class=\"e3-cancel\">1.000000000000000</tspan><tspan class=\"e3-survives\">2</tspan></text><text x=\"60\" y=\"135\" class=\"e3-t e3-mn\">b = </text><text x=\"100\" y=\"135\" class=\"e3-t e3-mn\"><tspan class=\"e3-cancel\">1.000000000000000</tspan>0</text><line x1=\"60\" y1=\"148\" x2=\"430\" y2=\"148\" stroke=\"#1e293b\" stroke-width=\"1.5\"/><text x=\"60\" y=\"175\" class=\"e3-t e3-mn\">a − b = </text><text x=\"130\" y=\"175\" class=\"e3-t e3-mn-bold\"><tspan class=\"e3-cancel\">0.000000000000000</tspan><tspan class=\"e3-survives\">2</tspan></text><text x=\"500\" y=\"105\" class=\"e3-t e3-label\">these 16 digits</text><text x=\"500\" y=\"125\" class=\"e3-t e3-label\">are identical</text><line x1=\"495\" y1=\"93\" x2=\"480\" y2=\"93\" stroke=\"#94a3b8\" stroke-width=\"1\"/><line x1=\"495\" y1=\"130\" x2=\"480\" y2=\"130\" stroke=\"#94a3b8\" stroke-width=\"1\"/><text x=\"500\" y=\"170\" class=\"e3-t e3-label\">only one digit</text><text x=\"500\" y=\"185\" class=\"e3-t e3-label\">of meaning survives</text><line x1=\"495\" y1=\"170\" x2=\"445\" y2=\"170\" stroke=\"#dc2626\" stroke-width=\"1.5\"/><line x1=\"40\" y1=\"220\" x2=\"680\" y2=\"220\" stroke=\"#e2e8f0\" stroke-width=\"1\" stroke-dasharray=\"4 4\"/><text x=\"40\" y=\"252\" class=\"e3-t e3-sub\">In Dart, this actually happens:</text><text x=\"40\" y=\"285\" class=\"e3-t e3-mn\">double a = 1.0 + 1e-15;</text><text x=\"40\" y=\"305\" class=\"e3-t e3-mn\">double b = 1.0;</text><text x=\"40\" y=\"325\" class=\"e3-t e3-mn\">print(a - b);  <tspan class=\"e3-label\">// 1.1102230246251565e-15, not 1e-15</tspan></text><text x=\"40\" y=\"350\" class=\"e3-t e3-bad\">The difference is mostly rounding noise. Beware of subtraction near equality.</text></svg><br><br>The first 15 digits of <code>a</code> and <code>b</code> were identical. After subtraction those bits cancelled. What remains is mostly rounding noise from the original storage of <code>a</code>.<br><br><strong>Floating-point addition is not associative.</strong> <code>(a + b) + c</code> is not guaranteed to equal <code>a + (b + c)</code>.<br><br><pre><code>double a = 1e20;\ndouble b = -1e20;\ndouble c = 1.0;\n\nprint((a + b) + c);  // 1.0\nprint(a + (b + c));  // 0.0</code></pre>In the first version, the huge values cancel first, then 1 is added. In the second, 1 is added to a huge value where it is far below the precision threshold — it gets lost entirely.<br><br>This affects parallel reductions, sums of long sequences, and anything where the order of operations isn't deterministic. For sums where precision matters, <strong>Kahan summation</strong> (which keeps a running error correction term alongside the sum) is the standard fix."
+
+  - id: integer-cliff
+    title: "The 53-bit integer cliff"
+    summary: "Dart's <code>int</code> is 64-bit, with a range of about ±9 quintillion. Dart's <code>double</code> has 53 bits of effective precision (52 explicit mantissa bits plus an implicit leading 1).<br><br>That is a problem. A double cannot exactly represent every 64-bit integer.<br><br>The cutoff sits at <strong>2⁵³ = 9 007 199 254 740 992</strong>. Below that, every integer maps to a unique double. Above that, doubles can no longer represent every integer — they start skipping.<br><br><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 720 340\" role=\"img\" aria-label=\"The 53-bit precision cliff\" style=\"max-width: 100%; height: auto;\"><style>.e2-t { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Inter, sans-serif; fill: #1e293b; }.e2-title { font-size: 16px; font-weight: 600; }.e2-sub { font-size: 13px; fill: #64748b; }.e2-mn { font-family: \"SF Mono\", Menlo, Monaco, monospace; font-size: 13px; font-weight: 600; }.e2-mn-small { font-family: \"SF Mono\", Menlo, Monaco, monospace; font-size: 11px; }.e2-label { font-size: 12px; fill: #475569; }.e2-good { font-size: 12px; font-weight: 600; fill: #059669; }.e2-bad { font-size: 12px; font-weight: 600; fill: #dc2626; }.e2-cliff { font-size: 13px; font-weight: 700; fill: #dc2626; }</style><text x=\"360\" y=\"28\" text-anchor=\"middle\" class=\"e2-t e2-title\">The 53-bit precision cliff</text><text x=\"360\" y=\"48\" text-anchor=\"middle\" class=\"e2-t e2-sub\">Doubles can exactly represent every integer up to 2⁵³. Past that, they start skipping.</text><line x1=\"40\" y1=\"160\" x2=\"680\" y2=\"160\" stroke=\"#94a3b8\" stroke-width=\"2\"/><rect x=\"40\" y=\"155\" width=\"290\" height=\"10\" fill=\"#d1fae5\"/><rect x=\"340\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"380\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"420\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"460\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"500\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"540\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"580\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><rect x=\"620\" y=\"155\" width=\"20\" height=\"10\" fill=\"#fee2e2\"/><line x1=\"335\" y1=\"120\" x2=\"335\" y2=\"195\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"4 3\"/><text x=\"335\" y=\"112\" text-anchor=\"middle\" class=\"e2-t e2-cliff\">cliff at 2⁵³</text><line x1=\"100\" y1=\"155\" x2=\"100\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"160\" y1=\"155\" x2=\"160\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"220\" y1=\"155\" x2=\"220\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"280\" y1=\"155\" x2=\"280\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"330\" y1=\"155\" x2=\"330\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"350\" y1=\"155\" x2=\"350\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"390\" y1=\"155\" x2=\"390\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"430\" y1=\"155\" x2=\"430\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"470\" y1=\"155\" x2=\"470\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"510\" y1=\"155\" x2=\"510\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"550\" y1=\"155\" x2=\"550\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"590\" y1=\"155\" x2=\"590\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"630\" y1=\"155\" x2=\"630\" y2=\"175\" stroke=\"#10b981\" stroke-width=\"2\"/><line x1=\"370\" y1=\"155\" x2=\"370\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"410\" y1=\"155\" x2=\"410\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"450\" y1=\"155\" x2=\"450\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"490\" y1=\"155\" x2=\"490\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"530\" y1=\"155\" x2=\"530\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"570\" y1=\"155\" x2=\"570\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><line x1=\"610\" y1=\"155\" x2=\"610\" y2=\"175\" stroke=\"#dc2626\" stroke-width=\"2\" stroke-dasharray=\"2 2\"/><text x=\"185\" y=\"220\" text-anchor=\"middle\" class=\"e2-t e2-good\">every integer fits exactly</text><text x=\"490\" y=\"220\" text-anchor=\"middle\" class=\"e2-t e2-bad\">only every other integer fits</text><text x=\"185\" y=\"240\" text-anchor=\"middle\" class=\"e2-t e2-mn-small\">0 … 9 007 199 254 740 992</text><text x=\"490\" y=\"240\" text-anchor=\"middle\" class=\"e2-t e2-mn-small\">9 007 199 254 740 992 +</text><text x=\"40\" y=\"285\" class=\"e2-t e2-label\"><tspan class=\"e2-mn\">int big = 9007199254740993;</tspan>     // valid int (2⁵³ + 1)</text><text x=\"40\" y=\"305\" class=\"e2-t e2-label\"><tspan class=\"e2-mn\">double d = big.toDouble();</tspan>      // silently rounds to 2⁵³</text><text x=\"40\" y=\"325\" class=\"e2-t e2-label\"><tspan class=\"e2-mn\">d.toInt();</tspan>                       // = 9007199254740992  ← lost a digit</text></svg><br><br>Where this bites in practice:<br><br>• <strong>Database IDs</strong> that exceed 2⁵³ (Twitter snowflake IDs, some auto-increment patterns)<br>• <strong>Timestamps in nanoseconds</strong> since the epoch<br>• <strong>Cryptographic values</strong> like hashes and nonces<br>• <strong>Big counters</strong> from any external system<br><br>The fix is simple: keep big numbers as <code>int</code> (or <code>BigInt</code>) and don't pass them through <code>double</code>. If we have to serialise and parse, use string representations or split into high and low halves.<br><br>This is also why JavaScript exposes <code>Number.MAX_SAFE_INTEGER</code> at exactly this value — JS only has doubles, no separate integer type, so 2⁵³ is the safe ceiling for integer arithmetic in JS. Dart sidesteps this for <code>int</code>, but the moment we cross over to <code>double</code>, the same ceiling applies."
+
+  - id: bit-level
+    title: "Bit-level inspection"
+    summary: |
+      Sometimes we want to see exactly what bits Dart is using to represent a double. The standard tool is <code>ByteData</code> from the typed_data library we met in Episode 3.
+      <br><br>
+      <pre><code>import 'dart:typed_data';
+
+      double value = 1.0;
+      ByteData bytes = ByteData(8);
+      bytes.setFloat64(0, value);
+
+      int rawBits = bytes.getInt64(0);
+      print(rawBits.toRadixString(16).padLeft(16, '0'));
+      // 3ff0000000000000</code></pre>
+      That hex string is the IEEE 754 encoding of <code>1.0</code>:
+      <br><br>
+      • <strong>Sign:</strong> <code>0</code> (positive)
+      <br>
+      • <strong>Exponent:</strong> <code>01111111111</code> (1023, the bias — representing 2⁰)
+      <br>
+      • <strong>Mantissa:</strong> all zeros (with the implicit leading 1, the value is 1.0)
+      <br><br>
+      We can go the other way too:
+      <br><br>
+      <pre><code>// Build a double from raw bits
+      ByteData bytes = ByteData(8);
+      bytes.setInt64(0, 0x4000000000000000);  // 2.0 in IEEE 754
+      double value = bytes.getFloat64(0);
+      print(value);  // 2.0</code></pre>
+      This is occasionally useful for:
+      <br><br>
+      • Custom binary serialisation formats
+      <br>
+      • Building hash functions over doubles
+      <br>
+      • Inspecting NaN payloads (different NaN values have different mantissa bits)
+      <br>
+      • Sanity-checking our understanding of IEEE 754
+      <br><br>
+      Once we can see the bits, every quirk we have discussed in these two episodes becomes mechanical to reason about. Boxing? It is the heap object that wraps these 8 bytes. Precision loss? Bits get truncated to fit 52. Subnormals? Specific patterns in the exponent. NaN? Exponent all ones, mantissa non-zero. It is all there in the bytes.
+      <br><br>
+      That wraps up the floating-point story. In the next main episode we move on to strings, and we will see that text is somehow even messier than numbers.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering double memory layout, escape hatches, and the IEEE 754 edge cases — subnormals, rounding, cancellation, and the 53-bit cliff."
+  questions:
+    - question: "Why can't Dart use a Smi-like trick to store doubles inline in the pointer slot?"
+      options:
+        - "The Dart team hasn't implemented it yet"
+        - "All 64 bits of a double carry meaning, so there is no spare bit for a tag"
+        - "Doubles are immutable and don't need the optimization"
+        - "Floating-point math requires heap allocation by hardware design"
+      correctIndex: 1
+      explanation: "Smi works for small integers because Dart can steal one bit of the 64-bit pointer for a tag and store the value in the remaining bits. A double uses all 64 bits — sign, exponent, mantissa — so there's no bit to spare. As a result, doubles are always heap-allocated objects, with an object header plus 8 bytes for the value."
+
+    - question: "Which integer cannot be exactly represented as a Dart double?"
+      options:
+        - "1"
+        - "1 000 000"
+        - "9 007 199 254 740 993 (2⁵³ + 1)"
+        - "-1"
+      correctIndex: 2
+      explanation: "Doubles have 53 bits of effective precision (52 explicit mantissa bits plus an implicit leading 1). They can represent every integer exactly up to 2⁵³ = 9 007 199 254 740 992. Past that, doubles can only represent every other integer, then every fourth, and so on — they start skipping. The integer 2⁵³ + 1 silently rounds down to 2⁵³ when converted to a double."
+
+    - question: "What is catastrophic cancellation?"
+      options:
+        - "When a computation overflows to infinity"
+        - "When subtracting two nearly-equal doubles destroys most of the precision"
+        - "When NaN propagates through a calculation"
+        - "When the garbage collector reclaims a double prematurely"
+      correctIndex: 1
+      explanation: "When two doubles share many leading digits and we subtract them, those identical digits cancel out — and what remains is just the trailing difference, which often has only a few bits of meaningful information left. The lost precision can't be recovered. The classic fix is to rearrange the algorithm to avoid the near-equal subtraction, or to use techniques like Kahan summation."
+
+    - question: "What rounding rule does Dart's `.round()` method use?"
+      options:
+        - "Banker's rounding (round half to even)"
+        - "Round half away from zero — 0.5 → 1, -0.5 → -1"
+        - "Round toward zero (truncate)"
+        - "Round toward positive infinity"
+      correctIndex: 1
+      explanation: "Dart's `.round()` rounds half away from zero, so 0.5 → 1, 1.5 → 2, 2.5 → 3, -0.5 → -1. This matches the everyday human meaning of 'rounding.' Note that IEEE 754 floating-point arithmetic itself uses a different default — round half to even (banker's rounding) — for statistical reasons. So the rule depends on whether you're rounding via `.round()` or via raw arithmetic."
+
+    - question: "What does it mean that floating-point addition is not associative?"
+      options:
+        - "Addition is not commutative — a + b might not equal b + a"
+        - "(a + b) + c can produce a different result from a + (b + c)"
+        - "Addition can only happen left-to-right in floating-point"
+        - "Addition requires an intermediate temporary variable"
+      correctIndex: 1
+      explanation: "Because each intermediate result gets rounded to fit in 64 bits, the order in which we group additions changes which roundings happen and therefore the final answer. For example, `(1e20 + -1e20) + 1.0` is 1.0, but `1e20 + (-1e20 + 1.0)` is 0.0 — because adding 1.0 to a number of magnitude 1e20 loses the 1.0 entirely. This affects parallel reductions and any reordering optimization."
+
+    - question: "What is a subnormal (denormalized) number?"
+      options:
+        - "A negative number"
+        - "A number too small to fit the normal floating-point format, encoded specially to fill the gap between zero and the smallest normal value"
+        - "A number that can't be represented at all"
+        - "A number with too many decimal digits"
+      correctIndex: 1
+      explanation: "Below the smallest normal double (around 2.2 × 10⁻³⁰⁸), IEEE 754 reserves special bit patterns for subnormals, which extend down to about 5 × 10⁻³²⁴ with steadily decreasing precision. This gives 'gradual underflow' — values shrink toward zero smoothly instead of snapping. The cost is that many CPUs handle subnormal arithmetic via slow microcode, making them a performance trap in tight numerical loops."
+
+    - question: "What is the most reliable way to keep doubles unboxed in Dart?"
+      options:
+        - "Declare them as `const`"
+        - "Use the `final` keyword"
+        - "Store them in a `Float64List`"
+        - "Mark the function as `inline`"
+      correctIndex: 2
+      explanation: "Float64List stores raw 8-byte values packed contiguously with no boxing and no per-element overhead. The Dart VM also has unboxing optimizations for hot paths in JIT/AOT mode, but those are best-effort — they can be defeated by storing the value in a `List<double>`, passing it as `num` or `Object`, or any other code path where the compiler can't prove the type. For a guarantee, reach for Float64List."
+---
+
+{/* All content lives in frontmatter `topics` and `quiz`. Three inline SVG
+    diagrams are embedded in the how-doubles-are-stored, cancellation,
+    and integer-cliff topics. */}

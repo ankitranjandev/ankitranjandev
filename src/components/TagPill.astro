@@ -1,0 +1,35 @@
+---
+import { slugify } from '@/lib/utils';
+
+interface Props {
+  tag: string;
+  size?: 'sm' | 'md';
+  count?: number;
+  linked?: boolean;
+}
+
+const { tag, size = 'md', count, linked = false } = Astro.props;
+const href = `/tags/${slugify(tag)}/`;
+
+const sizeClasses = {
+  sm: 'px-2 py-0.5 text-xs',
+  md: 'px-2.5 py-1 text-sm',
+};
+
+const baseClasses = `inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] font-medium text-[var(--text-secondary)] ${sizeClasses[size]}`;
+const linkClasses = `${baseClasses} no-underline transition-all hover:border-accent/50 hover:bg-accent/5 hover:text-accent`;
+---
+
+{
+  linked ? (
+    <a href={href} class={linkClasses}>
+      {tag}
+      {count !== undefined && <span class="text-[var(--text-secondary)]/60">({count})</span>}
+    </a>
+  ) : (
+    <span class={baseClasses}>
+      {tag}
+      {count !== undefined && <span class="opacity-60">({count})</span>}
+    </span>
+  )
+}

@@ -1,0 +1,354 @@
+---
+title: "Functions in Dart — First-Class, Closures, and Tear-offs"
+description: "Functions are objects. They can be passed around, returned, and stored — and that changes everything about how we write code."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Primitive Computation"
+order: 1
+publishedAt: 2026-05-23
+topics:
+  - id: functions-are-objects
+    title: "Functions are objects"
+    summary: |
+      In some languages, functions are special. They live in a separate world from data — you can call them, but you cannot touch them.
+      <br><br>
+      Dart is different. Every function in Dart is an object. It has a type. It can be assigned to a variable. It can be passed to another function. It can be returned from a function. It can be stored in a list.
+      <br><br>
+      <pre><code>void greet() {
+        print('Hello!');
+      }
+
+      void main() {
+        var f = greet;      // assign to a variable
+        f();                // call it — prints 'Hello!'
+
+        var functions = [greet, greet, greet];
+        for (var fn in functions) {
+          fn();             // prints 'Hello!' three times
+        }
+      }</code></pre>
+      This is called being <strong>first-class</strong>. Functions are first-class citizens in Dart — they have the same rights as any other object.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Functions as objects diagram" style="max-width: 100%; height: auto;"><style>.f1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.f1-title{font-size:16px;font-weight:600}.f1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.f1-label{font-size:12px;fill:#64748b}.f1-action{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="28" text-anchor="middle" class="f1-t f1-title">Functions are objects — they can go anywhere objects go</text><rect x="40" y="60" width="140" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="110" y="90" text-anchor="middle" class="f1-t f1-mn">greet()</text><text x="110" y="112" text-anchor="middle" class="f1-t f1-label">function object</text><line x1="180" y1="95" x2="230" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#f1-arrow)"/><text x="205" y="85" text-anchor="middle" class="f1-t f1-label">assign</text><rect x="230" y="60" width="140" height="70" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="300" y="90" text-anchor="middle" class="f1-t f1-mn">var f</text><text x="300" y="112" text-anchor="middle" class="f1-t f1-label">variable</text><rect x="40" y="170" width="140" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="110" y="200" text-anchor="middle" class="f1-t f1-mn">greet()</text><text x="110" y="222" text-anchor="middle" class="f1-t f1-label">function object</text><line x1="180" y1="205" x2="230" y2="205" stroke="#475569" stroke-width="2" marker-end="url(#f1-arrow)"/><text x="205" y="195" text-anchor="middle" class="f1-t f1-label">pass</text><rect x="230" y="170" width="180" height="70" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="320" y="200" text-anchor="middle" class="f1-t f1-mn">otherFn(greet)</text><text x="320" y="222" text-anchor="middle" class="f1-t f1-label">parameter</text><rect x="450" y="60" width="220" height="180" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="560" y="90" text-anchor="middle" class="f1-t f1-action">What you can do with a function:</text><text x="470" y="120" class="f1-t f1-label">• Assign to a variable</text><text x="470" y="145" class="f1-t f1-label">• Pass as an argument</text><text x="470" y="170" class="f1-t f1-label">• Return from another function</text><text x="470" y="195" class="f1-t f1-label">• Store in a collection</text><text x="470" y="220" class="f1-t f1-label">• Check its type at runtime</text><defs><marker id="f1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      Why does this matter? Because it unlocks a whole style of programming. Instead of writing repetitive loops, we pass functions to <code>map</code> and <code>where</code>. Instead of hard-coding behaviour, we accept callbacks. Instead of subclasses, we inject strategies as functions.
+
+  - id: parameters
+    title: "Parameters — positional, named, required, and defaults"
+    summary: |
+      Dart gives us four ways to define parameters, and knowing when to use each one makes APIs much cleaner.
+      <br><br>
+      <strong>Required positional</strong> — the basics. Every argument must be provided, in order.
+      <br><br>
+      <pre><code>int add(int a, int b) {
+        return a + b;
+      }
+
+      add(2, 3);   // 5
+      add(2);      // error — missing argument</code></pre>
+      <strong>Optional positional</strong> — wrap in square brackets. Arguments can be omitted; they default to <code>null</code> (or a provided default).
+      <br><br>
+      <pre><code>String greet(String name, [String? title]) {
+        if (title != null) return 'Hello, $title $name';
+        return 'Hello, $name';
+      }
+
+      greet('Ankit');           // 'Hello, Ankit'
+      greet('Ankit', 'Dr.');    // 'Hello, Dr. Ankit'</code></pre>
+      <strong>Named parameters</strong> — wrap in curly braces. Call-site must use the name, but order doesn't matter. By default they're optional.
+      <br><br>
+      <pre><code>void createUser({String? name, int? age}) {
+        print('$name is $age years old');
+      }
+
+      createUser(age: 25, name: 'Ankit');   // order doesn't matter
+      createUser(name: 'Ankit');            // age is null</code></pre>
+      <strong>Required named</strong> — add the <code>required</code> keyword. The caller must provide it.
+      <br><br>
+      <pre><code>void createUser({required String name, int age = 0}) {
+        print('$name is $age years old');
+      }
+
+      createUser(name: 'Ankit');        // works, age defaults to 0
+      createUser(age: 25);              // error — name is required</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Parameter types comparison" style="max-width: 100%; height: auto;"><style>.f2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.f2-title{font-size:16px;font-weight:600}.f2-hdr{font-size:13px;font-weight:700}.f2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.f2-cell{font-size:12px;fill:#1e293b}.f2-yes{font-size:14px;font-weight:700;fill:#059669}.f2-no{font-size:14px;font-weight:700;fill:#dc2626}</style><text x="360" y="26" text-anchor="middle" class="f2-t f2-title">Parameter types at a glance</text><rect x="20" y="50" width="140" height="50" fill="#f1f5f9" stroke="#cbd5e1"/><text x="90" y="80" text-anchor="middle" class="f2-t f2-hdr">Type</text><rect x="160" y="50" width="140" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="230" y="72" text-anchor="middle" class="f2-t f2-hdr">Required</text><text x="230" y="88" text-anchor="middle" class="f2-t f2-mn">fn(int a)</text><rect x="300" y="50" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="370" y="72" text-anchor="middle" class="f2-t f2-hdr">Optional</text><text x="370" y="88" text-anchor="middle" class="f2-t f2-mn">fn([int? a])</text><rect x="440" y="50" width="130" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="505" y="72" text-anchor="middle" class="f2-t f2-hdr">Named</text><text x="505" y="88" text-anchor="middle" class="f2-t f2-mn">fn({int? a})</text><rect x="570" y="50" width="130" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="635" y="72" text-anchor="middle" class="f2-t f2-hdr">Required Named</text><text x="635" y="88" text-anchor="middle" class="f2-t f2-mn">fn({required})</text><rect x="20" y="100" width="140" height="45" fill="#fff" stroke="#cbd5e1"/><text x="90" y="128" text-anchor="middle" class="f2-t f2-cell">Must provide?</text><rect x="160" y="100" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="230" y="128" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="300" y="100" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="370" y="128" text-anchor="middle" class="f2-t f2-no">No</text><rect x="440" y="100" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="505" y="128" text-anchor="middle" class="f2-t f2-no">No</text><rect x="570" y="100" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="635" y="128" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="20" y="145" width="140" height="45" fill="#fff" stroke="#cbd5e1"/><text x="90" y="173" text-anchor="middle" class="f2-t f2-cell">Order matters?</text><rect x="160" y="145" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="230" y="173" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="300" y="145" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="370" y="173" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="440" y="145" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="505" y="173" text-anchor="middle" class="f2-t f2-no">No</text><rect x="570" y="145" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="635" y="173" text-anchor="middle" class="f2-t f2-no">No</text><rect x="20" y="190" width="140" height="45" fill="#fff" stroke="#cbd5e1"/><text x="90" y="218" text-anchor="middle" class="f2-t f2-cell">Can have default?</text><rect x="160" y="190" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="230" y="218" text-anchor="middle" class="f2-t f2-no">No</text><rect x="300" y="190" width="140" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="370" y="218" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="440" y="190" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="505" y="218" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="570" y="190" width="130" height="45" fill="#f8fafc" stroke="#cbd5e1"/><text x="635" y="218" text-anchor="middle" class="f2-t f2-yes">Yes</text><rect x="20" y="235" width="140" height="55" fill="#fff" stroke="#cbd5e1"/><text x="90" y="268" text-anchor="middle" class="f2-t f2-cell">Best for...</text><rect x="160" y="235" width="140" height="55" fill="#f8fafc" stroke="#cbd5e1"/><text x="230" y="260" text-anchor="middle" class="f2-t f2-mn">core args</text><text x="230" y="278" text-anchor="middle" class="f2-t f2-mn">(always needed)</text><rect x="300" y="235" width="140" height="55" fill="#f8fafc" stroke="#cbd5e1"/><text x="370" y="260" text-anchor="middle" class="f2-t f2-mn">extras in</text><text x="370" y="278" text-anchor="middle" class="f2-t f2-mn">fixed order</text><rect x="440" y="235" width="130" height="55" fill="#f8fafc" stroke="#cbd5e1"/><text x="505" y="260" text-anchor="middle" class="f2-t f2-mn">config/options</text><text x="505" y="278" text-anchor="middle" class="f2-t f2-mn">(clarity)</text><rect x="570" y="235" width="130" height="55" fill="#f8fafc" stroke="#cbd5e1"/><text x="635" y="260" text-anchor="middle" class="f2-t f2-mn">important opts</text><text x="635" y="278" text-anchor="middle" class="f2-t f2-mn">(must provide)</text></svg>
+      <br><br>
+      <strong>The rule of thumb:</strong> Use named parameters for functions with more than 2-3 arguments, especially booleans. <code>createUser(isAdmin: true)</code> is much clearer than <code>createUser(true)</code>.
+
+  - id: closures
+    title: "Closures — capturing the environment"
+    summary: |
+      A closure is a function that remembers the variables from the scope where it was created — even after that scope has ended.
+      <br><br>
+      <pre><code>Function makeCounter() {
+        int count = 0;
+        return () {
+          count++;
+          return count;
+        };
+      }
+
+      void main() {
+        var counter = makeCounter();
+        print(counter());   // 1
+        print(counter());   // 2
+        print(counter());   // 3
+      }</code></pre>
+      The inner function captures <code>count</code>. Even after <code>makeCounter</code> returns, the inner function still has access to that variable. Each call to <code>makeCounter()</code> creates a new <code>count</code>, so each counter is independent.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Closure capturing environment" style="max-width: 100%; height: auto;"><style>.f3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.f3-title{font-size:16px;font-weight:600}.f3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.f3-label{font-size:12px;fill:#64748b}.f3-note{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="26" text-anchor="middle" class="f3-t f3-title">A closure carries its environment with it</text><rect x="40" y="55" width="280" height="120" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="180" y="78" text-anchor="middle" class="f3-t f3-note">makeCounter() scope</text><rect x="60" y="95" width="100" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="110" y="120" text-anchor="middle" class="f3-t f3-mn">count = 0</text><text x="110" y="140" text-anchor="middle" class="f3-t f3-label">variable</text><rect x="180" y="95" width="120" height="60" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/><text x="240" y="120" text-anchor="middle" class="f3-t f3-mn">() { ... }</text><text x="240" y="140" text-anchor="middle" class="f3-t f3-label">inner function</text><line x1="180" y1="125" x2="160" y2="125" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/><text x="170" y="115" text-anchor="middle" class="f3-t f3-label" font-size="10">captures</text><line x1="320" y1="125" x2="380" y2="125" stroke="#475569" stroke-width="2" marker-end="url(#f3-arrow)"/><text x="350" y="115" text-anchor="middle" class="f3-t f3-label">return</text><rect x="400" y="55" width="280" height="120" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="78" text-anchor="middle" class="f3-t f3-note">The returned closure</text><rect x="420" y="95" width="120" height="60" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/><text x="480" y="120" text-anchor="middle" class="f3-t f3-mn">() { ... }</text><text x="480" y="140" text-anchor="middle" class="f3-t f3-label">function</text><rect x="560" y="95" width="100" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="610" y="120" text-anchor="middle" class="f3-t f3-mn">count = 0</text><text x="610" y="140" text-anchor="middle" class="f3-t f3-label">captured</text><line x1="540" y1="125" x2="560" y2="125" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/><text x="540" y="210" text-anchor="middle" class="f3-t f3-note">The variable travels with the function</text><text x="540" y="235" text-anchor="middle" class="f3-t f3-label">Each call to makeCounter() creates a new closure</text><text x="540" y="255" text-anchor="middle" class="f3-t f3-label">with its own independent count variable.</text><defs><marker id="f3-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>The classic trap — loops and closures.</strong> This bites everyone at least once.
+      <br><br>
+      <pre><code>var functions = &lt;Function&gt;[];
+      for (var i = 0; i &lt; 3; i++) {
+        functions.add(() => print(i));
+      }
+      for (var f in functions) {
+        f();   // prints 3, 3, 3 — not 0, 1, 2!
+      }</code></pre>
+      All three closures capture the <strong>same</strong> <code>i</code> variable. By the time we call them, the loop has finished and <code>i</code> is 3.
+      <br><br>
+      <strong>The fix:</strong> Capture a fresh copy inside the loop.
+      <br><br>
+      <pre><code>for (var i = 0; i &lt; 3; i++) {
+        var captured = i;   // fresh copy each iteration
+        functions.add(() => print(captured));
+      }
+      // Now prints 0, 1, 2</code></pre>
+
+  - id: tearoffs
+    title: "Tear-offs — passing functions without the ceremony"
+    summary: |
+      When we pass a function to another function, we often write an anonymous wrapper.
+      <br><br>
+      <pre><code>var numbers = [1, 2, 3, 4, 5];
+
+      // The verbose way
+      numbers.forEach((n) => print(n));
+
+      // The tear-off way
+      numbers.forEach(print);</code></pre>
+      Both do the same thing. The second version is called a <strong>tear-off</strong> — we "tear off" the function from its name and pass it directly.
+      <br><br>
+      Tear-offs work for methods too.
+      <br><br>
+      <pre><code>class Logger {
+        void log(String message) => print('[LOG] $message');
+      }
+
+      void main() {
+        var logger = Logger();
+        var messages = ['Starting', 'Processing', 'Done'];
+
+        // Tear off the method from the instance
+        messages.forEach(logger.log);
+        // prints [LOG] Starting, [LOG] Processing, [LOG] Done
+      }</code></pre>
+      <strong>When to use tear-offs:</strong>
+      <br>• When the function signature matches exactly
+      <br>• When you don't need to transform the arguments
+      <br>• When readability improves (usually with well-named functions)
+      <br><br>
+      <strong>When to use lambdas instead:</strong>
+      <br>• When you need to ignore some arguments
+      <br>• When you need to transform arguments before passing
+      <br>• When the logic is more than a simple pass-through
+      <br><br>
+      <pre><code>// Tear-off won't work here — we need to transform the argument
+      numbers.map((n) => n.toString().padLeft(2, '0'));
+
+      // Tear-off works here — signature matches exactly
+      strings.map(int.parse);</code></pre>
+
+  - id: function-types
+    title: "Function types and typedef"
+    summary: |
+      Every function in Dart has a type. The type describes what goes in and what comes out.
+      <br><br>
+      <pre><code>// A function that takes a String and returns an int
+      int Function(String) parser;
+
+      // A function that takes nothing and returns nothing
+      void Function() callback;
+
+      // A function that takes two ints and returns a bool
+      bool Function(int, int) comparator;</code></pre>
+      We can use these types anywhere we'd use a regular type — as parameter types, return types, or variable types.
+      <br><br>
+      <pre><code>void repeat(int times, void Function() action) {
+        for (var i = 0; i &lt; times; i++) {
+          action();
+        }
+      }
+
+      repeat(3, () => print('Hello'));   // prints Hello three times</code></pre>
+      <strong>typedef — naming function types.</strong> When function types get long, we can give them a name.
+      <br><br>
+      <pre><code>typedef JsonParser = Map&lt;String, dynamic&gt; Function(String);
+
+      JsonParser parse = (String json) {
+        // ... parsing logic
+        return {};
+      };
+
+      void processJson(JsonParser parser, String input) {
+        var data = parser(input);
+        // ...
+      }</code></pre>
+      The typedef makes code more readable and self-documenting. It also makes refactoring easier — change the typedef in one place, and the type updates everywhere.
+      <br><br>
+      <strong>Generic function types.</strong> Function types can be generic too.
+      <br><br>
+      <pre><code>typedef Mapper&lt;T, R&gt; = R Function(T);
+
+      Mapper&lt;int, String&gt; intToString = (i) => i.toString();
+      Mapper&lt;String, int&gt; stringToInt = (s) => int.parse(s);</code></pre>
+
+  - id: higher-order-functions
+    title: "Higher-order functions — the functional toolkit"
+    summary: |
+      A higher-order function is a function that takes another function as an argument, or returns a function. We've been using them all along.
+      <br><br>
+      In Episode 7, we saw <code>map</code>, <code>where</code>, and <code>fold</code> on collections. Now we can see them through the lens of function types.
+      <br><br>
+      <pre><code>// map takes a function: T Function(E)
+      var doubled = [1, 2, 3].map((n) => n * 2);
+
+      // where takes a function: bool Function(E)
+      var evens = [1, 2, 3, 4].where((n) => n.isEven);
+
+      // fold takes an initial value and a function: T Function(T, E)
+      var sum = [1, 2, 3].fold(0, (acc, n) => acc + n);</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Higher-order function pipeline" style="max-width: 100%; height: auto;"><defs><marker id="f4-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.f4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.f4-title{font-size:16px;font-weight:600}.f4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.f4-label{font-size:11px;fill:#64748b}.f4-data{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="f4-t f4-title">Higher-order functions transform data through a pipeline</text><rect x="30" y="60" width="120" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="4"/><text x="90" y="82" text-anchor="middle" class="f4-t f4-data">[1, 2, 3, 4, 5]</text><text x="90" y="98" text-anchor="middle" class="f4-t f4-label">input</text><line x1="150" y1="85" x2="190" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#f4-arrow)"/><rect x="190" y="50" width="100" height="70" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="240" y="78" text-anchor="middle" class="f4-t f4-mn">.where()</text><text x="240" y="98" text-anchor="middle" class="f4-t f4-label">n.isEven</text><text x="240" y="112" text-anchor="middle" class="f4-t f4-label">→ filter</text><line x1="290" y1="85" x2="330" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#f4-arrow)"/><rect x="330" y="50" width="100" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="380" y="78" text-anchor="middle" class="f4-t f4-mn">.map()</text><text x="380" y="98" text-anchor="middle" class="f4-t f4-label">n * 2</text><text x="380" y="112" text-anchor="middle" class="f4-t f4-label">→ transform</text><line x1="430" y1="85" x2="470" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#f4-arrow)"/><rect x="470" y="50" width="100" height="70" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="520" y="78" text-anchor="middle" class="f4-t f4-mn">.fold()</text><text x="520" y="98" text-anchor="middle" class="f4-t f4-label">acc + n</text><text x="520" y="112" text-anchor="middle" class="f4-t f4-label">→ reduce</text><line x1="570" y1="85" x2="610" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#f4-arrow)"/><rect x="610" y="60" width="80" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/><text x="650" y="82" text-anchor="middle" class="f4-t f4-data">12</text><text x="650" y="98" text-anchor="middle" class="f4-t f4-label">result</text><text x="90" y="160" class="f4-t f4-data">[1, 2, 3, 4, 5]</text><line x1="165" y1="155" x2="195" y2="155" stroke="#10b981" stroke-width="1.5" marker-end="url(#f4-arrow)"/><text x="240" y="160" text-anchor="middle" class="f4-t f4-data">[2, 4]</text><line x1="275" y1="155" x2="320" y2="155" stroke="#0175C2" stroke-width="1.5" marker-end="url(#f4-arrow)"/><text x="380" y="160" text-anchor="middle" class="f4-t f4-data">[4, 8]</text><line x1="415" y1="155" x2="460" y2="155" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#f4-arrow)"/><text x="520" y="160" text-anchor="middle" class="f4-t f4-data">12</text><text x="360" y="200" text-anchor="middle" class="f4-t" font-size="13" fill="#475569">Each function in the chain accepts a function as its argument.</text><text x="360" y="220" text-anchor="middle" class="f4-t" font-size="13" fill="#475569">The data flows through; the behaviour is pluggable.</text></svg>
+      <br><br>
+      <strong>Writing our own higher-order functions.</strong> We can create functions that accept functions.
+      <br><br>
+      <pre><code>void retry(int times, void Function() action) {
+        for (var i = 0; i &lt; times; i++) {
+          try {
+            action();
+            return;   // success — exit early
+          } catch (e) {
+            if (i == times - 1) rethrow;
+            print('Attempt ${i + 1} failed, retrying...');
+          }
+        }
+      }
+
+      retry(3, () => fetchData());</code></pre>
+      This pattern — accepting behaviour as a parameter — is everywhere in Dart and Flutter. Button callbacks, animation builders, state notifiers. Functions are the currency of flexible APIs.
+
+  - id: generators
+    title: "Generators — sync* and yield"
+    summary: |
+      Sometimes we want to produce a sequence of values lazily — one at a time, on demand. That's what generators do.
+      <br><br>
+      <pre><code>Iterable&lt;int&gt; countTo(int n) sync* {
+        for (var i = 1; i &lt;= n; i++) {
+          yield i;
+        }
+      }
+
+      void main() {
+        for (var n in countTo(5)) {
+          print(n);   // prints 1, 2, 3, 4, 5
+        }
+      }</code></pre>
+      The <code>sync*</code> marker tells Dart this function is a <strong>synchronous generator</strong>. Instead of returning a value with <code>return</code>, it yields values one at a time with <code>yield</code>.
+      <br><br>
+      <strong>The key insight:</strong> The function pauses at each <code>yield</code> and resumes when the next value is requested. This means we can generate infinite sequences without running out of memory.
+      <br><br>
+      <pre><code>Iterable&lt;int&gt; naturals() sync* {
+        var n = 0;
+        while (true) {
+          yield n++;
+        }
+      }
+
+      // Take only what we need
+      var first10 = naturals().take(10);
+      print(first10.toList());   // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]</code></pre>
+      <strong>yield* — delegating to another iterable.</strong> When we want to yield all values from another iterable, we use <code>yield*</code>.
+      <br><br>
+      <pre><code>Iterable&lt;int&gt; flatten(List&lt;List&lt;int&gt;&gt; nested) sync* {
+        for (var list in nested) {
+          yield* list;   // yield each element from the inner list
+        }
+      }
+
+      var nested = [[1, 2], [3, 4], [5]];
+      print(flatten(nested).toList());   // [1, 2, 3, 4, 5]</code></pre>
+      Generators connect directly to the Streams episode coming up. Asynchronous generators (<code>async*</code>) work the same way but yield values over time — perfect for event streams, WebSocket messages, or sensor data. For now, <code>sync*</code> gives us lazy iteration, and that's already powerful.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering first-class functions, closures, parameters, tear-offs, and generators."
+  questions:
+    - question: "What does it mean for functions to be 'first-class' in Dart?"
+      options:
+        - "Functions run faster than other code"
+        - "Functions can be assigned to variables, passed as arguments, and returned from other functions"
+        - "Functions must be declared at the top of the file"
+        - "Functions have higher priority in the call stack"
+      correctIndex: 1
+      explanation: "First-class means functions are treated like any other object. They can be stored in variables, passed to other functions, returned from functions, and stored in collections. This enables functional programming patterns like callbacks, higher-order functions, and closures."
+
+    - question: "What is the difference between `fn([int? a])` and `fn({int? a})`?"
+      options:
+        - "The first is optional positional, the second is named — named requires the name at call site"
+        - "The first is required, the second is optional"
+        - "There is no difference"
+        - "The first allows null, the second doesn't"
+      correctIndex: 0
+      explanation: "Square brackets define optional positional parameters — they must be provided in order but can be omitted. Curly braces define named parameters — the caller must use the parameter name (like `fn(a: 5)`), but order doesn't matter. Both are optional by default."
+
+    - question: "What will this print? `var fns = []; for (var i = 0; i < 3; i++) { fns.add(() => print(i)); } fns[0]();`"
+      options:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
+      correctIndex: 3
+      explanation: "This is the classic closure-in-loop trap. All three closures capture the same variable `i`. By the time any closure runs, the loop has finished and `i` is 3. To capture different values, create a fresh variable inside the loop: `var captured = i;`"
+
+    - question: "When is `list.forEach(print)` preferred over `list.forEach((x) => print(x))`?"
+      options:
+        - "Never — the lambda is always clearer"
+        - "When the function signature matches exactly and no transformation is needed"
+        - "Only for built-in functions"
+        - "When performance is critical"
+      correctIndex: 1
+      explanation: "Tear-offs (like `print` without parentheses) are preferred when the function signature matches exactly what's needed. They're more concise and slightly more efficient. Use lambdas when you need to transform arguments, ignore some parameters, or add logic beyond a simple pass-through."
+
+    - question: "What does this typedef define? `typedef Processor<T> = T Function(T, T);`"
+      options:
+        - "A function that takes one T and returns void"
+        - "A function that takes two Ts and returns a T"
+        - "A class with two type parameters"
+        - "A function that returns two values"
+      correctIndex: 1
+      explanation: "This typedef defines a generic function type: a function that takes two parameters of type T and returns a value of type T. For example, `Processor<int>` would be `int Function(int, int)` — like an addition or multiplication function."
+
+    - question: "What makes `sync*` functions different from regular functions?"
+      options:
+        - "They run in a separate thread"
+        - "They yield values lazily one at a time, pausing between yields"
+        - "They always return a Future"
+        - "They cannot use local variables"
+      correctIndex: 1
+      explanation: "A sync* function is a synchronous generator. Instead of returning once, it can yield multiple values lazily. The function pauses at each yield and resumes when the next value is requested. This enables infinite sequences and memory-efficient iteration over large datasets."
+
+    - question: "What does `yield*` do in a generator function?"
+      options:
+        - "Yields null"
+        - "Yields all values from another iterable, delegating the iteration"
+        - "Multiplies the yielded value"
+        - "Throws an error"
+      correctIndex: 1
+      explanation: "yield* delegates to another iterable, yielding each of its values in turn. It's useful for flattening nested structures or composing generators. `yield* [1, 2, 3]` is equivalent to `yield 1; yield 2; yield 3;` but more concise and works with any iterable."
+---
+
+{/* Episode 8: Functions in Dart. Part of the Dart: Primitive Computation series.
+    7 topics covering first-class functions, parameters, closures, tear-offs,
+    function types, higher-order functions, and generators. 4 inline SVG diagrams. */}

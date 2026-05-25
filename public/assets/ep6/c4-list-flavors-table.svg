@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="List flavors comparison table">
+  <style>
+    .d-lf-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-lf-title { font-size: 16px; font-weight: 600; }
+    .d-lf-hdr { font-size: 13px; font-weight: 700; fill: #1e293b; }
+    .d-lf-prop { font-size: 13px; font-weight: 600; fill: #475569; }
+    .d-lf-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: #475569; }
+    .d-lf-yes { font-size: 18px; font-weight: 700; fill: #059669; }
+    .d-lf-no { font-size: 18px; font-weight: 700; fill: #dc2626; }
+    .d-lf-cell { font-size: 11px; fill: #475569; }
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="d-lf-t d-lf-title">List flavors — same data, different rules</text>
+
+  <!-- Header row -->
+  <rect x="20" y="50" width="160" height="55" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="80" text-anchor="middle" class="d-lf-t d-lf-hdr">Property</text>
+
+  <rect x="180" y="50" width="135" height="55" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/>
+  <text x="247" y="74" text-anchor="middle" class="d-lf-t d-lf-hdr">growable</text>
+  <text x="247" y="92" text-anchor="middle" class="d-lf-t d-lf-mn">[1, 2, 3]</text>
+
+  <rect x="315" y="50" width="135" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="382" y="74" text-anchor="middle" class="d-lf-t d-lf-hdr">fixed-length</text>
+  <text x="382" y="92" text-anchor="middle" class="d-lf-t d-lf-mn">List.filled(...)</text>
+
+  <rect x="450" y="50" width="135" height="55" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/>
+  <text x="517" y="74" text-anchor="middle" class="d-lf-t d-lf-hdr">unmodifiable</text>
+  <text x="517" y="92" text-anchor="middle" class="d-lf-t d-lf-mn">List.unmodif...</text>
+
+  <rect x="585" y="50" width="115" height="55" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="642" y="74" text-anchor="middle" class="d-lf-t d-lf-hdr">const</text>
+  <text x="642" y="92" text-anchor="middle" class="d-lf-t d-lf-mn">const [1,2,3]</text>
+
+  <!-- Row 1: Can add? -->
+  <rect x="20" y="105" width="160" height="50" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="135" text-anchor="middle" class="d-lf-t d-lf-prop">Can add / remove?</text>
+
+  <rect x="180" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="247" y="138" text-anchor="middle" class="d-lf-t d-lf-yes">✓</text>
+
+  <rect x="315" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="382" y="138" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="450" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="517" y="138" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="585" y="105" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="642" y="138" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <!-- Row 2: Can replace? -->
+  <rect x="20" y="155" width="160" height="50" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="185" text-anchor="middle" class="d-lf-t d-lf-prop">Can replace at [i]?</text>
+
+  <rect x="180" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="247" y="188" text-anchor="middle" class="d-lf-t d-lf-yes">✓</text>
+
+  <rect x="315" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="382" y="188" text-anchor="middle" class="d-lf-t d-lf-yes">✓</text>
+
+  <rect x="450" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="517" y="188" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="585" y="155" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="642" y="188" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <!-- Row 3: Compile-time? -->
+  <rect x="20" y="205" width="160" height="50" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="235" text-anchor="middle" class="d-lf-t d-lf-prop">Built at compile time?</text>
+
+  <rect x="180" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="247" y="238" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="315" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="382" y="238" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="450" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="517" y="238" text-anchor="middle" class="d-lf-t d-lf-no">✗</text>
+
+  <rect x="585" y="205" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="642" y="238" text-anchor="middle" class="d-lf-t d-lf-yes">✓</text>
+
+  <!-- Row 4: When to use -->
+  <rect x="20" y="255" width="160" height="60" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="100" y="290" text-anchor="middle" class="d-lf-t d-lf-prop">Best for…</text>
+
+  <rect x="180" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="247" y="280" text-anchor="middle" class="d-lf-t d-lf-cell">most everyday</text>
+  <text x="247" y="296" text-anchor="middle" class="d-lf-t d-lf-cell">use cases</text>
+
+  <rect x="315" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="382" y="280" text-anchor="middle" class="d-lf-t d-lf-cell">known size,</text>
+  <text x="382" y="296" text-anchor="middle" class="d-lf-t d-lf-cell">tight memory</text>
+
+  <rect x="450" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="517" y="280" text-anchor="middle" class="d-lf-t d-lf-cell">defensive copies,</text>
+  <text x="517" y="296" text-anchor="middle" class="d-lf-t d-lf-cell">public API safety</text>
+
+  <rect x="585" y="255" width="115" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="642" y="280" text-anchor="middle" class="d-lf-t d-lf-cell">truly static data</text>
+  <text x="642" y="296" text-anchor="middle" class="d-lf-t d-lf-cell">(canonicalised)</text>
+</svg>

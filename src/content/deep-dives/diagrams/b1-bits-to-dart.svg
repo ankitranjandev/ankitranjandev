@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Stack diagram showing how bits become bytes, then integers, then Dart types">
+  <defs>
+    <marker id="b1d-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0175C2"/>
+    </marker>
+  </defs>
+  <style>
+    .b1d-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .b1d-layer { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .b1d-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .b1d-code { font: 600 13px "SF Mono", Menlo, Monaco, monospace; fill: #0175C2; }
+    .b1d-bit { font: bold 11px "SF Mono", Menlo, Monaco, monospace; fill: #475569; }
+  </style>
+
+  <!-- Title -->
+  <text x="360" y="28" text-anchor="middle" class="b1d-title">From Transistors to Dart Types</text>
+
+  <!-- Layer 1: Transistors/Bits -->
+  <g transform="translate(40, 55)">
+    <rect x="0" y="0" width="640" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/>
+    <text x="90" y="30" class="b1d-layer">Transistors → Bits</text>
+    <text x="320" y="30" class="b1d-desc">Voltage levels represent 0 or 1</text>
+    <text x="580" y="30" text-anchor="end" class="b1d-bit">0 1 1 0 1 0 0 1</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="360" y1="110" x2="360" y2="125" stroke="#0175C2" stroke-width="2" marker-end="url(#b1d-arrow)"/>
+
+  <!-- Layer 2: Bytes -->
+  <g transform="translate(40, 130)">
+    <rect x="0" y="0" width="640" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/>
+    <text x="90" y="30" class="b1d-layer">8 Bits → 1 Byte</text>
+    <text x="320" y="30" class="b1d-desc">Groups of 8 bits, values 0–255</text>
+    <text x="580" y="30" text-anchor="end" class="b1d-code">105</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="360" y1="185" x2="360" y2="200" stroke="#0175C2" stroke-width="2" marker-end="url(#b1d-arrow)"/>
+
+  <!-- Layer 3: Machine integers -->
+  <g transform="translate(40, 205)">
+    <rect x="0" y="0" width="640" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/>
+    <text x="90" y="30" class="b1d-layer">Bytes → Numbers</text>
+    <text x="320" y="30" class="b1d-desc">32-bit or 64-bit integers, signed/unsigned</text>
+    <text x="580" y="30" text-anchor="end" class="b1d-code">9007199254740992</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="360" y1="260" x2="360" y2="275" stroke="#0175C2" stroke-width="2" marker-end="url(#b1d-arrow)"/>
+
+  <!-- Layer 4: Dart types -->
+  <g transform="translate(40, 280)">
+    <rect x="0" y="0" width="640" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/>
+    <text x="90" y="30" class="b1d-layer">Numbers → Dart</text>
+    <text x="280" y="30" class="b1d-code">int</text>
+    <text x="340" y="30" class="b1d-code">double</text>
+    <text x="420" y="30" class="b1d-code">bool</text>
+    <text x="500" y="30" class="b1d-code">String</text>
+    <text x="580" y="30" text-anchor="end" class="b1d-desc">High-level types</text>
+  </g>
+</svg>

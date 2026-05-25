@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width: 100%; height: auto;" role="img" aria-label="The late keyword: deferred initialization">
+  <defs>
+    <marker id="v1l-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#0175C2"/>
+    </marker>
+  </defs>
+  <style>
+    .v1l-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .v1l-label { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .v1l-code { font: 600 12px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }
+    .v1l-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .v1l-warn { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #dc2626; }
+    .v1l-ok { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #10b981; }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="v1l-title">late — Promise to Initialise Later</text>
+
+  <!-- Timeline -->
+  <line x1="60" y1="80" x2="660" y2="80" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Declaration point -->
+  <g transform="translate(100, 60)">
+    <circle cx="0" cy="20" r="8" fill="#f59e0b"/>
+    <text x="0" y="50" text-anchor="middle" class="v1l-label">Declaration</text>
+    <text x="0" y="70" text-anchor="middle" class="v1l-code">late String name;</text>
+    <text x="0" y="90" text-anchor="middle" class="v1l-desc">No value yet</text>
+  </g>
+
+  <!-- Danger zone -->
+  <rect x="150" y="100" width="200" height="30" fill="#fee2e2" rx="4"/>
+  <text x="250" y="120" text-anchor="middle" class="v1l-warn">⚠ Access here = LateInitializationError</text>
+
+  <!-- Assignment point -->
+  <g transform="translate(400, 60)">
+    <circle cx="0" cy="20" r="8" fill="#10b981"/>
+    <text x="0" y="50" text-anchor="middle" class="v1l-label">Assignment</text>
+    <text x="0" y="70" text-anchor="middle" class="v1l-code">name = fetchName();</text>
+    <text x="0" y="90" text-anchor="middle" class="v1l-desc">Value assigned</text>
+  </g>
+
+  <!-- Safe zone -->
+  <rect x="450" y="100" width="160" height="30" fill="#d1fae5" rx="4"/>
+  <text x="530" y="120" text-anchor="middle" class="v1l-ok">✓ Safe to access</text>
+
+  <!-- Use case box -->
+  <g transform="translate(60, 170)">
+    <rect x="0" y="0" width="600" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="8"/>
+    <text x="20" y="25" class="v1l-label">Common Use Cases</text>
+    <text x="20" y="50" class="v1l-desc">• Dependency injection — assign after constructor</text>
+    <text x="20" y="70" class="v1l-desc">• Expensive computation — lazy initialisation with late final</text>
+    <text x="320" y="50" class="v1l-desc">• Circular references — A needs B, B needs A</text>
+    <text x="320" y="70" class="v1l-desc">• Test setup — assign in setUp(), use in tests</text>
+  </g>
+</svg>

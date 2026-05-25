@@ -1,0 +1,51 @@
+---
+import { formatDateShort, getReadingTimeFromBody } from '@/lib/utils';
+import TagPill from './TagPill.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  publishedAt: Date;
+  tags: string[];
+  href: string;
+  body?: string;
+}
+
+const { title, description, publishedAt, tags, href, body } = Astro.props;
+const readingTime = body ? getReadingTimeFromBody(body) : undefined;
+---
+
+<article class="group relative">
+  <a href={href} class="block no-underline">
+    <div class="relative rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 group-hover:border-[var(--text-tertiary)] group-hover:bg-[var(--bg-elevated)]">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-2 text-sm text-[var(--text-tertiary)]">
+          <time datetime={publishedAt.toISOString()} class="font-medium">{formatDateShort(publishedAt)}</time>
+          {readingTime && (
+            <>
+              <span aria-hidden="true" class="text-[var(--border)]">·</span>
+              <span>{readingTime}</span>
+            </>
+          )}
+        </div>
+        <h3 class="text-lg font-semibold text-[var(--text)] transition-colors group-hover:text-accent md:text-xl">
+          {title}
+        </h3>
+        <p class="text-[var(--text-secondary)] line-clamp-2 leading-relaxed">{description}</p>
+        {tags.length > 0 && (
+          <div class="flex flex-wrap gap-2 pt-1">
+            {tags.slice(0, 3).map((tag) => (
+              <TagPill tag={tag} size="sm" />
+            ))}
+          </div>
+        )}
+      </div>
+      <div class="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"></path>
+          <path d="m12 5 7 7-7 7"></path>
+        </svg>
+      </div>
+    </div>
+  </a>
+</article>

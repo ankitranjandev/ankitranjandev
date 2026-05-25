@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Binary place value system showing how 8 bits represent the decimal number 42">
+  <style>
+    .b1p-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .b1p-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }
+    .b1p-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .b1p-bit { font: bold 20px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }
+    .b1p-value { font: 600 14px "SF Mono", Menlo, Monaco, monospace; fill: #0175C2; }
+    .b1p-result { font: bold 24px "SF Mono", Menlo, Monaco, monospace; fill: #10b981; }
+    .b1p-box-on { fill: #dbeafe; stroke: #0175C2; stroke-width: 2; }
+    .b1p-box-off { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; }
+  </style>
+
+  <!-- Title -->
+  <text x="360" y="28" text-anchor="middle" class="b1p-title">Binary Place Values — The Number 42</text>
+
+  <!-- Place value labels -->
+  <g transform="translate(40, 50)">
+    <text x="40" y="20" text-anchor="middle" class="b1p-small">128</text>
+    <text x="120" y="20" text-anchor="middle" class="b1p-small">64</text>
+    <text x="200" y="20" text-anchor="middle" class="b1p-small">32</text>
+    <text x="280" y="20" text-anchor="middle" class="b1p-small">16</text>
+    <text x="360" y="20" text-anchor="middle" class="b1p-small">8</text>
+    <text x="440" y="20" text-anchor="middle" class="b1p-small">4</text>
+    <text x="520" y="20" text-anchor="middle" class="b1p-small">2</text>
+    <text x="600" y="20" text-anchor="middle" class="b1p-small">1</text>
+  </g>
+
+  <!-- Power labels -->
+  <g transform="translate(40, 70)">
+    <text x="40" y="14" text-anchor="middle" class="b1p-small">2⁷</text>
+    <text x="120" y="14" text-anchor="middle" class="b1p-small">2⁶</text>
+    <text x="200" y="14" text-anchor="middle" class="b1p-small">2⁵</text>
+    <text x="280" y="14" text-anchor="middle" class="b1p-small">2⁴</text>
+    <text x="360" y="14" text-anchor="middle" class="b1p-small">2³</text>
+    <text x="440" y="14" text-anchor="middle" class="b1p-small">2²</text>
+    <text x="520" y="14" text-anchor="middle" class="b1p-small">2¹</text>
+    <text x="600" y="14" text-anchor="middle" class="b1p-small">2⁰</text>
+  </g>
+
+  <!-- Bit boxes: 00101010 = 42 -->
+  <g transform="translate(40, 95)">
+    <!-- 0 -->
+    <rect x="5" y="0" width="70" height="60" rx="8" class="b1p-box-off"/>
+    <text x="40" y="40" text-anchor="middle" class="b1p-bit">0</text>
+
+    <!-- 0 -->
+    <rect x="85" y="0" width="70" height="60" rx="8" class="b1p-box-off"/>
+    <text x="120" y="40" text-anchor="middle" class="b1p-bit">0</text>
+
+    <!-- 1 (32) -->
+    <rect x="165" y="0" width="70" height="60" rx="8" class="b1p-box-on"/>
+    <text x="200" y="40" text-anchor="middle" class="b1p-bit">1</text>
+
+    <!-- 0 -->
+    <rect x="245" y="0" width="70" height="60" rx="8" class="b1p-box-off"/>
+    <text x="280" y="40" text-anchor="middle" class="b1p-bit">0</text>
+
+    <!-- 1 (8) -->
+    <rect x="325" y="0" width="70" height="60" rx="8" class="b1p-box-on"/>
+    <text x="360" y="40" text-anchor="middle" class="b1p-bit">1</text>
+
+    <!-- 0 -->
+    <rect x="405" y="0" width="70" height="60" rx="8" class="b1p-box-off"/>
+    <text x="440" y="40" text-anchor="middle" class="b1p-bit">0</text>
+
+    <!-- 1 (2) -->
+    <rect x="485" y="0" width="70" height="60" rx="8" class="b1p-box-on"/>
+    <text x="520" y="40" text-anchor="middle" class="b1p-bit">1</text>
+
+    <!-- 0 -->
+    <rect x="565" y="0" width="70" height="60" rx="8" class="b1p-box-off"/>
+    <text x="600" y="40" text-anchor="middle" class="b1p-bit">0</text>
+  </g>
+
+  <!-- Contribution row -->
+  <g transform="translate(40, 175)">
+    <text x="40" y="20" text-anchor="middle" class="b1p-small">×128</text>
+    <text x="120" y="20" text-anchor="middle" class="b1p-small">×64</text>
+    <text x="200" y="20" text-anchor="middle" class="b1p-value">×32</text>
+    <text x="280" y="20" text-anchor="middle" class="b1p-small">×16</text>
+    <text x="360" y="20" text-anchor="middle" class="b1p-value">×8</text>
+    <text x="440" y="20" text-anchor="middle" class="b1p-small">×4</text>
+    <text x="520" y="20" text-anchor="middle" class="b1p-value">×2</text>
+    <text x="600" y="20" text-anchor="middle" class="b1p-small">×1</text>
+  </g>
+
+  <!-- Values -->
+  <g transform="translate(40, 210)">
+    <text x="40" y="20" text-anchor="middle" class="b1p-small">0</text>
+    <text x="120" y="20" text-anchor="middle" class="b1p-small">0</text>
+    <text x="200" y="20" text-anchor="middle" class="b1p-value">32</text>
+    <text x="280" y="20" text-anchor="middle" class="b1p-small">0</text>
+    <text x="360" y="20" text-anchor="middle" class="b1p-value">8</text>
+    <text x="440" y="20" text-anchor="middle" class="b1p-small">0</text>
+    <text x="520" y="20" text-anchor="middle" class="b1p-value">2</text>
+    <text x="600" y="20" text-anchor="middle" class="b1p-small">0</text>
+  </g>
+
+  <!-- Sum line -->
+  <line x1="80" y1="250" x2="640" y2="250" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Result -->
+  <text x="360" y="285" text-anchor="middle" class="b1p-label">32 + 8 + 2 =</text>
+  <text x="500" y="285" text-anchor="start" class="b1p-result">42</text>
+</svg>

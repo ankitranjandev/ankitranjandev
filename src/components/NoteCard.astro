@@ -1,0 +1,41 @@
+---
+import { formatDateShort } from '@/lib/utils';
+import TagPill from './TagPill.astro';
+
+interface Props {
+  title: string;
+  publishedAt: Date;
+  tags: string[];
+  href: string;
+}
+
+const { title, publishedAt, tags, href } = Astro.props;
+---
+
+<article class="group relative">
+  <a href={href} class="block no-underline">
+    <div class="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-all duration-200 group-hover:border-[var(--text-tertiary)] group-hover:bg-[var(--bg-elevated)]">
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <time datetime={publishedAt.toISOString()} class="text-xs font-medium text-[var(--text-tertiary)]">
+            {formatDateShort(publishedAt)}
+          </time>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--text-tertiary)] opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+          </svg>
+        </div>
+        <h3 class="font-semibold text-[var(--text)] transition-colors group-hover:text-accent">
+          {title}
+        </h3>
+        {tags.length > 0 && (
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            {tags.slice(0, 2).map((tag) => (
+              <TagPill tag={tag} size="sm" />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </a>
+</article>

@@ -1,0 +1,151 @@
+---
+interface Topic {
+  id: string;
+  title: string;
+  summary: string;
+}
+
+interface Props {
+  topics: Topic[];
+}
+
+const { topics } = Astro.props;
+---
+
+<aside class="deep-dive-toc w-full lg:sticky lg:top-24 lg:w-72 lg:max-w-[18rem] lg:shrink-0 lg:self-start">
+  <nav class="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+    <p class="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" x2="21" y1="6" y2="6"/>
+        <line x1="8" x2="21" y1="12" y2="12"/>
+        <line x1="8" x2="21" y1="18" y2="18"/>
+        <line x1="3" x2="3.01" y1="6" y2="6"/>
+        <line x1="3" x2="3.01" y1="12" y2="12"/>
+        <line x1="3" x2="3.01" y1="18" y2="18"/>
+      </svg>
+      Table of Contents
+    </p>
+    <ul class="space-y-1">
+      {topics.map((topic, index) => (
+        <li>
+          <a
+            href={`#${topic.id}`}
+            class="toc-link group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] no-underline transition-all hover:bg-[var(--bg)] hover:text-[var(--text)]"
+            data-topic-id={topic.id}
+          >
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--bg)] text-xs font-medium text-[var(--text-tertiary)] transition-colors group-hover:bg-accent/10 group-hover:text-accent">
+              {index + 1}
+            </span>
+            <span class="line-clamp-2">{topic.title}</span>
+          </a>
+        </li>
+      ))}
+      <li class="pt-2">
+        <a
+          href="#quiz-section"
+          class="toc-link group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] no-underline transition-all hover:bg-[var(--bg)] hover:text-[var(--text)]"
+          data-topic-id="quiz-section"
+        >
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <path d="M12 17h.01"/>
+            </svg>
+          </span>
+          <span>Take the Quiz</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Progress indicator on mobile -->
+  <div class="mt-4 flex items-center gap-2 text-xs text-[var(--text-tertiary)] lg:hidden">
+    <span class="progress-text">0 of {topics.length} topics viewed</span>
+    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--bg)]">
+      <div class="progress-bar h-full w-0 rounded-full bg-accent transition-all duration-300"></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+  const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.deep-dive-toc .toc-link');
+  const topicSections = document.querySelectorAll<HTMLElement>('.topic-section');
+  const quizSection = document.getElementById('quiz-section');
+  const progressBar = document.querySelector<HTMLElement>('.progress-bar');
+  const progressText = document.querySelector<HTMLElement>('.progress-text');
+
+  const viewedTopics = new Set<string>();
+
+  function updateActiveLink(activeId: string) {
+    tocLinks.forEach((link) => {
+      const isActive = link.dataset.topicId === activeId;
+      const numberSpan = link.querySelector('span:first-child');
+
+      if (isActive) {
+        link.classList.add('bg-accent/5', 'text-[var(--text)]', 'font-medium');
+        link.classList.remove('text-[var(--text-secondary)]');
+        if (numberSpan) {
+          numberSpan.classList.add('bg-accent/10', 'text-accent');
+          numberSpan.classList.remove('bg-[var(--bg)]', 'text-[var(--text-tertiary)]');
+        }
+      } else {
+        link.classList.remove('bg-accent/5', 'text-[var(--text)]', 'font-medium');
+        link.classList.add('text-[var(--text-secondary)]');
+        if (numberSpan && !link.dataset.topicId?.includes('quiz')) {
+          numberSpan.classList.remove('bg-accent/10', 'text-accent');
+          numberSpan.classList.add('bg-[var(--bg)]', 'text-[var(--text-tertiary)]');
+        }
+      }
+    });
+  }
+
+  function updateProgress() {
+    const total = topicSections.length;
+    const viewed = viewedTopics.size;
+    const percentage = total > 0 ? (viewed / total) * 100 : 0;
+
+    if (progressBar) {
+      progressBar.style.width = `${percentage}%`;
+    }
+    if (progressText) {
+      progressText.textContent = `${viewed} of ${total} topics viewed`;
+    }
+  }
+
+  // Intersection Observer for tracking viewed sections
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          updateActiveLink(id);
+
+          if (id !== 'quiz-section') {
+            viewedTopics.add(id);
+            updateProgress();
+          }
+        }
+      });
+    },
+    {
+      rootMargin: '-100px 0px -60% 0px',
+      threshold: 0,
+    }
+  );
+
+  topicSections.forEach((section) => observer.observe(section));
+  if (quizSection) observer.observe(quizSection);
+
+  // Smooth scroll for TOC links
+  tocLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href')?.slice(1);
+      if (targetId) {
+        const target = document.getElementById(targetId);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>

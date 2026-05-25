@@ -1,0 +1,411 @@
+---
+title: "Streams in Dart — Multiple Values Over Time"
+description: "Streams deliver sequences of asynchronous events. From user input to network data to real-time updates, streams power reactive Dart applications."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Async"
+order: 2
+publishedAt: 2026-05-24
+topics:
+  - id: what-is-a-stream
+    title: "What is a Stream?"
+    summary: |
+      A Future delivers one value. But what if you need multiple values over time? That's what Streams are for.
+      <br><br>
+      Think about user input. A button can be tapped many times. A text field changes with every keystroke. A GPS sensor sends location updates continuously. These aren't single values — they're sequences of events arriving over time.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img" aria-label="Future vs Stream comparison" style="max-width: 100%; height: auto;"><style>.s1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.s1-title{font-size:16px;font-weight:600}.s1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.s1-label{font-size:12px;fill:#64748b}.s1-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="s1-t s1-title">Future vs Stream</text><text x="180" y="55" text-anchor="middle" class="s1-t s1-label" font-weight="600">Future&lt;T&gt; — one value</text><rect x="40" y="70" width="280" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="60" y="100" class="s1-t s1-mn">await fetchUser()</text><circle cx="280" cy="95" r="12" fill="#10b981"/><text x="280" y="100" text-anchor="middle" class="s1-t" style="font-size:10px;fill:white;font-weight:700">1</text><text x="60" y="140" class="s1-t s1-note">One request, one response, done.</text><text x="540" y="55" text-anchor="middle" class="s1-t s1-label" font-weight="600">Stream&lt;T&gt; — many values</text><rect x="400" y="70" width="280" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="420" y="100" class="s1-t s1-mn">listen to button taps</text><circle cx="530" cy="95" r="12" fill="#10b981"/><text x="530" y="100" text-anchor="middle" class="s1-t" style="font-size:10px;fill:white;font-weight:700">1</text><circle cx="565" cy="95" r="12" fill="#10b981"/><text x="565" y="100" text-anchor="middle" class="s1-t" style="font-size:10px;fill:white;font-weight:700">2</text><circle cx="600" cy="95" r="12" fill="#10b981"/><text x="600" y="100" text-anchor="middle" class="s1-t" style="font-size:10px;fill:white;font-weight:700">3</text><circle cx="635" cy="95" r="10" fill="#f59e0b"/><text x="635" y="100" text-anchor="middle" class="s1-t" style="font-size:10px;fill:white;font-weight:700">...</text><text x="420" y="140" class="s1-t s1-note">Values keep arriving. Stream stays open.</text><text x="60" y="175" class="s1-t s1-note" fill="#0175C2">Completes once</text><text x="420" y="175" class="s1-t s1-note" fill="#f59e0b">Emits many times (may never complete)</text></svg>
+      <br><br>
+      <pre><code>// A Future returns one value
+      Future&lt;User&gt; fetchUser(int id) async { ... }
+
+      // A Stream returns multiple values over time
+      Stream&lt;int&gt; countDown(int from) async* {
+        for (var i = from; i >= 0; i--) {
+          await Future.delayed(Duration(seconds: 1));
+          yield i;  // emit a value
+        }
+      }</code></pre>
+      A Stream is like an asynchronous iterable. Just as you can loop over a List to get values, you can listen to a Stream to receive values as they arrive.
+
+  - id: single-vs-broadcast
+    title: "Single-subscription vs broadcast streams"
+    summary: |
+      Not all streams behave the same. Dart has two kinds, and mixing them up causes bugs.
+      <br><br>
+      <strong>Single-subscription streams</strong> can only be listened to once. They're designed for sequences where you don't want to miss any data — like reading a file or receiving an HTTP response body.
+      <br><br>
+      <pre><code>// Single-subscription: only one listener allowed
+      var stream = File('data.txt').openRead();
+
+      stream.listen((chunk) => print('Got \${chunk.length} bytes'));
+
+      // This throws StateError!
+      stream.listen((chunk) => print('Another listener'));</code></pre>
+      <strong>Broadcast streams</strong> allow multiple listeners. They're for events that happen regardless of who's listening — like button clicks or timer ticks.
+      <br><br>
+      <pre><code>// Broadcast: multiple listeners allowed
+      var controller = StreamController&lt;int&gt;.broadcast();
+
+      controller.stream.listen((n) => print('Listener A: \$n'));
+      controller.stream.listen((n) => print('Listener B: \$n'));
+
+      controller.add(1);  // Both listeners receive 1
+      controller.add(2);  // Both listeners receive 2</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Single vs broadcast streams" style="max-width: 100%; height: auto;"><style>.s2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.s2-title{font-size:16px;font-weight:600}.s2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:10px}.s2-label{font-size:12px;fill:#64748b}.s2-note{font-size:10px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="s2-t s2-title">Single-subscription vs Broadcast</text><rect x="30" y="45" width="310" height="200" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="185" y="70" text-anchor="middle" class="s2-t s2-label" font-weight="600">Single-subscription</text><rect x="50" y="85" width="80" height="35" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="90" y="107" text-anchor="middle" class="s2-t s2-mn">Source</text><line x1="130" y1="102" x2="180" y2="102" stroke="#475569" stroke-width="2" marker-end="url(#s2-arr)"/><rect x="185" y="85" width="140" height="35" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="255" y="107" text-anchor="middle" class="s2-t s2-mn">Listener (only one)</text><rect x="185" y="135" width="140" height="35" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="4" stroke-dasharray="4,2"/><text x="255" y="157" text-anchor="middle" class="s2-t s2-mn">Second listener</text><text x="255" y="185" text-anchor="middle" class="s2-t s2-note" fill="#dc2626">StateError: Stream already listened to</text><text x="50" y="220" class="s2-t s2-note">File streams, HTTP body, etc.</text><text x="50" y="235" class="s2-t s2-note">Data is buffered until listener attaches.</text><rect x="380" y="45" width="310" height="200" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="535" y="70" text-anchor="middle" class="s2-t s2-label" font-weight="600">Broadcast</text><rect x="400" y="115" width="80" height="35" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="440" y="137" text-anchor="middle" class="s2-t s2-mn">Source</text><line x1="480" y1="125" x2="530" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#s2-arr)"/><line x1="480" y1="140" x2="530" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#s2-arr)"/><rect x="535" y="75" width="140" height="35" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="605" y="97" text-anchor="middle" class="s2-t s2-mn">Listener A</text><rect x="535" y="150" width="140" height="35" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="605" y="172" text-anchor="middle" class="s2-t s2-mn">Listener B</text><text x="400" y="220" class="s2-t s2-note">Button clicks, sensor data, etc.</text><text x="400" y="235" class="s2-t s2-note">Events fire whether anyone listens or not.</text><defs><marker id="s2-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>Key difference:</strong> Single-subscription streams buffer data until someone listens. Broadcast streams fire events immediately — if no one is listening, the data is lost.
+      <br><br>
+      <strong>Converting between them.</strong> You can convert a single-subscription stream to broadcast with <code>asBroadcastStream()</code>.
+      <br><br>
+      <pre><code>var singleStream = countDown(5);
+      var broadcast = singleStream.asBroadcastStream();
+
+      broadcast.listen((n) => print('A: \$n'));
+      broadcast.listen((n) => print('B: \$n'));  // Now this works</code></pre>
+
+  - id: listening-to-streams
+    title: "Listening to streams"
+    summary: |
+      There are two main ways to consume a stream: <code>listen()</code> for fine-grained control, and <code>await for</code> for simpler code.
+      <br><br>
+      <strong>The listen() method</strong> gives you full control. It returns a StreamSubscription that you can pause, resume, or cancel.
+      <br><br>
+      <pre><code>var subscription = stream.listen(
+        (data) => print('Data: \$data'),     // onData
+        onError: (err) => print('Error: \$err'),
+        onDone: () => print('Stream closed'),
+        cancelOnError: false,  // keep listening after errors
+      );
+
+      // Later...
+      subscription.pause();   // stop receiving events
+      subscription.resume();  // start again
+      subscription.cancel();  // unsubscribe completely</code></pre>
+      <strong>The await for loop</strong> is cleaner when you just want to process each value.
+      <br><br>
+      <pre><code>Future&lt;void&gt; processStream(Stream&lt;int&gt; stream) async {
+        await for (var value in stream) {
+          print('Got: \$value');
+        }
+        print('Stream finished');
+      }</code></pre>
+      <strong>Differences between listen() and await for:</strong>
+      <br>• <code>listen()</code> is non-blocking — code after it runs immediately
+      <br>• <code>await for</code> blocks until the stream closes
+      <br>• <code>listen()</code> gives you a subscription to control
+      <br>• <code>await for</code> has simpler syntax but less control
+      <br><br>
+      <pre><code>// listen() is non-blocking
+      stream.listen((v) => print(v));
+      print('This prints immediately');
+
+      // await for blocks
+      await for (var v in stream) {
+        print(v);
+      }
+      print('This prints after stream closes');</code></pre>
+      <strong>Cancellation with await for.</strong> Breaking out of the loop cancels the subscription automatically.
+      <br><br>
+      <pre><code>await for (var value in stream) {
+        if (value > 100) break;  // automatically cancels subscription
+        print(value);
+      }</code></pre>
+
+  - id: stream-transformations
+    title: "Stream transformations"
+    summary: |
+      Just like Lists have <code>map()</code> and <code>where()</code>, Streams have transformation methods. Each one returns a new Stream.
+      <br><br>
+      <pre><code>// Transform values
+      stream.map((x) => x * 2)
+
+      // Filter values
+      stream.where((x) => x > 10)
+
+      // Take only first N
+      stream.take(5)
+
+      // Skip first N
+      stream.skip(3)
+
+      // Remove consecutive duplicates
+      stream.distinct()</code></pre>
+      <strong>Chaining transformations.</strong> Build pipelines by chaining methods.
+      <br><br>
+      <pre><code>// From button tap events to processed data
+      buttonTaps
+          .where((tap) => tap.button == 'submit')
+          .map((tap) => tap.formData)
+          .distinct()
+          .take(10)
+          .listen((data) => submitForm(data));</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-label="Stream transformation pipeline" style="max-width: 100%; height: auto;"><style>.s3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.s3-title{font-size:16px;font-weight:600}.s3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:10px}.s3-label{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="s3-t s3-title">Stream Transformation Pipeline</text><rect x="30" y="55" width="90" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="75" y="75" text-anchor="middle" class="s3-t s3-mn">Source</text><text x="75" y="90" text-anchor="middle" class="s3-t s3-mn">[1,2,3,4,5]</text><line x1="120" y1="77" x2="150" y2="77" stroke="#475569" stroke-width="2" marker-end="url(#s3-arr)"/><rect x="155" y="55" width="100" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="205" y="75" text-anchor="middle" class="s3-t s3-mn">.where(x > 2)</text><text x="205" y="90" text-anchor="middle" class="s3-t s3-mn">[3,4,5]</text><line x1="255" y1="77" x2="285" y2="77" stroke="#475569" stroke-width="2" marker-end="url(#s3-arr)"/><rect x="290" y="55" width="100" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="340" y="75" text-anchor="middle" class="s3-t s3-mn">.map(x * 10)</text><text x="340" y="90" text-anchor="middle" class="s3-t s3-mn">[30,40,50]</text><line x1="390" y1="77" x2="420" y2="77" stroke="#475569" stroke-width="2" marker-end="url(#s3-arr)"/><rect x="425" y="55" width="100" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="475" y="75" text-anchor="middle" class="s3-t s3-mn">.take(2)</text><text x="475" y="90" text-anchor="middle" class="s3-t s3-mn">[30,40]</text><line x1="525" y1="77" x2="555" y2="77" stroke="#475569" stroke-width="2" marker-end="url(#s3-arr)"/><rect x="560" y="55" width="130" height="45" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="625" y="75" text-anchor="middle" class="s3-t s3-mn">.listen()</text><text x="625" y="90" text-anchor="middle" class="s3-t s3-mn">30, then 40, done</text><text x="30" y="130" class="s3-t s3-label">Each transformation returns a new Stream. The pipeline is lazy — values flow through on demand.</text><defs><marker id="s3-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>Aggregating to a single value.</strong> Some methods consume the entire stream.
+      <br><br>
+      <pre><code>// Get first element
+      var first = await stream.first;
+
+      // Get last element (waits for stream to close)
+      var last = await stream.last;
+
+      // Collect all into a List
+      var all = await stream.toList();
+
+      // Reduce to single value
+      var sum = await stream.reduce((a, b) => a + b);
+
+      // Check conditions
+      var hasNegative = await stream.any((x) => x < 0);
+      var allPositive = await stream.every((x) => x > 0);</code></pre>
+      <strong>Warning:</strong> Methods like <code>toList()</code> and <code>last</code> wait for the stream to close. On an infinite stream, they never return.
+
+  - id: stream-controller
+    title: "StreamController — creating your own streams"
+    summary: |
+      <code>StreamController</code> is the bridge between imperative code and streams. You push values in with <code>add()</code>, and listeners receive them through the stream.
+      <br><br>
+      <pre><code>var controller = StreamController&lt;int&gt;();
+
+      // The stream side — what listeners see
+      controller.stream.listen((value) {
+        print('Received: \$value');
+      });
+
+      // The sink side — where you push values
+      controller.add(1);
+      controller.add(2);
+      controller.add(3);
+      controller.close();  // signal no more values</code></pre>
+      <strong>Handling errors.</strong> Use <code>addError()</code> to send errors through the stream.
+      <br><br>
+      <pre><code>controller.add(1);
+      controller.addError(Exception('Something went wrong'));
+      controller.add(2);  // listeners still receive this</code></pre>
+      <strong>Broadcast controllers.</strong> By default, StreamController creates single-subscription streams. For multiple listeners, use the broadcast constructor.
+      <br><br>
+      <pre><code>var broadcast = StreamController&lt;int&gt;.broadcast();
+
+      broadcast.stream.listen((v) => print('A: \$v'));
+      broadcast.stream.listen((v) => print('B: \$v'));
+
+      broadcast.add(42);  // Both receive 42</code></pre>
+      <strong>Cleanup is essential.</strong> Always close controllers when done to prevent memory leaks.
+      <br><br>
+      <pre><code>class CounterService {
+        final _controller = StreamController&lt;int&gt;.broadcast();
+
+        Stream&lt;int&gt; get countStream => _controller.stream;
+
+        void increment() => _controller.add(_count++);
+
+        void dispose() {
+          _controller.close();  // Important!
+        }
+      }</code></pre>
+      <strong>Back-pressure with onListen/onPause/onResume.</strong> For more control, use the callback parameters.
+      <br><br>
+      <pre><code>var controller = StreamController&lt;int&gt;(
+        onListen: () => print('Someone subscribed'),
+        onPause: () => print('Listener paused'),
+        onResume: () => print('Listener resumed'),
+        onCancel: () => print('Listener cancelled'),
+      );</code></pre>
+
+  - id: async-generators
+    title: "async* generators and yield"
+    summary: |
+      We saw <code>sync*</code> generators in the functions episode — they produce synchronous iterables. The async variant, <code>async*</code>, produces Streams.
+      <br><br>
+      <pre><code>// sync* returns Iterable, uses yield
+      Iterable&lt;int&gt; countSync(int n) sync* {
+        for (var i = 0; i < n; i++) {
+          yield i;
+        }
+      }
+
+      // async* returns Stream, uses yield
+      Stream&lt;int&gt; countAsync(int n) async* {
+        for (var i = 0; i < n; i++) {
+          await Future.delayed(Duration(seconds: 1));
+          yield i;
+        }
+      }</code></pre>
+      <strong>yield* for delegation.</strong> Use <code>yield*</code> to forward all values from another stream.
+      <br><br>
+      <pre><code>Stream&lt;int&gt; countAndDouble(int n) async* {
+        yield* countAsync(n);      // yield all values from countAsync
+        yield* countAsync(n).map((x) => x * 2);  // then doubled values
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img" aria-label="async* generator flow" style="max-width: 100%; height: auto;"><style>.s4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.s4-title{font-size:16px;font-weight:600}.s4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:10px}.s4-label{font-size:11px;fill:#64748b}.s4-note{font-size:10px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="s4-t s4-title">async* Generator Flow</text><rect x="40" y="50" width="180" height="130" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="130" y="75" text-anchor="middle" class="s4-t s4-label" font-weight="600">async* function</text><text x="55" y="100" class="s4-t s4-mn">Stream&lt;int&gt; count() async* {</text><text x="65" y="118" class="s4-t s4-mn">await delay(1s);</text><text x="65" y="136" class="s4-t s4-mn" fill="#10b981">yield 1;</text><text x="65" y="154" class="s4-t s4-mn" fill="#10b981">yield 2;</text><text x="65" y="172" class="s4-t s4-mn" fill="#10b981">yield 3;</text><line x1="220" y1="115" x2="280" y2="115" stroke="#475569" stroke-width="2" marker-end="url(#s4-arr)"/><text x="250" y="105" text-anchor="middle" class="s4-t s4-note">returns</text><rect x="290" y="80" width="120" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="350" y="105" text-anchor="middle" class="s4-t s4-mn">Stream&lt;int&gt;</text><text x="350" y="125" text-anchor="middle" class="s4-t s4-note">emits: 1, 2, 3</text><text x="350" y="140" text-anchor="middle" class="s4-t s4-note">(1 second apart)</text><line x1="410" y1="115" x2="470" y2="115" stroke="#475569" stroke-width="2" marker-end="url(#s4-arr)"/><text x="440" y="105" text-anchor="middle" class="s4-t s4-note">listen</text><rect x="480" y="80" width="200" height="70" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="580" y="105" text-anchor="middle" class="s4-t s4-mn">await for (var n in count())</text><text x="580" y="125" text-anchor="middle" class="s4-t s4-note">receives each value as</text><text x="580" y="140" text-anchor="middle" class="s4-t s4-note">it's yielded</text><defs><marker id="s4-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>When to use async* vs StreamController:</strong>
+      <br>• <code>async*</code> is simpler for producing values in a loop
+      <br>• <code>StreamController</code> gives more control — pause, resume, multiple listeners
+      <br>• <code>async*</code> creates single-subscription streams by default
+      <br><br>
+      <pre><code>// Real-world example: polling an API
+      Stream&lt;StockPrice&gt; watchStock(String symbol) async* {
+        while (true) {
+          var price = await fetchPrice(symbol);
+          yield price;
+          await Future.delayed(Duration(seconds: 5));
+        }
+      }
+
+      // Usage
+      await for (var price in watchStock('AAPL')) {
+        updateDisplay(price);
+        if (marketClosed) break;  // cancels the stream
+      }</code></pre>
+
+  - id: practical-patterns
+    title: "Practical patterns — debounce, throttle, and combining"
+    summary: |
+      Real applications need more than basic transformations. Let's look at common patterns.
+      <br><br>
+      <strong>Debounce — wait for pause in events.</strong> Useful for search-as-you-type where you don't want to fire a request on every keystroke.
+      <br><br>
+      <pre><code>// Using rxdart package
+      textFieldStream
+          .debounceTime(Duration(milliseconds: 300))
+          .listen((query) => search(query));
+
+      // Manual implementation
+      Stream&lt;T&gt; debounce&lt;T&gt;(Stream&lt;T&gt; source, Duration duration) async* {
+        Timer? timer;
+        T? lastValue;
+        var hasValue = false;
+
+        await for (var value in source) {
+          timer?.cancel();
+          lastValue = value;
+          hasValue = true;
+          timer = Timer(duration, () {});
+          await timer.tick;  // simplified
+          if (hasValue) {
+            yield lastValue as T;
+            hasValue = false;
+          }
+        }
+      }</code></pre>
+      <strong>Throttle — limit event frequency.</strong> Emit at most one value per time window.
+      <br><br>
+      <pre><code>// Limit scroll events to 60fps
+      scrollEvents
+          .throttleTime(Duration(milliseconds: 16))
+          .listen((pos) => updateParallax(pos));</code></pre>
+      <strong>Combining streams.</strong> Merge multiple sources into one.
+      <br><br>
+      <pre><code>// Merge: interleave events from multiple streams
+      var combined = StreamGroup.merge([stream1, stream2, stream3]);
+
+      // Zip: pair up values (waits for both)
+      var zipped = Rx.zip2(namesStream, agesStream,
+          (name, age) => '\$name is \$age');
+
+      // CombineLatest: emit when any stream emits
+      var latest = Rx.combineLatest2(tempStream, humidityStream,
+          (temp, humidity) => 'Temp: \$temp, Humidity: \$humidity');</code></pre>
+      <strong>Error recovery.</strong> Handle errors without stopping the stream.
+      <br><br>
+      <pre><code>stream
+          .handleError((error) => print('Caught: \$error'))
+          .listen((data) => process(data));
+
+      // Or retry on failure
+      stream
+          .onErrorRetry(maxRetries: 3)
+          .listen((data) => process(data));</code></pre>
+      <strong>Disposing properly in Flutter.</strong> Always cancel subscriptions when your widget is disposed.
+      <br><br>
+      <pre><code>class _MyWidgetState extends State&lt;MyWidget&gt; {
+        late StreamSubscription _subscription;
+
+        @override
+        void initState() {
+          super.initState();
+          _subscription = dataStream.listen(_onData);
+        }
+
+        @override
+        void dispose() {
+          _subscription.cancel();  // Prevent memory leaks!
+          super.dispose();
+        }
+
+        void _onData(data) => setState(() => _data = data);
+      }</code></pre>
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering Streams, StreamControllers, and async generators."
+  questions:
+    - question: "What is the key difference between a Future and a Stream?"
+      options:
+        - "Futures are faster than Streams"
+        - "Futures deliver one value; Streams deliver multiple values over time"
+        - "Streams can only be used in Flutter"
+        - "Futures are synchronous; Streams are asynchronous"
+      correctIndex: 1
+      explanation: "A Future represents a single asynchronous value — one request, one response. A Stream represents a sequence of asynchronous values over time — like button clicks, sensor data, or real-time updates. Both are asynchronous."
+
+    - question: "What happens if you try to listen to a single-subscription stream twice?"
+      options:
+        - "Both listeners receive all events"
+        - "The second listener gets events the first missed"
+        - "A StateError is thrown"
+        - "The first listener is automatically cancelled"
+      correctIndex: 2
+      explanation: "Single-subscription streams can only have one listener. Attempting to call listen() a second time throws a StateError. Use asBroadcastStream() to convert it, or use a broadcast StreamController from the start."
+
+    - question: "What is the difference between listen() and await for?"
+      options:
+        - "listen() is blocking; await for is non-blocking"
+        - "listen() is non-blocking and returns a subscription; await for blocks until the stream closes"
+        - "They are exactly the same"
+        - "await for can only be used with broadcast streams"
+      correctIndex: 1
+      explanation: "listen() returns immediately with a StreamSubscription, letting subsequent code run while events are processed asynchronously. await for blocks the async function until the stream closes. listen() gives you a subscription for pause/resume/cancel control."
+
+    - question: "What does stream.take(5) return?"
+      options:
+        - "The 5th element of the stream"
+        - "A new stream that emits only the first 5 values then closes"
+        - "A List of 5 elements"
+        - "True if the stream has at least 5 elements"
+      correctIndex: 1
+      explanation: "take(5) is a transformation that returns a new Stream. This new stream emits the first 5 values from the source stream, then automatically closes. It doesn't wait for or collect all values — it's still a stream."
+
+    - question: "How do you create a stream that multiple widgets can listen to?"
+      options:
+        - "Use a normal StreamController"
+        - "Use StreamController.broadcast()"
+        - "Streams always support multiple listeners"
+        - "Use Future.wait()"
+      correctIndex: 1
+      explanation: "A regular StreamController creates a single-subscription stream (only one listener). StreamController.broadcast() creates a broadcast stream that allows multiple listeners. Use this when multiple parts of your app need to react to the same events."
+
+    - question: "What does yield do in an async* function?"
+      options:
+        - "Pauses the function permanently"
+        - "Returns a value and ends the function"
+        - "Emits a value to the stream and continues execution"
+        - "Creates a new stream"
+      correctIndex: 2
+      explanation: "In an async* function, yield emits a single value to the stream and pauses until the listener is ready for the next value. Unlike return, the function continues after yield. Use yield* to forward all values from another stream."
+
+    - question: "Why is it important to call close() on a StreamController?"
+      options:
+        - "To make the stream emit faster"
+        - "To convert it to a broadcast stream"
+        - "To prevent memory leaks and signal to listeners that no more data is coming"
+        - "It's optional and has no effect"
+      correctIndex: 3
+      explanation: "Closing a StreamController signals to listeners that no more events will be emitted (triggering onDone callbacks). It also releases resources. Unclosed controllers can cause memory leaks, especially in Flutter where widgets may be disposed while controllers remain open."
+---
+
+{/* Episode 2 of Dart: Async. Streams — multiple asynchronous values over time.
+    Covers single vs broadcast streams, listening patterns, transformations,
+    StreamController, async* generators, and practical patterns. 4 inline SVG diagrams. */}

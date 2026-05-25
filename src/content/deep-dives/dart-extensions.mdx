@@ -1,0 +1,373 @@
+---
+title: "Extensions in Dart — Adding Methods to Any Type"
+description: "Extension methods let us add functionality to existing types — even ones we don't control. Here's how they work and when they're the right tool."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Primitive Computation"
+order: 4
+publishedAt: 2026-05-24
+topics:
+  - id: the-problem
+    title: "The problem extensions solve"
+    summary: |
+      We've all been here. You're working with a <code>String</code> and you need a method that doesn't exist. Maybe you want to check if it's a valid email. Maybe you want to capitalise the first letter. Maybe you want to parse it as JSON.
+      <br><br>
+      <pre><code>// What we want to write
+      var email = 'test@example.com';
+      if (email.isValidEmail) { ... }
+
+      // What we have to write without extensions
+      if (isValidEmail(email)) { ... }</code></pre>
+      The second version works, but it feels backwards. The data comes first, then the operation. With methods, we write <code>email.isValidEmail</code> — the noun, then the verb. It reads naturally.
+      <br><br>
+      But we can't modify the <code>String</code> class. It's part of Dart's core library. We don't own it.
+      <br><br>
+      <strong>Extension methods solve this.</strong> They let us add methods to any type — even types we don't control — without modifying the original class or creating a wrapper.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Extension methods concept" style="max-width: 100%; height: auto;"><style>.e1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e1-title{font-size:16px;font-weight:600}.e1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.e1-label{font-size:11px;fill:#64748b}.e1-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="e1-t e1-title">Extensions add methods without modifying the class</text><rect x="40" y="60" width="200" height="130" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="140" y="90" text-anchor="middle" class="e1-t e1-mn" font-weight="700">String</text><text x="60" y="115" class="e1-t e1-note">length</text><text x="60" y="135" class="e1-t e1-note">isEmpty</text><text x="60" y="155" class="e1-t e1-note">contains()</text><text x="60" y="175" class="e1-t e1-note">split()</text><text x="140" y="205" text-anchor="middle" class="e1-t e1-label">core library — can't modify</text><rect x="280" y="60" width="200" height="130" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="380" y="90" text-anchor="middle" class="e1-t e1-mn" font-weight="700">extension on String</text><text x="300" y="115" class="e1-t e1-note">isValidEmail</text><text x="300" y="135" class="e1-t e1-note">capitalised</text><text x="300" y="155" class="e1-t e1-note">toTitleCase()</text><text x="300" y="175" class="e1-t e1-note">parseJson()</text><text x="380" y="205" text-anchor="middle" class="e1-t e1-label">your code — adds methods</text><rect x="520" y="60" width="180" height="130" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="610" y="90" text-anchor="middle" class="e1-t e1-mn" font-weight="700">Result</text><text x="540" y="120" class="e1-t e1-note">String now has all</text><text x="540" y="140" class="e1-t e1-note">original methods plus</text><text x="540" y="160" class="e1-t e1-note">your new ones.</text><text x="540" y="185" class="e1-t e1-mn">'hello'.capitalised</text><line x1="240" y1="125" x2="280" y2="125" stroke="#475569" stroke-width="2" marker-end="url(#e1-arr)"/><line x1="480" y1="125" x2="520" y2="125" stroke="#475569" stroke-width="2" marker-end="url(#e1-arr)"/><text x="260" y="115" text-anchor="middle" class="e1-t e1-label">+</text><text x="500" y="115" text-anchor="middle" class="e1-t e1-label">=</text><defs><marker id="e1-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+
+  - id: syntax
+    title: "Extension syntax"
+    summary: |
+      An extension is a named block that adds members to an existing type.
+      <br><br>
+      <pre><code>extension StringValidation on String {
+        bool get isValidEmail {
+          return contains('@') && contains('.');
+        }
+
+        bool get isNumeric {
+          return double.tryParse(this) != null;
+        }
+      }
+
+      void main() {
+        print('test@example.com'.isValidEmail);  // true
+        print('42'.isNumeric);                    // true
+        print('hello'.isNumeric);                 // false
+      }</code></pre>
+      The structure is: <code>extension Name on Type { members }</code>. Inside the extension, <code>this</code> refers to the instance — the string we're calling the method on.
+      <br><br>
+      <strong>Extension methods</strong> — work just like regular methods.
+      <br><br>
+      <pre><code>extension StringHelpers on String {
+        String truncate(int maxLength) {
+          if (length <= maxLength) return this;
+          return '\${substring(0, maxLength)}...';
+        }
+
+        String repeat(int times) {
+          return List.filled(times, this).join();
+        }
+      }
+
+      'Hello World'.truncate(5);   // 'Hello...'
+      'ha'.repeat(3);              // 'hahaha'</code></pre>
+      <strong>Extension getters and setters</strong> — add computed properties.
+      <br><br>
+      <pre><code>extension StringCasing on String {
+        String get capitalised {
+          if (isEmpty) return this;
+          return '\${this[0].toUpperCase()}\${substring(1)}';
+        }
+
+        String get reversed {
+          return split('').reversed.join();
+        }
+      }
+
+      'hello'.capitalised;   // 'Hello'
+      'dart'.reversed;       // 'trad'</code></pre>
+      <strong>Extension operators</strong> — even operators can be extended.
+      <br><br>
+      <pre><code>extension NumericString on String {
+        String operator *(int times) {
+          return List.filled(times, this).join();
+        }
+      }
+
+      'ha' * 3;   // 'hahaha'</code></pre>
+
+  - id: generic-extensions
+    title: "Generic extensions"
+    summary: |
+      Extensions can be generic, adding methods to parameterised types like <code>List&lt;T&gt;</code> or <code>Future&lt;T&gt;</code>.
+      <br><br>
+      <pre><code>extension ListHelpers&lt;T&gt; on List&lt;T&gt; {
+        T? get firstOrNull => isEmpty ? null : first;
+
+        T? get lastOrNull => isEmpty ? null : last;
+
+        List&lt;T&gt; takeWhileInclusive(bool Function(T) test) {
+          var result = &lt;T&gt;[];
+          for (var item in this) {
+            result.add(item);
+            if (!test(item)) break;
+          }
+          return result;
+        }
+      }
+
+      var numbers = [1, 2, 3, 4, 5];
+      numbers.firstOrNull;                           // 1
+      &lt;int&gt;[].firstOrNull;                           // null
+      numbers.takeWhileInclusive((n) => n < 3);     // [1, 2, 3]</code></pre>
+      <strong>Constrained generics</strong> — require the type parameter to implement something.
+      <br><br>
+      <pre><code>extension ComparableList&lt;T extends Comparable&lt;T&gt;&gt; on List&lt;T&gt; {
+        T? get maxOrNull {
+          if (isEmpty) return null;
+          return reduce((a, b) => a.compareTo(b) > 0 ? a : b);
+        }
+
+        T? get minOrNull {
+          if (isEmpty) return null;
+          return reduce((a, b) => a.compareTo(b) < 0 ? a : b);
+        }
+      }
+
+      [3, 1, 4, 1, 5].maxOrNull;   // 5
+      ['z', 'a', 'm'].minOrNull;   // 'a'</code></pre>
+      The constraint <code>T extends Comparable&lt;T&gt;</code> ensures <code>compareTo</code> is available. Without it, the extension couldn't call comparison methods.
+
+  - id: resolution
+    title: "How extension methods are resolved"
+    summary: |
+      Extension methods are resolved statically — at compile time, based on the declared type, not the runtime type.
+      <br><br>
+      <pre><code>extension on int {
+        String get description => 'an integer';
+      }
+
+      extension on num {
+        String get description => 'a number';
+      }
+
+      int x = 42;
+      num y = 42;
+
+      print(x.description);   // 'an integer'
+      print(y.description);   // 'a number' — even though it's really an int</code></pre>
+      The variable <code>y</code> is declared as <code>num</code>, so it uses the <code>num</code> extension — even though the actual value is an <code>int</code>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img" aria-label="Static vs dynamic dispatch" style="max-width: 100%; height: auto;"><style>.e2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e2-title{font-size:16px;font-weight:600}.e2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.e2-label{font-size:11px;fill:#64748b}.e2-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="e2-t e2-title">Extensions use static dispatch (declared type matters)</text><rect x="40" y="55" width="300" height="120" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="190" y="80" text-anchor="middle" class="e2-t e2-mn" font-weight="600">Instance methods</text><text x="60" y="105" class="e2-t e2-note">• Dynamic dispatch (runtime type)</text><text x="60" y="125" class="e2-t e2-note">• Can be overridden in subclasses</text><text x="60" y="145" class="e2-t e2-note">• Polymorphism works</text><text x="60" y="165" class="e2-t e2-mn">Animal a = Dog(); a.speak(); // woof</text><rect x="380" y="55" width="300" height="120" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="6"/><text x="530" y="80" text-anchor="middle" class="e2-t e2-mn" font-weight="600">Extension methods</text><text x="400" y="105" class="e2-t e2-note">• Static dispatch (declared type)</text><text x="400" y="125" class="e2-t e2-note">• Cannot be overridden</text><text x="400" y="145" class="e2-t e2-note">• No polymorphism</text><text x="400" y="165" class="e2-t e2-mn">num n = 42; n.ext(); // uses num ext</text></svg>
+      <br><br>
+      <strong>This means extension methods cannot be overridden.</strong> If you need polymorphic behaviour, use instance methods or mixins instead.
+      <br><br>
+      <strong>Explicit extension application.</strong> When multiple extensions define the same member, you can disambiguate:
+      <br><br>
+      <pre><code>extension A on String {
+        String get decorated => '*** \$this ***';
+      }
+
+      extension B on String {
+        String get decorated => '--- \$this ---';
+      }
+
+      // Ambiguous — won't compile
+      // 'hello'.decorated;
+
+      // Explicit — works
+      A('hello').decorated;   // '*** hello ***'
+      B('hello').decorated;   // '--- hello ---'</code></pre>
+
+  - id: unnamed-extensions
+    title: "Unnamed and private extensions"
+    summary: |
+      Extensions can be unnamed. This is useful for one-off helpers that don't need to be referenced elsewhere.
+      <br><br>
+      <pre><code>extension on String {
+        bool get isBlank => trim().isEmpty;
+      }
+
+      '   '.isBlank;   // true</code></pre>
+      Unnamed extensions cannot be explicitly applied — there's no name to use. If there's a conflict, you can't disambiguate.
+      <br><br>
+      <strong>Private extensions</strong> — prefix the name with underscore.
+      <br><br>
+      <pre><code>extension _InternalHelpers on String {
+        String get _processed => trim().toLowerCase();
+      }
+
+      // Only usable within this file
+      var clean = input._processed;</code></pre>
+      Private extensions are useful for internal implementation helpers that shouldn't leak into the public API.
+      <br><br>
+      <strong>Exporting extensions.</strong> Named extensions can be exported from libraries, making them available to consumers.
+      <br><br>
+      <pre><code>// In string_extensions.dart
+      extension StringExtensions on String {
+        String get capitalised => ...;
+      }
+
+      // In another file
+      import 'string_extensions.dart';
+
+      'hello'.capitalised;   // works because extension is imported</code></pre>
+      Extensions are only available when they're in scope. Import the file, get the methods. Don't import it, they don't exist.
+
+  - id: practical-patterns
+    title: "Practical extension patterns"
+    summary: |
+      Extensions shine for specific use cases. Here are patterns that work well.
+      <br><br>
+      <strong>Pattern 1: Fluent APIs on primitives</strong>
+      <br><br>
+      <pre><code>extension DurationHelpers on int {
+        Duration get milliseconds => Duration(milliseconds: this);
+        Duration get seconds => Duration(seconds: this);
+        Duration get minutes => Duration(minutes: this);
+        Duration get hours => Duration(hours: this);
+      }
+
+      await Future.delayed(500.milliseconds);
+      var timeout = 30.seconds;
+      var workday = 8.hours;</code></pre>
+      <strong>Pattern 2: Safe parsing</strong>
+      <br><br>
+      <pre><code>extension SafeParsing on String {
+        int? toIntOrNull() => int.tryParse(this);
+        double? toDoubleOrNull() => double.tryParse(this);
+        DateTime? toDateTimeOrNull() => DateTime.tryParse(this);
+      }
+
+      var age = '25'.toIntOrNull() ?? 0;
+      var price = 'invalid'.toDoubleOrNull();   // null</code></pre>
+      <strong>Pattern 3: Collection conveniences</strong>
+      <br><br>
+      <pre><code>extension IterableHelpers&lt;T&gt; on Iterable&lt;T&gt; {
+        Map&lt;K, List&lt;T&gt;&gt; groupBy&lt;K&gt;(K Function(T) keyFn) {
+          var result = &lt;K, List&lt;T&gt;&gt;{};
+          for (var item in this) {
+            var key = keyFn(item);
+            (result[key] ??= []).add(item);
+          }
+          return result;
+        }
+
+        T? firstWhereOrNull(bool Function(T) test) {
+          for (var item in this) {
+            if (test(item)) return item;
+          }
+          return null;
+        }
+      }
+
+      var users = [User('Alice', 25), User('Bob', 25), User('Carol', 30)];
+      var byAge = users.groupBy((u) => u.age);
+      // {25: [Alice, Bob], 30: [Carol]}</code></pre>
+      <strong>Pattern 4: Null-safe operations</strong>
+      <br><br>
+      <pre><code>extension NullableString on String? {
+        bool get isNullOrEmpty => this == null || this!.isEmpty;
+        bool get isNullOrBlank => this == null || this!.trim().isEmpty;
+        String orEmpty() => this ?? '';
+      }
+
+      String? name;
+      if (name.isNullOrBlank) {
+        name = 'Anonymous';
+      }</code></pre>
+
+  - id: limitations
+    title: "Limitations and when not to use extensions"
+    summary: |
+      Extensions are powerful but not universal. Know their limits.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Extension limitations" style="max-width: 100%; height: auto;"><style>.e3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e3-title{font-size:16px;font-weight:600}.e3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.e3-label{font-size:12px;fill:#64748b}.e3-note{font-size:11px;fill:#475569}.e3-yes{fill:#059669;font-weight:600}.e3-no{fill:#dc2626;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="e3-t e3-title">What extensions can and cannot do</text><rect x="40" y="50" width="310" height="190" fill="#dcfce7" stroke="#10b981" stroke-width="2" rx="6"/><text x="195" y="78" text-anchor="middle" class="e3-t e3-label e3-yes">CAN DO</text><text x="60" y="105" class="e3-t e3-note">• Add instance methods</text><text x="60" y="125" class="e3-t e3-note">• Add getters and setters</text><text x="60" y="145" class="e3-t e3-note">• Add operators</text><text x="60" y="165" class="e3-t e3-note">• Add static methods (on the extension)</text><text x="60" y="185" class="e3-t e3-note">• Work with generics</text><text x="60" y="205" class="e3-t e3-note">• Extend nullable types (String?)</text><text x="60" y="225" class="e3-t e3-note">• Be imported/exported</text><rect x="370" y="50" width="310" height="190" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="525" y="78" text-anchor="middle" class="e3-t e3-label e3-no">CANNOT DO</text><text x="390" y="105" class="e3-t e3-note">• Add instance fields (state)</text><text x="390" y="125" class="e3-t e3-note">• Override existing methods</text><text x="390" y="145" class="e3-t e3-note">• Be polymorphic (dynamic dispatch)</text><text x="390" y="165" class="e3-t e3-note">• Add constructors</text><text x="390" y="185" class="e3-t e3-note">• Implement interfaces</text><text x="390" y="205" class="e3-t e3-note">• Be instantiated</text><text x="390" y="225" class="e3-t e3-note">• Access private members of the type</text></svg>
+      <br><br>
+      <strong>Don't use extensions when:</strong>
+      <br><br>
+      <strong>1. You need state.</strong> Extensions can't add fields. If you need to store data per instance, use a mixin or wrapper class.
+      <br><br>
+      <pre><code>// Won't work — extensions can't have instance fields
+      extension on User {
+        int loginCount = 0;   // ERROR
+      }</code></pre>
+      <strong>2. You need polymorphism.</strong> Extension methods use static dispatch. If you need different behaviour based on runtime type, use instance methods.
+      <br><br>
+      <pre><code>extension on Animal {
+        void feed() => print('feeding animal');
+      }
+
+      extension on Dog {
+        void feed() => print('feeding dog');
+      }
+
+      Animal pet = Dog();
+      pet.feed();   // 'feeding animal' — not what we wanted</code></pre>
+      <strong>3. The method is core to the type's identity.</strong> If every user of the type needs this method, it probably belongs on the class itself, not an extension.
+      <br><br>
+      <strong>4. You're adding too many.</strong> Twenty extension methods on String is a code smell. Consider whether a dedicated class would be clearer.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering extension methods, resolution, and when to use them."
+  questions:
+    - question: "What problem do extension methods solve?"
+      options:
+        - "They make code run faster"
+        - "They add methods to types without modifying the original class"
+        - "They allow multiple inheritance"
+        - "They replace mixins"
+      correctIndex: 1
+      explanation: "Extension methods let us add functionality to existing types — including types we don't control like String, int, or third-party classes — without modifying the original source code or creating wrapper classes."
+
+    - question: "How are extension methods resolved?"
+      options:
+        - "Dynamically, based on runtime type"
+        - "Statically, based on declared type"
+        - "Based on the first matching extension imported"
+        - "Alphabetically by extension name"
+      correctIndex: 1
+      explanation: "Extension methods use static dispatch — they're resolved at compile time based on the declared type of the variable, not the actual runtime type. This means they cannot be overridden and don't support polymorphism."
+
+    - question: "Can extension methods add instance fields to a type?"
+      options:
+        - "Yes, just like regular class fields"
+        - "Yes, but only final fields"
+        - "No, extensions can only add methods, getters, setters, and operators"
+        - "Yes, but only static fields"
+      correctIndex: 2
+      explanation: "Extensions cannot add instance fields (state) to a type. They can only add methods, getters, setters, and operators. If you need to add state, use a mixin (for types you control) or a wrapper class."
+
+    - question: "What happens when two extensions define the same method on a type?"
+      options:
+        - "The first imported extension wins"
+        - "It's a runtime error"
+        - "It's a compile error unless you use explicit extension application"
+        - "The method with more parameters wins"
+      correctIndex: 2
+      explanation: "When multiple extensions define the same member for a type, the call is ambiguous and won't compile. You can resolve this by using explicit extension application: ExtensionName(value).method() to specify which extension to use."
+
+    - question: "What is an unnamed extension?"
+      options:
+        - "An extension that hasn't been documented"
+        - "An extension declared without a name that cannot be explicitly applied"
+        - "An extension that extends Object"
+        - "An extension that only works on nullable types"
+      correctIndex: 1
+      explanation: "An unnamed extension is declared as 'extension on Type { }' without a name. It works normally but cannot be explicitly applied to resolve conflicts, since there's no name to reference. Use unnamed extensions for simple, one-off helpers."
+
+    - question: "Which pattern is a good use case for extensions?"
+      options:
+        - "Adding core business logic to domain classes"
+        - "Creating fluent APIs on primitives like 5.seconds"
+        - "Implementing polymorphic behaviour"
+        - "Storing additional state on existing objects"
+      correctIndex: 1
+      explanation: "Extensions are ideal for fluent APIs on primitives (5.seconds, 'hello'.capitalised), convenience methods on types you don't control, and utility operations. They're not suitable for core business logic, polymorphism, or adding state."
+
+    - question: "Why can't extension methods be used polymorphically?"
+      options:
+        - "Dart doesn't support polymorphism"
+        - "Extensions are resolved at compile time based on declared type, not runtime type"
+        - "Extensions can only extend final classes"
+        - "Polymorphism requires interfaces"
+      correctIndex: 1
+      explanation: "Extension methods use static dispatch — they're resolved at compile time based on the variable's declared type. If you have 'Animal a = Dog()' and call an extension method, it uses the Animal extension, not Dog. For polymorphic behaviour, use instance methods instead."
+---
+
+{/* Episode 4 of Dart: Primitive Computation. Extension methods — adding methods
+    to any type without modifying it. Covers syntax, generics, resolution rules,
+    patterns, and limitations. 3 inline SVG diagrams. */}

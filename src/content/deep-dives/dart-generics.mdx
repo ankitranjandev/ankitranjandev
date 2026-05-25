@@ -1,0 +1,389 @@
+---
+title: "Generics in Dart — Type Safety Without the Repetition"
+description: "Write code once, use it with any type. How Dart's generics give us flexible, reusable APIs while keeping the type checker happy."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 2
+publishedAt: 2026-05-24
+topics:
+  - id: why-generics
+    title: "The problem — type safety vs code reuse"
+    summary: |
+      Imagine we need a box that holds one item. We want type safety — the compiler should catch mistakes. So we write a box for each type.
+      <br><br>
+      <pre><code>class IntBox {
+        final int value;
+        IntBox(this.value);
+      }
+
+      class StringBox {
+        final String value;
+        StringBox(this.value);
+      }
+
+      class UserBox {
+        final User value;
+        UserBox(this.value);
+      }</code></pre>
+      This works, but we're repeating ourselves. Every new type needs a new box class. The code is identical except for the type name.
+      <br><br>
+      The alternative is to use <code>dynamic</code> and give up type safety.
+      <br><br>
+      <pre><code>class AnyBox {
+        final dynamic value;
+        AnyBox(this.value);
+      }
+
+      void main() {
+        var box = AnyBox(42);
+        String s = box.value;   // compiles fine, crashes at runtime
+      }</code></pre>
+      Now we have one class, but the compiler cannot help us. Type errors become runtime errors.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="The tension between type safety and code reuse" style="max-width: 100%; height: auto;"><style>.g1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.g1-title{font-size:16px;font-weight:600}.g1-label{font-size:13px;fill:#475569;font-weight:500}.g1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.g1-note{font-size:12px;fill:#64748b;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="g1-t g1-title">Two bad options — until generics</text><rect x="40" y="55" width="280" height="160" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="180" y="82" text-anchor="middle" class="g1-t g1-label">Separate classes per type</text><text x="60" y="115" class="g1-t g1-mn">class IntBox { ... }</text><text x="60" y="138" class="g1-t g1-mn">class StringBox { ... }</text><text x="60" y="161" class="g1-t g1-mn">class UserBox { ... }</text><text x="60" y="184" class="g1-t g1-mn">class WidgetBox { ... }</text><text x="180" y="205" text-anchor="middle" class="g1-t g1-note">Type safe, but endless duplication</text><rect x="400" y="55" width="280" height="160" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="540" y="82" text-anchor="middle" class="g1-t g1-label">One class with dynamic</text><text x="420" y="120" class="g1-t g1-mn">class AnyBox {</text><text x="420" y="143" class="g1-t g1-mn">  final dynamic value;</text><text x="420" y="166" class="g1-t g1-mn">}</text><text x="540" y="205" text-anchor="middle" class="g1-t g1-note">Reusable, but no type safety</text><text x="360" y="250" text-anchor="middle" class="g1-t g1-label" fill="#059669">Generics give us both: one class, full type safety.</text></svg>
+      <br><br>
+      Generics solve this. We write the code once with a placeholder type, and the compiler fills in the real type at each use site.
+      <br><br>
+      <pre><code>class Box&lt;T&gt; {
+        final T value;
+        Box(this.value);
+      }
+
+      void main() {
+        var intBox = Box&lt;int&gt;(42);
+        var stringBox = Box&lt;String&gt;('hello');
+
+        int n = intBox.value;       // works
+        String s = stringBox.value; // works
+        String bad = intBox.value;  // compile error — caught before runtime
+      }</code></pre>
+      One class. Full type safety. That's the power of generics.
+
+  - id: generic-classes
+    title: "Generic classes — List<T>, Map<K,V>, and your own"
+    summary: |
+      We've been using generics since Episode 6 — <code>List&lt;int&gt;</code>, <code>Set&lt;String&gt;</code>, <code>Map&lt;String, User&gt;</code>. Now let's see how they work under the hood.
+      <br><br>
+      A generic class declares one or more type parameters in angle brackets after the class name.
+      <br><br>
+      <pre><code>class Pair&lt;A, B&gt; {
+        final A first;
+        final B second;
+
+        Pair(this.first, this.second);
+
+        @override
+        String toString() => '($first, $second)';
+      }
+
+      void main() {
+        var coords = Pair&lt;int, int&gt;(10, 20);
+        var entry = Pair&lt;String, double&gt;('price', 9.99);
+
+        print(coords);  // (10, 20)
+        print(entry);   // (price, 9.99)
+      }</code></pre>
+      The type parameters <code>A</code> and <code>B</code> become concrete types when we instantiate the class. Inside the class body, we use them like any other type.
+      <br><br>
+      <strong>Dart's core collections are generic.</strong> Here's the mental model.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Generic type parameters in collections" style="max-width: 100%; height: auto;"><style>.g2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.g2-title{font-size:16px;font-weight:600}.g2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:600}.g2-label{font-size:12px;fill:#64748b}.g2-type{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#0175C2;font-weight:600}.g2-arrow{font-size:16px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="g2-t g2-title">Type parameters in Dart's core collections</text><rect x="40" y="55" width="200" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="140" y="85" text-anchor="middle" class="g2-t g2-mn">List&lt;E&gt;</text><text x="140" y="108" text-anchor="middle" class="g2-t g2-label">E = element type</text><rect x="260" y="55" width="200" height="70" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="85" text-anchor="middle" class="g2-t g2-mn">Set&lt;E&gt;</text><text x="360" y="108" text-anchor="middle" class="g2-t g2-label">E = element type</text><rect x="480" y="55" width="200" height="70" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="580" y="85" text-anchor="middle" class="g2-t g2-mn">Map&lt;K, V&gt;</text><text x="580" y="108" text-anchor="middle" class="g2-t g2-label">K = key, V = value</text><text x="140" y="160" text-anchor="middle" class="g2-t g2-arrow">|</text><text x="360" y="160" text-anchor="middle" class="g2-t g2-arrow">|</text><text x="580" y="160" text-anchor="middle" class="g2-t g2-arrow">|</text><rect x="40" y="175" width="200" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="4"/><text x="140" y="205" text-anchor="middle" class="g2-t g2-type">List&lt;int&gt;</text><rect x="260" y="175" width="200" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="4"/><text x="360" y="205" text-anchor="middle" class="g2-t g2-type">Set&lt;String&gt;</text><rect x="480" y="175" width="200" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="4"/><text x="580" y="205" text-anchor="middle" class="g2-t g2-type">Map&lt;String, User&gt;</text><text x="360" y="265" text-anchor="middle" class="g2-t g2-label">Each concrete type fills in the placeholders, creating a specific type.</text></svg>
+      <br><br>
+      <strong>Convention for type parameter names.</strong> Single uppercase letters are standard: <code>T</code> for a general type, <code>E</code> for element, <code>K</code> and <code>V</code> for key/value, <code>R</code> for return type. Longer names like <code>Element</code> are allowed but rare.
+      <br><br>
+      <pre><code>// A simple cache with generic key and value types
+      class Cache&lt;K, V&gt; {
+        final Map&lt;K, V&gt; _store = {};
+
+        V? get(K key) => _store[key];
+
+        void put(K key, V value) {
+          _store[key] = value;
+        }
+
+        void clear() => _store.clear();
+      }
+
+      void main() {
+        var userCache = Cache&lt;int, User&gt;();
+        userCache.put(1, User('Alice'));
+
+        var configCache = Cache&lt;String, String&gt;();
+        configCache.put('theme', 'dark');
+      }</code></pre>
+
+  - id: generic-methods
+    title: "Generic methods and functions"
+    summary: |
+      Methods and standalone functions can have their own type parameters, independent of any class.
+      <br><br>
+      <pre><code>T first&lt;T&gt;(List&lt;T&gt; items) {
+        if (items.isEmpty) throw StateError('Empty list');
+        return items[0];
+      }
+
+      void main() {
+        var numbers = [1, 2, 3];
+        var strings = ['a', 'b', 'c'];
+
+        int n = first(numbers);     // T is int
+        String s = first(strings);  // T is String
+      }</code></pre>
+      The type parameter <code>&lt;T&gt;</code> goes after the function name, before the parameters. Inside the function, <code>T</code> is a real type we can use for parameters, return types, and local variables.
+      <br><br>
+      <strong>Generic methods in classes.</strong> A method can introduce new type parameters even if the class has its own.
+      <br><br>
+      <pre><code>class Transformer&lt;T&gt; {
+        final T value;
+        Transformer(this.value);
+
+        // R is a new type parameter, specific to this method
+        R transform&lt;R&gt;(R Function(T) mapper) {
+          return mapper(value);
+        }
+      }
+
+      void main() {
+        var t = Transformer&lt;int&gt;(42);
+
+        String s = t.transform((n) => n.toString());  // R = String
+        double d = t.transform((n) => n * 1.5);       // R = double
+      }</code></pre>
+      <strong>When to use generic methods vs generic classes.</strong> If the type parameter is part of the object's identity (a <code>List&lt;int&gt;</code> stays an int list), put it on the class. If the type varies per operation (like <code>map</code> transforming elements to a different type), put it on the method.
+
+  - id: bounds
+    title: "Bounded type parameters — extends and upper bounds"
+    summary: |
+      Sometimes we need more than "any type." We need a type that supports specific operations. That's where bounds come in.
+      <br><br>
+      <pre><code>// This won't work — T might not have compareTo
+      T findMax&lt;T&gt;(List&lt;T&gt; items) {
+        var max = items[0];
+        for (var item in items) {
+          if (item.compareTo(max) > 0) max = item;  // error!
+        }
+        return max;
+      }</code></pre>
+      The compiler doesn't know that <code>T</code> has a <code>compareTo</code> method. We need to tell it.
+      <br><br>
+      <pre><code>T findMax&lt;T extends Comparable&lt;T&gt;&gt;(List&lt;T&gt; items) {
+        var max = items[0];
+        for (var item in items) {
+          if (item.compareTo(max) > 0) max = item;  // works!
+        }
+        return max;
+      }
+
+      void main() {
+        print(findMax([3, 1, 4, 1, 5]));   // 5
+        print(findMax(['banana', 'apple', 'cherry']));  // cherry
+      }</code></pre>
+      The <code>extends Comparable&lt;T&gt;</code> is an <strong>upper bound</strong>. It says: "T must be a subtype of Comparable<T>." Now the compiler knows <code>compareTo</code> exists.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Bounded type parameters" style="max-width: 100%; height: auto;"><style>.g3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.g3-title{font-size:16px;font-weight:600}.g3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.g3-label{font-size:12px;fill:#475569}.g3-yes{font-size:13px;fill:#059669;font-weight:600}.g3-no{font-size:13px;fill:#dc2626;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="g3-t g3-title">Bounds restrict which types can fill in T</text><rect x="40" y="55" width="300" height="70" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="190" y="82" text-anchor="middle" class="g3-t g3-mn">T extends Comparable&lt;T&gt;</text><text x="190" y="105" text-anchor="middle" class="g3-t g3-label">"T must implement Comparable"</text><rect x="380" y="55" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="450" y="85" text-anchor="middle" class="g3-t g3-mn">int</text><rect x="540" y="55" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="610" y="85" text-anchor="middle" class="g3-t g3-mn">String</text><text x="450" y="125" text-anchor="middle" class="g3-t g3-yes">Allowed</text><text x="610" y="125" text-anchor="middle" class="g3-t g3-yes">Allowed</text><rect x="380" y="150" width="140" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="450" y="180" text-anchor="middle" class="g3-t g3-mn">List</text><rect x="540" y="150" width="140" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="610" y="180" text-anchor="middle" class="g3-t g3-mn">Object</text><text x="450" y="220" text-anchor="middle" class="g3-t g3-no">Not allowed</text><text x="610" y="220" text-anchor="middle" class="g3-t g3-no">Not allowed</text></svg>
+      <br><br>
+      <strong>Common bounds in practice.</strong>
+      <br><br>
+      <pre><code>// Must be a number
+      T sum&lt;T extends num&gt;(List&lt;T&gt; values) {
+        return values.reduce((a, b) => (a + b) as T);
+      }
+
+      // Must have a toJson method (via interface)
+      void save&lt;T extends Serializable&gt;(T item) {
+        var json = item.toJson();
+        // ...
+      }
+
+      // Multiple type parameters, each with bounds
+      class Repository&lt;K extends Object, V extends Entity&gt; {
+        V? findById(K id) { ... }
+      }</code></pre>
+      Bounds give us the best of both worlds: flexible code that still knows what operations it can perform.
+
+  - id: variance
+    title: "Covariance — why List<Dog> works where List<Animal> is expected"
+    summary: |
+      Here's a puzzle. <code>Dog</code> extends <code>Animal</code>. We can pass a <code>Dog</code> where an <code>Animal</code> is expected. But what about <code>List&lt;Dog&gt;</code> and <code>List&lt;Animal&gt;</code>?
+      <br><br>
+      <pre><code>class Animal {}
+      class Dog extends Animal {}
+      class Cat extends Animal {}
+
+      void printAnimals(List&lt;Animal&gt; animals) {
+        for (var a in animals) print(a);
+      }
+
+      void main() {
+        var dogs = &lt;Dog&gt;[Dog(), Dog()];
+        printAnimals(dogs);   // Does this work?
+      }</code></pre>
+      In Dart, this works. <code>List&lt;Dog&gt;</code> is a subtype of <code>List&lt;Animal&gt;</code>. This property is called <strong>covariance</strong> — the generic type varies in the same direction as its parameter.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Covariance in generic types" style="max-width: 100%; height: auto;"><defs><marker id="g4-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.g4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.g4-title{font-size:16px;font-weight:600}.g4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:600}.g4-label{font-size:12px;fill:#475569}.g4-sub{font-size:11px;fill:#64748b;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="g4-t g4-title">Covariance — subtyping flows through generics</text><rect x="280" y="55" width="160" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="360" y="85" text-anchor="middle" class="g4-t g4-mn">Animal</text><line x1="280" y1="130" x2="340" y2="105" stroke="#475569" stroke-width="2" marker-end="url(#g4-arrow)"/><line x1="440" y1="130" x2="380" y2="105" stroke="#475569" stroke-width="2" marker-end="url(#g4-arrow)"/><rect x="140" y="130" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="210" y="160" text-anchor="middle" class="g4-t g4-mn">Dog</text><rect x="440" y="130" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="510" y="160" text-anchor="middle" class="g4-t g4-mn">Cat</text><text x="325" y="118" class="g4-t g4-sub">extends</text><text x="395" y="118" class="g4-t g4-sub">extends</text><text x="60" y="230" class="g4-t g4-label">Therefore:</text><rect x="140" y="210" width="160" height="45" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="220" y="238" text-anchor="middle" class="g4-t g4-mn">List&lt;Dog&gt;</text><text x="330" y="235" class="g4-t g4-sub">is a subtype of</text><rect x="420" y="210" width="180" height="45" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="510" y="238" text-anchor="middle" class="g4-t g4-mn">List&lt;Animal&gt;</text><text x="360" y="285" text-anchor="middle" class="g4-t g4-label">The relationship "flows through" — that's covariance.</text></svg>
+      <br><br>
+      <strong>Why is this safe?</strong> When we read from a <code>List&lt;Dog&gt;</code>, we get Dogs. Dogs are Animals. So reading works. But writing is trickier.
+      <br><br>
+      <pre><code>void addCat(List&lt;Animal&gt; animals) {
+        animals.add(Cat());   // adding a Cat to a list of Animals
+      }
+
+      void main() {
+        var dogs = &lt;Dog&gt;[Dog(), Dog()];
+        addCat(dogs);   // passes a List&lt;Dog&gt; as List&lt;Animal&gt;
+        // Now dogs contains a Cat — type safety broken?
+      }</code></pre>
+      Dart catches this at runtime. Adding a <code>Cat</code> to a <code>List&lt;Dog&gt;</code> throws a <code>TypeError</code>. The static type system allows the code, but runtime checks enforce the actual element type.
+      <br><br>
+      <strong>The practical lesson:</strong> Covariance is convenient for reading. It's safe to pass <code>List&lt;Dog&gt;</code> to a function that only reads animals. But if the function modifies the list, expect runtime errors if types don't match.
+
+  - id: inference
+    title: "Type inference — letting Dart figure it out"
+    summary: |
+      We don't always have to write out type arguments. Dart's type inference is smart enough to figure them out from context.
+      <br><br>
+      <pre><code>// Explicit type arguments
+      var explicit = &lt;int&gt;[1, 2, 3];
+      var explicitMap = &lt;String, int&gt;{'a': 1, 'b': 2};
+
+      // Inferred from the elements
+      var inferred = [1, 2, 3];           // List&lt;int&gt;
+      var inferredMap = {'a': 1, 'b': 2}; // Map&lt;String, int&gt;
+
+      // Inferred from the variable type
+      List&lt;int&gt; numbers = [];   // empty List&lt;int&gt;, not List&lt;dynamic&gt;</code></pre>
+      <strong>Inference flows through generic methods too.</strong>
+      <br><br>
+      <pre><code>T first&lt;T&gt;(List&lt;T&gt; items) => items[0];
+
+      var numbers = [1, 2, 3];
+      var n = first(numbers);   // T inferred as int, n is int
+
+      // Explicit when needed
+      var x = first&lt;num&gt;([1, 2, 3]);  // force T to be num</code></pre>
+      <strong>When inference fails.</strong> Sometimes Dart needs help. Empty collections and complex chains can be ambiguous.
+      <br><br>
+      <pre><code>// Ambiguous — what type is this empty list?
+      var items = [];   // List&lt;dynamic&gt; — probably not what we want
+
+      // Help Dart out
+      var items = &lt;String&gt;[];    // List&lt;String&gt;
+      List&lt;String&gt; items = [];   // same result
+
+      // Complex chains might need hints
+      var result = things
+          .map((t) => t.name)
+          .where((n) => n.isNotEmpty)
+          .toList();
+      // Usually fine, but if 'things' has an unclear type, add hints</code></pre>
+      <strong>The rule:</strong> Let Dart infer when the type is obvious. Add explicit types when the inference would produce <code>dynamic</code> or the wrong type.
+
+  - id: reified-generics
+    title: "Reified generics — Dart remembers the type"
+    summary: |
+      Here's something that surprises developers from Java or TypeScript. In Dart, generic types are <strong>reified</strong> — they exist at runtime, not just compile time.
+      <br><br>
+      <pre><code>void main() {
+        var numbers = &lt;int&gt;[1, 2, 3];
+        var strings = &lt;String&gt;['a', 'b', 'c'];
+
+        print(numbers is List&lt;int&gt;);      // true
+        print(numbers is List&lt;String&gt;);   // false
+        print(strings is List&lt;String&gt;);   // true
+        print(strings is List&lt;int&gt;);      // false
+      }</code></pre>
+      We can ask "is this a <code>List&lt;int&gt;</code>?" at runtime and get a meaningful answer. This is not possible in Java (type erasure) or TypeScript (types disappear after compilation).
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Reified vs erased generics" style="max-width: 100%; height: auto;"><style>.g5-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.g5-title{font-size:16px;font-weight:600}.g5-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.g5-label{font-size:13px;fill:#475569;font-weight:500}.g5-note{font-size:11px;fill:#64748b;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="g5-t g5-title">Dart vs Java — what happens to generic types at runtime</text><rect x="40" y="55" width="300" height="180" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="190" y="82" text-anchor="middle" class="g5-t g5-label" fill="#059669">Dart — Reified</text><text x="60" y="115" class="g5-t g5-mn">var nums = &lt;int&gt;[1, 2, 3];</text><text x="60" y="145" class="g5-t g5-mn">nums is List&lt;int&gt;</text><text x="230" y="145" class="g5-t g5-mn" fill="#059669">// true</text><text x="60" y="170" class="g5-t g5-mn">nums is List&lt;String&gt;</text><text x="230" y="170" class="g5-t g5-mn" fill="#dc2626">// false</text><text x="190" y="215" text-anchor="middle" class="g5-t g5-note">Type info preserved at runtime.</text><text x="190" y="230" text-anchor="middle" class="g5-t g5-note">Full type checks available.</text><rect x="380" y="55" width="300" height="180" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="530" y="82" text-anchor="middle" class="g5-t g5-label" fill="#dc2626">Java — Erased</text><text x="400" y="115" class="g5-t g5-mn">List&lt;Integer&gt; nums = ...;</text><text x="400" y="145" class="g5-t g5-mn">nums instanceof List</text><text x="580" y="145" class="g5-t g5-mn" fill="#059669">// true</text><text x="400" y="170" class="g5-t g5-mn">// Can't check List&lt;Integer&gt;</text><text x="400" y="190" class="g5-t g5-mn">// vs List&lt;String&gt; at runtime</text><text x="530" y="225" text-anchor="middle" class="g5-t g5-note">Type args erased to Object.</text><text x="530" y="240" text-anchor="middle" class="g5-t g5-note">Only raw List check possible.</text></svg>
+      <br><br>
+      <strong>Practical uses of reified generics.</strong>
+      <br><br>
+      <pre><code>// Runtime type dispatch
+      void process(Object data) {
+        if (data is List&lt;int&gt;) {
+          print('Sum: ${data.reduce((a, b) => a + b)}');
+        } else if (data is List&lt;String&gt;) {
+          print('Joined: ${data.join(', ')}');
+        } else if (data is Map&lt;String, dynamic&gt;) {
+          print('Keys: ${data.keys}');
+        }
+      }
+
+      // Getting the runtime type
+      var items = &lt;String&gt;['a', 'b'];
+      print(items.runtimeType);   // List&lt;String&gt;</code></pre>
+      <strong>Why does this matter?</strong> Frameworks can inspect types at runtime for serialisation, dependency injection, and reflection. Flutter's widget system relies on reified generics for type-safe builders. JSON decoders can check target types. This runtime knowledge is a genuine advantage Dart has over languages with type erasure.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering generics, bounds, covariance, inference, and reification."
+  questions:
+    - question: "What problem do generics solve?"
+      options:
+        - "They make code run faster"
+        - "They let us write one piece of code that works with multiple types while keeping type safety"
+        - "They remove the need for classes"
+        - "They replace inheritance"
+      correctIndex: 1
+      explanation: "Generics solve the tension between code reuse and type safety. Without generics, we'd either duplicate code for each type (IntBox, StringBox, etc.) or give up type safety with dynamic. Generics let us write Box<T> once and use it with any type, while the compiler still catches type mismatches at compile time."
+
+    - question: "What does `T extends Comparable<T>` mean in `T findMax<T extends Comparable<T>>(List<T> items)`?"
+      options:
+        - "T must be exactly Comparable"
+        - "T must be a subtype of Comparable<T>, meaning it has compareTo"
+        - "T cannot be Comparable"
+        - "T is always an integer"
+      correctIndex: 1
+      explanation: "The `extends` keyword sets an upper bound on the type parameter. `T extends Comparable<T>` means T must implement the Comparable interface for its own type. This guarantees that items of type T have a compareTo method, which the function needs to find the maximum."
+
+    - question: "If Dog extends Animal, is List<Dog> a subtype of List<Animal> in Dart?"
+      options:
+        - "No — generic types are invariant"
+        - "Yes — Dart generics are covariant"
+        - "Only if we use the `covariant` keyword"
+        - "Only at compile time, not at runtime"
+      correctIndex: 1
+      explanation: "Dart generics are covariant by default. If Dog is a subtype of Animal, then List<Dog> is a subtype of List<Animal>. This means we can pass a List<Dog> to a function expecting List<Animal>. However, this is checked at runtime for writes — adding a Cat to a List<Dog> will throw a TypeError."
+
+    - question: "What does `var items = [];` create?"
+      options:
+        - "List<void>"
+        - "List<Object>"
+        - "List<dynamic> — inference falls back to dynamic for empty literals"
+        - "A compile error"
+      correctIndex: 2
+      explanation: "When Dart cannot infer a specific type from context, it falls back to dynamic. An empty list literal with no type annotation produces List<dynamic>. This is usually not what we want. To get a typed empty list, write `<String>[]` or `List<String> items = [];`."
+
+    - question: "Which is true about Dart's generic types at runtime?"
+      options:
+        - "They are erased like Java — List<int> becomes just List"
+        - "They are reified — List<int> and List<String> are distinguishable at runtime"
+        - "They only exist during AOT compilation"
+        - "They are only preserved in debug mode"
+      correctIndex: 1
+      explanation: "Dart generics are reified — the type arguments are preserved at runtime. We can check `list is List<int>` and get a meaningful true/false answer. This differs from Java (type erasure) and TypeScript (compile-time only). Reified generics enable runtime type dispatch, better error messages, and framework features like serialisation."
+
+    - question: "Where should the type parameter go for a function that transforms input to output types?"
+      options:
+        - "On the class only"
+        - "On the method — R transform<R>(R Function(T) mapper)"
+        - "Functions cannot have type parameters"
+        - "In the return type only"
+      correctIndex: 1
+      explanation: "When the type varies per method call rather than per instance, put the type parameter on the method. A transform method might take a value of the class's type T and return a different type R. Each call to transform could use a different R. `R transform<R>(R Function(T) mapper)` lets the caller choose R at the call site."
+
+    - question: "What happens when you add a Cat to a List<Dog> that was passed as List<Animal>?"
+      options:
+        - "Compile error"
+        - "The Cat is silently converted to a Dog"
+        - "Runtime TypeError — the list enforces its actual element type"
+        - "The list becomes List<Animal>"
+      correctIndex: 2
+      explanation: "Covariance allows passing List<Dog> as List<Animal>, but the list still enforces its actual element type at runtime. Adding a Cat to a List<Dog> (even through a List<Animal> reference) throws a TypeError. This is Dart's way of balancing flexibility with safety — static types allow the assignment, runtime checks prevent invalid mutations."
+---
+
+{/* Episode: Generics in Dart. Part of the Dart: Type System series.
+    7 topics covering why generics exist, generic classes, generic methods,
+    bounded type parameters, covariance, type inference, and reified generics.
+    4 inline SVG diagrams. */}

@@ -1,0 +1,376 @@
+---
+title: "Isolates in Dart — True Parallelism Without Shared Memory"
+description: "Heavy computation freezes your Flutter app. Isolates give you parallel execution with zero race conditions — because they share nothing."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Async"
+order: 3
+publishedAt: 2026-05-24
+topics:
+  - id: why-isolates
+    title: "Why the event loop isn't enough"
+    summary: |
+      We covered the event loop in the Futures episode. Dart is single-threaded — one piece of code runs at a time. The event loop keeps the UI responsive by scheduling work in small chunks.
+      <br><br>
+      But what happens when we need to run something that can't be split into small chunks? Parsing a 10 MB JSON file. Encrypting a large blob of data. Processing image pixels. These operations are <strong>CPU-bound</strong> — they hog the processor for hundreds of milliseconds with no natural pause points.
+      <br><br>
+      <pre><code>// This blocks the event loop — no frame renders until it's done
+      List&lt;int&gt; fibonacci(int n) {
+        if (n &lt;= 1) return [0, 1].take(n + 1).toList();
+        var result = [0, 1];
+        for (var i = 2; i &lt;= n; i++) {
+          result.add(result[i - 1] + result[i - 2]);
+        }
+        return result;
+      }
+
+      void main() {
+        var huge = fibonacci(50000000);  // blocks for seconds
+        print('Done');
+      }</code></pre>
+      While <code>fibonacci</code> runs, no UI events are processed. The screen freezes. Users think the app has crashed. Async/await won't help — that's for <strong>I/O-bound</strong> work where we're waiting on external systems. For CPU-bound work, we need a second processor.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="CPU-bound vs IO-bound comparison" style="max-width: 100%; height: auto;"><style>.i1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.i1-title{font-size:16px;font-weight:600}.i1-head{font-size:13px;font-weight:700}.i1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.i1-note{font-size:11px;fill:#475569}.i1-label{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="i1-t i1-title">Two kinds of slow — and two different solutions</text><rect x="40" y="50" width="300" height="200" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="190" y="75" text-anchor="middle" class="i1-t i1-head" fill="#dc2626">CPU-bound (blocking)</text><text x="60" y="100" class="i1-t i1-mn">fibonacci(50000000)</text><text x="60" y="120" class="i1-t i1-mn">parseHugeJson(data)</text><text x="60" y="140" class="i1-t i1-mn">encryptBlob(megabytes)</text><text x="60" y="160" class="i1-t i1-mn">compressImage(pixels)</text><text x="60" y="190" class="i1-t i1-note">CPU is busy the whole time.</text><text x="60" y="208" class="i1-t i1-note">No yields. No pauses. Event loop starves.</text><text x="60" y="235" class="i1-t i1-label" font-weight="600">Solution: Isolates</text><rect x="380" y="50" width="300" height="200" fill="#dcfce7" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="75" text-anchor="middle" class="i1-t i1-head" fill="#10b981">I/O-bound (waiting)</text><text x="400" y="100" class="i1-t i1-mn">await http.get(url)</text><text x="400" y="120" class="i1-t i1-mn">await file.readAsString()</text><text x="400" y="140" class="i1-t i1-mn">await database.query(...)</text><text x="400" y="160" class="i1-t i1-mn">await socket.read()</text><text x="400" y="190" class="i1-t i1-note">CPU is idle — waiting for network, disk, etc.</text><text x="400" y="208" class="i1-t i1-note">Event loop can process other events meanwhile.</text><text x="400" y="235" class="i1-t i1-label" font-weight="600">Solution: Futures / async-await</text></svg>
+      <br><br>
+      <strong>The mental model:</strong> Futures handle waiting. Isolates handle computing. Use the right tool for the shape of the problem.
+
+  - id: what-is-isolate
+    title: "What is an isolate?"
+    summary: |
+      An isolate is Dart's unit of concurrency. Each isolate has its own memory heap, its own event loop, and its own thread of execution. Multiple isolates can run truly in parallel on multi-core CPUs.
+      <br><br>
+      The name comes from the key design choice: <strong>isolates share no memory</strong>. Zero. None. They communicate only by passing messages — copying data or transferring ownership.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Isolate memory model" style="max-width: 100%; height: auto;"><defs><marker id="i2-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.i2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.i2-title{font-size:16px;font-weight:600}.i2-head{font-size:14px;font-weight:700}.i2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.i2-note{font-size:11px;fill:#475569}.i2-label{font-size:12px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="i2-t i2-title">Isolates have separate memory heaps</text><rect x="40" y="50" width="280" height="250" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="180" y="75" text-anchor="middle" class="i2-t i2-head" fill="#0175C2">Main Isolate</text><rect x="60" y="90" width="240" height="60" fill="#f8fafc" stroke="#cbd5e1" rx="4"/><text x="180" y="115" text-anchor="middle" class="i2-t i2-label">Heap</text><text x="180" y="135" text-anchor="middle" class="i2-t i2-mn">objects, closures, state</text><rect x="60" y="160" width="240" height="40" fill="#fef3c7" stroke="#f59e0b" rx="4"/><text x="180" y="185" text-anchor="middle" class="i2-t i2-mn">Event Loop</text><rect x="60" y="210" width="240" height="40" fill="#d1fae5" stroke="#10b981" rx="4"/><text x="180" y="235" text-anchor="middle" class="i2-t i2-mn">UI thread (Flutter)</text><text x="180" y="280" text-anchor="middle" class="i2-t i2-note">Can update widgets, call setState</text><rect x="400" y="50" width="280" height="250" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="540" y="75" text-anchor="middle" class="i2-t i2-head" fill="#9333ea">Background Isolate</text><rect x="420" y="90" width="240" height="60" fill="#f8fafc" stroke="#cbd5e1" rx="4"/><text x="540" y="115" text-anchor="middle" class="i2-t i2-label">Heap (separate!)</text><text x="540" y="135" text-anchor="middle" class="i2-t i2-mn">own copies of objects</text><rect x="420" y="160" width="240" height="40" fill="#fef3c7" stroke="#f59e0b" rx="4"/><text x="540" y="185" text-anchor="middle" class="i2-t i2-mn">Event Loop (separate!)</text><rect x="420" y="210" width="240" height="40" fill="#fee2e2" stroke="#dc2626" rx="4"/><text x="540" y="235" text-anchor="middle" class="i2-t i2-mn">Background thread</text><text x="540" y="280" text-anchor="middle" class="i2-t i2-note">Cannot touch UI — send results back</text><line x1="320" y1="120" x2="400" y2="120" stroke="#dc2626" stroke-width="3" stroke-dasharray="6,4"/><text x="360" y="110" text-anchor="middle" class="i2-t" font-size="20" fill="#dc2626">X</text><text x="360" y="320" text-anchor="middle" class="i2-t i2-note" font-weight="600">No shared memory. Messages only.</text></svg>
+      <br><br>
+      Why is this a feature, not a limitation? Because shared memory is the source of every concurrency nightmare: race conditions, deadlocks, torn reads, heisenbugs that only appear under load. By disallowing shared state, Dart eliminates entire categories of bugs at the language level. We can't accidentally mutate the same object from two threads — there are no shared objects.
+      <br><br>
+      <pre><code>// In the main isolate
+      var counter = 0;
+
+      // In a background isolate — this is a COPY
+      // Incrementing it has no effect on the main isolate's counter</code></pre>
+      <strong>What can be sent between isolates?</strong>
+      <br><br>
+      • Primitive values: int, double, bool, String, null
+      <br>• Lists and Maps of sendable types
+      <br>• Typed data (Uint8List, etc.)
+      <br>• SendPort and ReceivePort (for bidirectional communication)
+      <br>• Objects marked with special annotations in some cases
+      <br><br>
+      Non-sendable things include closures that capture mutable state, most custom objects, and anything with a connection to native resources (files, sockets, database handles).
+
+  - id: spawn-and-compute
+    title: "Spawning isolates — the modern API"
+    summary: |
+      Dart 2.19 introduced <code>Isolate.run()</code>, which is the simplest way to offload work. Give it a function and an argument, get back a Future with the result.
+      <br><br>
+      <pre><code>import 'dart:isolate';
+
+      Future&lt;List&lt;int&gt;&gt; computeFibonacci(int n) async {
+        // Runs in a separate isolate
+        return await Isolate.run(() =&gt; _fibonacci(n));
+      }
+
+      List&lt;int&gt; _fibonacci(int n) {
+        if (n &lt;= 1) return [0, 1].take(n + 1).toList();
+        var result = [0, 1];
+        for (var i = 2; i &lt;= n; i++) {
+          result.add(result[i - 1] + result[i - 2]);
+        }
+        return result;
+      }
+
+      void main() async {
+        print('Starting computation...');
+        var result = await computeFibonacci(40);
+        print('Done: \${result.length} numbers');
+      }</code></pre>
+      <code>Isolate.run()</code> handles all the plumbing: spawning, message passing, and cleanup. The closure runs in a fresh isolate, and the result is sent back to the caller.
+      <br><br>
+      <strong>The top-level function rule.</strong> The function passed to <code>Isolate.run()</code> must be a top-level function or a static method — not an instance method or a closure that captures local state. This is because the function needs to be serialised and sent to the new isolate.
+      <br><br>
+      <pre><code>// Works — top-level function
+      int _square(int x) =&gt; x * x;
+      var result = await Isolate.run(() =&gt; _square(42));
+
+      // Works — static method
+      class Math {
+        static int cube(int x) =&gt; x * x * x;
+      }
+      var result = await Isolate.run(() =&gt; Math.cube(3));
+
+      // FAILS — closure capturing local variable
+      var multiplier = 10;
+      var result = await Isolate.run(() =&gt; 5 * multiplier);  // Error!</code></pre>
+      <strong>For Flutter: compute().</strong> Flutter wraps this further with the <code>compute()</code> helper from <code>foundation.dart</code>. It's the same idea but slightly more ergonomic for Flutter apps.
+      <br><br>
+      <pre><code>import 'package:flutter/foundation.dart';
+
+      Future&lt;String&gt; parseJson(String rawJson) async {
+        return await compute(_doParse, rawJson);
+      }
+
+      String _doParse(String json) {
+        // Heavy parsing work here
+        return jsonDecode(json).toString();
+      }</code></pre>
+
+  - id: ports-and-messages
+    title: "Ports — bidirectional communication"
+    summary: |
+      <code>Isolate.run()</code> is fire-and-forget: send work, get result. But sometimes we need ongoing communication — progress updates, streaming results, or a long-lived worker.
+      <br><br>
+      For that, we use <strong>SendPort</strong> and <strong>ReceivePort</strong> directly.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="SendPort and ReceivePort communication" style="max-width: 100%; height: auto;"><defs><marker id="i3-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0175C2"/></marker><marker id="i3-arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs><style>.i3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.i3-title{font-size:16px;font-weight:600}.i3-head{font-size:13px;font-weight:700}.i3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.i3-note{font-size:11px;fill:#475569}.i3-label{font-size:12px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="i3-t i3-title">Bidirectional communication with ports</text><rect x="40" y="50" width="200" height="220" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="140" y="75" text-anchor="middle" class="i3-t i3-head" fill="#0175C2">Main Isolate</text><rect x="60" y="90" width="160" height="40" fill="#d1fae5" stroke="#10b981" rx="4"/><text x="140" y="115" text-anchor="middle" class="i3-t i3-mn">ReceivePort</text><text x="140" y="145" text-anchor="middle" class="i3-t i3-note">Listens for messages</text><rect x="60" y="160" width="160" height="40" fill="#fef3c7" stroke="#f59e0b" rx="4"/><text x="140" y="185" text-anchor="middle" class="i3-t i3-mn">SendPort (worker's)</text><text x="140" y="215" text-anchor="middle" class="i3-t i3-note">Sends tasks to worker</text><text x="140" y="250" text-anchor="middle" class="i3-t i3-label">port.listen((msg) {...})</text><rect x="480" y="50" width="200" height="220" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="580" y="75" text-anchor="middle" class="i3-t i3-head" fill="#9333ea">Worker Isolate</text><rect x="500" y="90" width="160" height="40" fill="#d1fae5" stroke="#10b981" rx="4"/><text x="580" y="115" text-anchor="middle" class="i3-t i3-mn">ReceivePort</text><text x="580" y="145" text-anchor="middle" class="i3-t i3-note">Receives tasks</text><rect x="500" y="160" width="160" height="40" fill="#fef3c7" stroke="#f59e0b" rx="4"/><text x="580" y="185" text-anchor="middle" class="i3-t i3-mn">SendPort (main's)</text><text x="580" y="215" text-anchor="middle" class="i3-t i3-note">Sends results back</text><text x="580" y="250" text-anchor="middle" class="i3-t i3-label">sendPort.send(result)</text><line x1="240" y1="110" x2="480" y2="180" stroke="#0175C2" stroke-width="2" marker-end="url(#i3-arr)"/><text x="360" y="130" text-anchor="middle" class="i3-t i3-mn" fill="#0175C2">send task</text><line x1="480" y1="110" x2="240" y2="180" stroke="#9333ea" stroke-width="2" marker-end="url(#i3-arr2)"/><text x="360" y="165" text-anchor="middle" class="i3-t i3-mn" fill="#9333ea">send result</text></svg>
+      <br><br>
+      Here's the full pattern for a long-lived worker isolate:
+      <br><br>
+      <pre><code>import 'dart:isolate';
+
+      void main() async {
+        // Create a port to receive messages from the worker
+        final receivePort = ReceivePort();
+
+        // Spawn the worker, passing our SendPort
+        await Isolate.spawn(
+          _workerMain,
+          receivePort.sendPort,
+        );
+
+        // First message from worker is its SendPort
+        final workerSendPort = await receivePort.first as SendPort;
+
+        // Now we can send tasks and receive results
+        final responsePort = ReceivePort();
+        workerSendPort.send(['fibonacci', 40, responsePort.sendPort]);
+
+        final result = await responsePort.first;
+        print('Result: \$result');
+      }
+
+      void _workerMain(SendPort mainSendPort) {
+        final workerReceivePort = ReceivePort();
+
+        // Send our port back to main so it can send us tasks
+        mainSendPort.send(workerReceivePort.sendPort);
+
+        // Listen for tasks
+        workerReceivePort.listen((message) {
+          final task = message[0] as String;
+          final arg = message[1] as int;
+          final replyPort = message[2] as SendPort;
+
+          if (task == 'fibonacci') {
+            final result = _fibonacci(arg);
+            replyPort.send(result);
+          }
+        });
+      }</code></pre>
+      The handshake pattern: main creates a ReceivePort, spawns the worker with that port's SendPort, the worker creates its own ReceivePort and sends its SendPort back. Now both sides can talk.
+
+  - id: isolate-lifecycle
+    title: "Lifecycle — spawn, communicate, terminate"
+    summary: |
+      Isolates have a simple lifecycle: they're spawned, they run, they can be killed or they can exit naturally when their event loop empties.
+      <br><br>
+      <strong>Spawning.</strong> We've seen <code>Isolate.run()</code> and <code>Isolate.spawn()</code>. There's also the older <code>Isolate.spawnUri()</code> which loads code from a separate file — rarely needed in practice.
+      <br><br>
+      <pre><code>// Simple: run a function, get result, isolate exits
+      var result = await Isolate.run(() =&gt; heavyWork());
+
+      // Long-lived: spawn and keep reference
+      final isolate = await Isolate.spawn(workerMain, sendPort);</code></pre>
+      <strong>Termination.</strong> An isolate exits when its event loop has no more work and no open ports. We can also force termination:
+      <br><br>
+      <pre><code>// From outside: kill the isolate
+      isolate.kill(priority: Isolate.immediate);
+
+      // From inside: exit with a value
+      Isolate.exit(sendPort, result);</code></pre>
+      <code>Isolate.exit()</code> is more efficient than sending a message and returning — it transfers the data without copying.
+      <br><br>
+      <strong>Error handling.</strong> Errors in an isolate don't crash the main isolate. By default they're silently swallowed. To catch them:
+      <br><br>
+      <pre><code>final isolate = await Isolate.spawn(
+        workerMain,
+        sendPort,
+        onError: errorPort.sendPort,  // errors sent here
+        onExit: exitPort.sendPort,    // notified when isolate exits
+      );
+
+      errorPort.listen((error) {
+        print('Worker error: \$error');
+      });</code></pre>
+      <strong>Debugging tip:</strong> Isolate errors can be hard to trace because stack traces don't cross isolate boundaries. Always add logging at the entry point of your worker function.
+
+  - id: when-to-use
+    title: "When to use isolates"
+    summary: |
+      Isolates have overhead. Spawning takes a few milliseconds. Message passing involves copying (or transferring) data. Don't use them for trivial work.
+      <br><br>
+      <strong>Good candidates for isolates:</strong>
+      <br><br>
+      • Parsing large JSON (>100KB typically)
+      <br>• Image processing (resizing, filtering, compression)
+      <br>• Cryptographic operations (hashing, encryption)
+      <br>• Complex calculations (pathfinding, physics simulations)
+      <br>• Database serialisation/deserialisation
+      <br>• Any computation that takes >16ms (one frame at 60fps)
+      <br><br>
+      <strong>Bad candidates for isolates:</strong>
+      <br><br>
+      • Small JSON parsing (overhead exceeds savings)
+      <br>• Simple arithmetic
+      <br>• I/O-bound work (use Futures instead)
+      <br>• Anything requiring UI access
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Isolate decision guide" style="max-width: 100%; height: auto;"><defs><marker id="i4-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.i4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.i4-title{font-size:16px;font-weight:600}.i4-q{font-size:13px;font-weight:500}.i4-yn{font-size:12px;font-weight:600;fill:#475569}.i4-result{font-size:14px;font-weight:700;fill:#ffffff}.i4-note{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="i4-t i4-title">Should I use an isolate?</text><path d="M 200 60 L 330 100 L 200 140 L 70 100 Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="200" y="95" text-anchor="middle" class="i4-t i4-q">Is the work</text><text x="200" y="112" text-anchor="middle" class="i4-t i4-q">CPU-bound?</text><line x1="70" y1="100" x2="30" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#i4-arr)"/><text x="50" y="90" text-anchor="middle" class="i4-t i4-yn">no</text><rect x="-50" y="75" width="80" height="50" fill="#10b981" stroke="#047857" stroke-width="2" rx="6"/><text x="-10" y="105" text-anchor="middle" class="i4-t i4-result">Future</text><line x1="200" y1="140" x2="200" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#i4-arr)"/><text x="215" y="155" class="i4-t i4-yn">yes</text><path d="M 200 170 L 330 210 L 200 250 L 70 210 Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="200" y="205" text-anchor="middle" class="i4-t i4-q">Takes longer</text><text x="200" y="222" text-anchor="middle" class="i4-t i4-q">than 16ms?</text><line x1="70" y1="210" x2="30" y2="210" stroke="#475569" stroke-width="2" marker-end="url(#i4-arr)"/><text x="50" y="200" text-anchor="middle" class="i4-t i4-yn">no</text><rect x="-50" y="185" width="80" height="50" fill="#10b981" stroke="#047857" stroke-width="2" rx="6"/><text x="-10" y="215" text-anchor="middle" class="i4-t i4-result">Inline</text><line x1="330" y1="210" x2="370" y2="210" stroke="#475569" stroke-width="2" marker-end="url(#i4-arr)"/><text x="350" y="200" text-anchor="middle" class="i4-t i4-yn">yes</text><rect x="380" y="185" width="100" height="50" fill="#0175C2" stroke="#0369a1" stroke-width="2" rx="6"/><text x="430" y="215" text-anchor="middle" class="i4-t i4-result">Isolate</text><text x="550" y="90" class="i4-t i4-note">16ms = one frame at 60fps</text><text x="550" y="110" class="i4-t i4-note">Anything longer causes jank</text><text x="550" y="140" class="i4-t i4-note">I/O-bound work (network, disk)</text><text x="550" y="160" class="i4-t i4-note">should use Futures, not isolates</text></svg>
+      <br><br>
+      <strong>The 16ms rule.</strong> At 60fps, each frame has 16.67 milliseconds. If synchronous code takes longer than that, the frame is dropped. Users see stutter. Use DevTools' performance view to identify jank, then move the offender to an isolate.
+
+  - id: flutter-patterns
+    title: "Practical patterns for Flutter"
+    summary: |
+      In Flutter apps, the most common isolate pattern is <code>compute()</code> for one-off heavy work.
+      <br><br>
+      <pre><code>import 'package:flutter/foundation.dart';
+      import 'dart:convert';
+
+      class UserListScreen extends StatefulWidget {
+        @override
+        _UserListScreenState createState() =&gt; _UserListScreenState();
+      }
+
+      class _UserListScreenState extends State&lt;UserListScreen&gt; {
+        List&lt;User&gt;? users;
+        bool loading = true;
+
+        @override
+        void initState() {
+          super.initState();
+          _loadUsers();
+        }
+
+        Future&lt;void&gt; _loadUsers() async {
+          final response = await http.get(Uri.parse('https://api.example.com/users'));
+
+          // Heavy JSON parsing in isolate — UI stays responsive
+          final parsed = await compute(_parseUsers, response.body);
+
+          setState(() {
+            users = parsed;
+            loading = false;
+          });
+        }
+
+        // Must be top-level or static
+        static List&lt;User&gt; _parseUsers(String jsonString) {
+          final List&lt;dynamic&gt; data = jsonDecode(jsonString);
+          return data.map((json) =&gt; User.fromJson(json)).toList();
+        }
+      }</code></pre>
+      <strong>Isolate pools for repeated work.</strong> If we're doing many isolate tasks, spawning a new isolate each time is wasteful. The <code>IsolatePool</code> from <code>package:isolate</code> or similar patterns keep workers alive:
+      <br><br>
+      <pre><code>// Conceptual pattern — pool implementation varies
+      final pool = IsolatePool(concurrency: 4);
+
+      Future&lt;List&lt;ProcessedImage&gt;&gt; processImages(List&lt;Uint8List&gt; images) async {
+        final futures = images.map((img) =&gt; pool.run(_processImage, img));
+        return Future.wait(futures);
+      }</code></pre>
+      <strong>Typed data transfer.</strong> For binary data like images, use <code>TransferableTypedData</code> or pass <code>Uint8List</code> directly. These can be transferred without copying when using <code>Isolate.exit()</code>:
+      <br><br>
+      <pre><code>// Efficient: data is transferred, not copied
+      void _processImage(SendPort resultPort) {
+        final processed = Uint8List(1000000);
+        // ... fill processed ...
+        Isolate.exit(resultPort, processed);  // zero-copy transfer
+      }</code></pre>
+      <strong>State management with isolates.</strong> Keep isolate results in your state management (Provider, Riverpod, Bloc). Don't let isolate logic leak into widgets. The widget asks for data; the repository decides whether to use an isolate.
+      <br><br>
+      <pre><code>class UserRepository {
+        Future&lt;List&lt;User&gt;&gt; fetchUsers() async {
+          final response = await _api.getUsers();
+          // Decision to use isolate is encapsulated here
+          if (response.body.length &gt; 100000) {
+            return compute(_parseUsers, response.body);
+          }
+          return _parseUsers(response.body);
+        }
+      }</code></pre>
+      The widget doesn't know or care that an isolate was used. That's the right separation of concerns.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering isolates, message passing, and when to use them."
+  questions:
+    - question: "What is the fundamental difference between isolates and threads in most other languages?"
+      options:
+        - "Isolates are faster than threads"
+        - "Isolates share no memory — they communicate only via message passing"
+        - "Isolates can only run on a single CPU core"
+        - "Isolates are just Dart's name for threads"
+      correctIndex: 1
+      explanation: "Isolates have completely separate memory heaps. There is no shared state between them. This eliminates race conditions, deadlocks, and other concurrency bugs that plague shared-memory threading. Communication happens by copying data or transferring ownership through SendPort/ReceivePort."
+
+    - question: "Which type of work benefits from isolates?"
+      options:
+        - "Network requests to slow APIs"
+        - "Reading large files from disk"
+        - "CPU-intensive computation like JSON parsing or image processing"
+        - "Waiting for user input"
+      correctIndex: 2
+      explanation: "Isolates are for CPU-bound work that blocks the event loop. Network requests, file I/O, and user input are I/O-bound — the CPU is mostly waiting. Futures and async/await handle those efficiently without isolates. Isolates shine when the CPU itself is busy doing computation."
+
+    - question: "What happens if a background isolate tries to call setState() on a Flutter widget?"
+      options:
+        - "The widget updates normally"
+        - "A runtime error occurs — isolates cannot access UI"
+        - "The update is queued for the next frame"
+        - "The main isolate's event loop handles it"
+      correctIndex: 1
+      explanation: "Isolates have separate memory heaps. The widget tree, BuildContext, and all UI objects exist only in the main isolate. A background isolate has no access to them. To update UI from isolate work, send the result back to the main isolate via a port, then call setState there."
+
+    - question: "What must be true about the function passed to Isolate.run()?"
+      options:
+        - "It must be an async function"
+        - "It must be a top-level function or static method"
+        - "It must return void"
+        - "It must take exactly one argument"
+      correctIndex: 1
+      explanation: "The function needs to be serialised and sent to the new isolate. Instance methods and closures that capture local state cannot be serialised. Only top-level functions (defined outside any class) or static methods work. This is why we often define _parseJson as a top-level helper."
+
+    - question: "Why is the 16ms threshold significant for deciding when to use isolates?"
+      options:
+        - "Isolates take 16ms to spawn"
+        - "It's the timeout for message passing"
+        - "At 60fps, each frame has 16ms — longer work causes visible jank"
+        - "The Dart VM requires 16ms between isolate spawns"
+      correctIndex: 2
+      explanation: "Flutter targets 60 frames per second. That means each frame must be built and rendered within 16.67 milliseconds. If synchronous code blocks the main isolate longer than that, frames are dropped and users see stutter. Moving heavy work to an isolate keeps the main thread free for UI."
+
+    - question: "How can a background isolate send results back to the main isolate efficiently without copying large data?"
+      options:
+        - "Use a shared memory buffer"
+        - "Use Isolate.exit(sendPort, data) to transfer ownership"
+        - "Use global variables"
+        - "Use the file system as intermediate storage"
+      correctIndex: 1
+      explanation: "Isolate.exit() terminates the isolate and transfers the data to the receiving port without copying. This is more efficient than sending a message and returning normally, especially for large binary data like images. The data ownership moves from one isolate to the other."
+
+    - question: "When should you NOT use an isolate?"
+      options:
+        - "Parsing a 10MB JSON file"
+        - "Encrypting a large file"
+        - "Making an HTTP request to a REST API"
+        - "Running a complex pathfinding algorithm"
+      correctIndex: 2
+      explanation: "HTTP requests are I/O-bound, not CPU-bound. The CPU waits for the network — it's not doing computation. Futures and async/await handle I/O efficiently because the event loop can process other tasks while waiting. Isolates add overhead without benefit for I/O work."
+---
+
+{/* Episode 3 of Dart: Async. Isolates for true parallelism.
+    Covers why isolates exist, memory isolation, Isolate.run(),
+    ports and message passing, lifecycle, and Flutter patterns.
+    4 inline SVG diagrams. */}

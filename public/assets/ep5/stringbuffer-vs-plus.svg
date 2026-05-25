@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="StringBuffer vs += loop">
+  <style>
+    .s3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .s3-title { font-size: 16px; font-weight: 600; }
+    .s3-sub { font-size: 13px; font-weight: 600; fill: #475569; }
+    .s3-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; }
+    .s3-mn-small { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; }
+    .s3-label { font-size: 11px; fill: #64748b; }
+    .s3-bad { font-size: 13px; font-weight: 600; fill: #b45309; }
+    .s3-good { font-size: 13px; font-weight: 600; fill: #059669; }
+    .s3-cap { font-size: 12px; fill: #475569; font-style: italic; }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="s3-t s3-title">Building a string in a loop: += vs StringBuffer</text>
+
+  <!-- ============ LEFT: += approach ============ -->
+  <text x="180" y="62" text-anchor="middle" class="s3-t s3-sub">Using += (allocates every iteration)</text>
+
+  <!-- Step 1 -->
+  <text x="40" y="92" class="s3-t s3-mn-small">step 1:</text>
+  <rect x="100" y="80" width="40" height="22" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="2"/>
+  <text x="120" y="96" text-anchor="middle" class="s3-t s3-mn-small">"a"</text>
+
+  <!-- Step 2 -->
+  <text x="40" y="122" class="s3-t s3-mn-small">step 2:</text>
+  <rect x="100" y="110" width="40" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="120" y="126" text-anchor="middle" class="s3-t s3-mn-small">"a"</text>
+  <text x="145" y="126" class="s3-t s3-mn-small" fill="#94a3b8">+</text>
+  <rect x="155" y="110" width="60" height="22" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="2"/>
+  <text x="185" y="126" text-anchor="middle" class="s3-t s3-mn-small">"ab"</text>
+
+  <!-- Step 3 -->
+  <text x="40" y="152" class="s3-t s3-mn-small">step 3:</text>
+  <rect x="100" y="140" width="40" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="120" y="156" text-anchor="middle" class="s3-t s3-mn-small">"a"</text>
+  <rect x="155" y="140" width="60" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="185" y="156" text-anchor="middle" class="s3-t s3-mn-small">"ab"</text>
+  <rect x="220" y="140" width="80" height="22" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="2"/>
+  <text x="260" y="156" text-anchor="middle" class="s3-t s3-mn-small">"abc"</text>
+
+  <!-- Step 4 -->
+  <text x="40" y="182" class="s3-t s3-mn-small">step 4:</text>
+  <rect x="100" y="170" width="40" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="120" y="186" text-anchor="middle" class="s3-t s3-mn-small">"a"</text>
+  <rect x="155" y="170" width="60" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="185" y="186" text-anchor="middle" class="s3-t s3-mn-small">"ab"</text>
+  <rect x="220" y="170" width="80" height="22" fill="#fef3c7" stroke="#94a3b8" stroke-width="1" rx="2"/>
+  <text x="260" y="186" text-anchor="middle" class="s3-t s3-mn-small">"abc"</text>
+  <rect x="305" y="170" width="55" height="22" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="2"/>
+  <text x="332" y="186" text-anchor="middle" class="s3-t s3-mn-small">"abcd"</text>
+
+  <text x="40" y="225" class="s3-t s3-label">red = new allocation, gray = garbage (waiting for GC)</text>
+
+  <text x="40" y="255" class="s3-t s3-bad">✗ O(n²) — each step copies all previous content</text>
+  <text x="40" y="275" class="s3-t s3-bad">✗ Each step leaves the old string for the GC</text>
+
+  <!-- Separator -->
+  <line x1="375" y1="50" x2="375" y2="340" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ============ RIGHT: StringBuffer ============ -->
+  <text x="555" y="62" text-anchor="middle" class="s3-t s3-sub">Using StringBuffer (single buffer)</text>
+
+  <!-- Single growing buffer -->
+  <text x="405" y="92" class="s3-t s3-mn-small">step 1:</text>
+  <rect x="465" y="80" width="40" height="22" fill="#d1fae5" stroke="#10b981" stroke-width="1" rx="2"/>
+  <text x="485" y="96" text-anchor="middle" class="s3-t s3-mn-small">a</text>
+
+  <text x="405" y="122" class="s3-t s3-mn-small">step 2:</text>
+  <rect x="465" y="110" width="60" height="22" fill="#d1fae5" stroke="#10b981" stroke-width="1" rx="2"/>
+  <text x="495" y="126" text-anchor="middle" class="s3-t s3-mn-small">ab</text>
+
+  <text x="405" y="152" class="s3-t s3-mn-small">step 3:</text>
+  <rect x="465" y="140" width="80" height="22" fill="#d1fae5" stroke="#10b981" stroke-width="1" rx="2"/>
+  <text x="505" y="156" text-anchor="middle" class="s3-t s3-mn-small">abc</text>
+
+  <text x="405" y="182" class="s3-t s3-mn-small">step 4:</text>
+  <rect x="465" y="170" width="100" height="22" fill="#d1fae5" stroke="#10b981" stroke-width="1" rx="2"/>
+  <text x="515" y="186" text-anchor="middle" class="s3-t s3-mn-small">abcd</text>
+
+  <text x="405" y="225" class="s3-t s3-label">one buffer that grows in place — no copies, no garbage</text>
+
+  <text x="405" y="255" class="s3-t s3-good">✓ O(n) — append in place, allocate only when buffer fills</text>
+  <text x="405" y="275" class="s3-t s3-good">✓ Final .toString() produces one string at the end</text>
+
+  <!-- Caption at bottom -->
+  <text x="360" y="335" text-anchor="middle" class="s3-t s3-cap">For 1000 concatenations, += does ~500,000 character copies. StringBuffer does ~1000.</text>
+</svg>

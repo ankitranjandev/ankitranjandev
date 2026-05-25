@@ -1,0 +1,448 @@
+---
+title: "Classes in Dart — Constructors, Inheritance, and Object Identity"
+description: "How Dart organises code into objects, the many ways to construct them, and what really happens when we say two things are equal."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Primitive Computation"
+order: 2
+publishedAt: 2026-05-23
+topics:
+  - id: why-classes
+    title: "Why classes exist"
+    summary: |
+      We have functions. We have data. Why do we need another concept?
+      <br><br>
+      The answer is <strong>coupling</strong>. Some data and some functions belong together. A user has a name and an email. A user can update their profile. A user can log out. The data and the behaviour are inseparable.
+      <br><br>
+      <pre><code>// Without classes — data and functions are separate
+      var userName = 'Ankit';
+      var userEmail = 'ankit@example.com';
+
+      void updateEmail(String newEmail) {
+        userEmail = newEmail;   // which user? unclear
+      }
+
+      // With a class — data and behaviour travel together
+      class User {
+        String name;
+        String email;
+
+        User(this.name, this.email);
+
+        void updateEmail(String newEmail) {
+          email = newEmail;   // obviously this user's email
+        }
+      }</code></pre>
+      A class is a blueprint. It describes what data an object will hold (fields) and what it can do (methods). An object is a specific instance of that blueprint — a real user with a real name.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Class as blueprint, objects as instances" style="max-width: 100%; height: auto;"><style>.c1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.c1-title{font-size:16px;font-weight:600}.c1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.c1-label{font-size:12px;fill:#64748b}.c1-field{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="c1-t c1-title">Class = blueprint, Object = instance</text><rect x="40" y="55" width="200" height="180" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="140" y="82" text-anchor="middle" class="c1-t c1-mn" font-weight="700">class User</text><line x1="60" y1="95" x2="220" y2="95" stroke="#cbd5e1" stroke-width="1"/><text x="60" y="120" class="c1-t c1-field">String name</text><text x="60" y="140" class="c1-t c1-field">String email</text><line x1="60" y1="155" x2="220" y2="155" stroke="#cbd5e1" stroke-width="1"/><text x="60" y="180" class="c1-t c1-field">updateEmail()</text><text x="60" y="200" class="c1-t c1-field">toString()</text><text x="140" y="250" text-anchor="middle" class="c1-t c1-label">blueprint</text><line x1="240" y1="145" x2="290" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#c1-arrow)"/><line x1="240" y1="145" x2="290" y2="190" stroke="#475569" stroke-width="2" marker-end="url(#c1-arrow)"/><text x="265" y="130" class="c1-t c1-label" font-size="10">new</text><text x="265" y="175" class="c1-t c1-label" font-size="10">new</text><rect x="300" y="55" width="180" height="90" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="390" y="82" text-anchor="middle" class="c1-t c1-mn" font-weight="600">User object</text><text x="320" y="105" class="c1-t c1-field">name: "Ankit"</text><text x="320" y="125" class="c1-t c1-field">email: "ankit@..."</text><rect x="300" y="155" width="180" height="90" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="390" y="182" text-anchor="middle" class="c1-t c1-mn" font-weight="600">User object</text><text x="320" y="205" class="c1-t c1-field">name: "Priya"</text><text x="320" y="225" class="c1-t c1-field">email: "priya@..."</text><rect x="520" y="55" width="180" height="190" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="6"/><text x="610" y="82" text-anchor="middle" class="c1-t c1-label" font-weight="600">Each object has:</text><text x="540" y="110" class="c1-t c1-field">• Its own copy of fields</text><text x="540" y="135" class="c1-t c1-field">• Shared method code</text><text x="540" y="160" class="c1-t c1-field">• Its own identity</text><text x="540" y="195" class="c1-t c1-field">Objects are independent.</text><text x="540" y="215" class="c1-t c1-field">Changing one doesn't</text><text x="540" y="235" class="c1-t c1-field">affect the other.</text><defs><marker id="c1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      The key insight is that each object gets its own copy of the data, but they all share the same methods. Ankit's email and Priya's email are stored separately. But when either calls <code>updateEmail()</code>, they're running the same code.
+
+  - id: constructors
+    title: "Constructors — the many ways to build objects"
+    summary: |
+      A constructor is a special function that creates an object. Dart gives us several flavours, each solving a different problem.
+      <br><br>
+      <strong>The generative constructor</strong> — the default. It creates a new instance every time.
+      <br><br>
+      <pre><code>class Point {
+        final double x;
+        final double y;
+
+        // Long form
+        Point(double x, double y) : x = x, y = y;
+
+        // Short form — same thing
+        Point(this.x, this.y);
+      }
+
+      var p = Point(3, 4);</code></pre>
+      The <code>this.x</code> syntax is Dart's shorthand for "assign the parameter to the field of the same name." It's so common that the long form is rarely seen.
+      <br><br>
+      <strong>Named constructors</strong> — when one constructor isn't enough.
+      <br><br>
+      <pre><code>class Point {
+        final double x;
+        final double y;
+
+        Point(this.x, this.y);
+
+        Point.origin() : x = 0, y = 0;
+
+        Point.fromJson(Map&lt;String, double&gt; json)
+            : x = json['x']!,
+              y = json['y']!;
+      }
+
+      var p1 = Point(3, 4);
+      var p2 = Point.origin();
+      var p3 = Point.fromJson({'x': 1, 'y': 2});</code></pre>
+      <strong>Factory constructors</strong> — when you need control over what gets returned.
+      <br><br>
+      <pre><code>class Logger {
+        static final Logger _instance = Logger._internal();
+
+        factory Logger() {
+          return _instance;   // always returns the same object
+        }
+
+        Logger._internal();   // private constructor
+      }
+
+      var a = Logger();
+      var b = Logger();
+      print(identical(a, b));   // true — same object</code></pre>
+      A factory constructor can return an existing instance, a subtype, or even null (if the return type is nullable). Regular constructors always create a new instance of exactly that class.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Constructor types comparison" style="max-width: 100%; height: auto;"><style>.c2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.c2-title{font-size:16px;font-weight:600}.c2-hdr{font-size:13px;font-weight:700}.c2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.c2-cell{font-size:11px;fill:#475569}.c2-yes{font-size:13px;font-weight:700;fill:#059669}.c2-no{font-size:13px;font-weight:700;fill:#dc2626}</style><text x="360" y="26" text-anchor="middle" class="c2-t c2-title">Constructor types at a glance</text><rect x="20" y="50" width="180" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="110" y="78" text-anchor="middle" class="c2-t c2-hdr">Property</text><rect x="200" y="50" width="170" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="285" y="72" text-anchor="middle" class="c2-t c2-hdr">Generative</text><text x="285" y="88" text-anchor="middle" class="c2-t c2-mn">Point(x, y)</text><rect x="370" y="50" width="170" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="455" y="72" text-anchor="middle" class="c2-t c2-hdr">Named</text><text x="455" y="88" text-anchor="middle" class="c2-t c2-mn">Point.origin()</text><rect x="540" y="50" width="160" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="620" y="72" text-anchor="middle" class="c2-t c2-hdr">Factory</text><text x="620" y="88" text-anchor="middle" class="c2-t c2-mn">factory Point()</text><rect x="20" y="95" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="120" text-anchor="middle" class="c2-t c2-cell">Always creates new instance?</text><rect x="200" y="95" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="285" y="120" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="370" y="95" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="455" y="120" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="540" y="95" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="620" y="120" text-anchor="middle" class="c2-t c2-no">No</text><rect x="20" y="135" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="160" text-anchor="middle" class="c2-t c2-cell">Can return existing instance?</text><rect x="200" y="135" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="285" y="160" text-anchor="middle" class="c2-t c2-no">No</text><rect x="370" y="135" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="455" y="160" text-anchor="middle" class="c2-t c2-no">No</text><rect x="540" y="135" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="620" y="160" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="20" y="175" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="200" text-anchor="middle" class="c2-t c2-cell">Can return subtype?</text><rect x="200" y="175" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="285" y="200" text-anchor="middle" class="c2-t c2-no">No</text><rect x="370" y="175" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="455" y="200" text-anchor="middle" class="c2-t c2-no">No</text><rect x="540" y="175" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="620" y="200" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="20" y="215" width="180" height="40" fill="#fff" stroke="#cbd5e1"/><text x="110" y="240" text-anchor="middle" class="c2-t c2-cell">Can use initializer list?</text><rect x="200" y="215" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="285" y="240" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="370" y="215" width="170" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="455" y="240" text-anchor="middle" class="c2-t c2-yes">Yes</text><rect x="540" y="215" width="160" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="620" y="240" text-anchor="middle" class="c2-t c2-no">No</text></svg>
+      <br><br>
+      <strong>Const constructors</strong> — compile-time canonicalisation.
+      <br><br>
+      <pre><code>class Point {
+        final double x;
+        final double y;
+
+        const Point(this.x, this.y);
+      }
+
+      const p1 = Point(0, 0);
+      const p2 = Point(0, 0);
+      print(identical(p1, p2));   // true — same canonical instance</code></pre>
+      When all fields are final and the constructor is marked <code>const</code>, Dart can create the object at compile time. Two <code>const Point(0, 0)</code> expressions anywhere in the program will be the exact same object in memory.
+
+  - id: initializer-list
+    title: "Initializer lists and assertions"
+    summary: |
+      Sometimes we need to do work before the constructor body runs — setting final fields, calling superclass constructors, or validating inputs. That's what the initializer list is for.
+      <br><br>
+      <pre><code>class Rectangle {
+        final double width;
+        final double height;
+        final double area;
+
+        Rectangle(this.width, this.height)
+            : area = width * height,           // computed field
+              assert(width > 0),               // validation
+              assert(height > 0);
+      }</code></pre>
+      The initializer list runs <strong>before</strong> the constructor body. This matters for final fields — they must be set before the body runs, so computed values go in the initializer list.
+      <br><br>
+      <strong>Order matters:</strong>
+      <br>1. Initializer list (left to right)
+      <br>2. Superclass constructor
+      <br>3. Constructor body
+      <br><br>
+      <pre><code>class Animal {
+        final String name;
+        Animal(this.name) {
+          print('Animal constructor');
+        }
+      }
+
+      class Dog extends Animal {
+        final String breed;
+
+        Dog(String name, this.breed)
+            : super(name) {    // calls Animal(name)
+          print('Dog constructor');
+        }
+      }
+
+      var d = Dog('Buddy', 'Labrador');
+      // prints: Animal constructor
+      // prints: Dog constructor</code></pre>
+      <strong>Assertions in initializer lists.</strong> The <code>assert</code> statements only run in debug mode. They're stripped out of release builds, so they're free in production. Use them liberally to catch bugs early.
+      <br><br>
+      <pre><code>class Percentage {
+        final double value;
+
+        Percentage(this.value)
+            : assert(value >= 0 && value <= 100,
+                  'Percentage must be 0-100, got $value');</code></pre>
+
+  - id: inheritance
+    title: "Inheritance — extending behaviour"
+    summary: |
+      Inheritance lets us build new classes on top of existing ones. The child class gets all the parent's fields and methods, and can add or override them.
+      <br><br>
+      <pre><code>class Animal {
+        final String name;
+        Animal(this.name);
+
+        void speak() => print('...');
+      }
+
+      class Dog extends Animal {
+        Dog(String name) : super(name);
+
+        @override
+        void speak() => print('$name says woof!');
+      }
+
+      class Cat extends Animal {
+        Cat(String name) : super(name);
+
+        @override
+        void speak() => print('$name says meow!');
+      }
+
+      void main() {
+        List&lt;Animal&gt; pets = [Dog('Buddy'), Cat('Whiskers')];
+        for (var pet in pets) {
+          pet.speak();   // polymorphism — right method called
+        }
+      }
+      // Buddy says woof!
+      // Whiskers says meow!</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Inheritance hierarchy" style="max-width: 100%; height: auto;"><defs><marker id="c3-arrow" viewBox="0 0 10 10" refX="5" refY="10" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 10 L 5 0 L 10 10 z" fill="none" stroke="#475569" stroke-width="1.5"/></marker></defs><style>.c3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.c3-title{font-size:16px;font-weight:600}.c3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.c3-label{font-size:11px;fill:#64748b}.c3-field{font-size:10px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="c3-t c3-title">Inheritance hierarchy — Dog and Cat extend Animal</text><rect x="260" y="50" width="200" height="80" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="360" y="75" text-anchor="middle" class="c3-t c3-mn" font-weight="700">Animal</text><text x="280" y="95" class="c3-t c3-field">name: String</text><text x="280" y="112" class="c3-t c3-field">speak() → "..."</text><line x1="310" y1="130" x2="310" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#c3-arrow)"/><line x1="410" y1="130" x2="410" y2="165" stroke="#475569" stroke-width="2" marker-end="url(#c3-arrow)"/><text x="280" y="152" class="c3-t c3-label">extends</text><text x="420" y="152" class="c3-t c3-label">extends</text><rect x="80" y="175" width="200" height="100" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="180" y="200" text-anchor="middle" class="c3-t c3-mn" font-weight="700">Dog</text><text x="100" y="220" class="c3-t c3-field">inherits: name</text><text x="100" y="237" class="c3-t c3-field">@override speak()</text><text x="100" y="254" class="c3-t c3-field">→ "$name says woof!"</text><rect x="440" y="175" width="200" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="200" text-anchor="middle" class="c3-t c3-mn" font-weight="700">Cat</text><text x="460" y="220" class="c3-t c3-field">inherits: name</text><text x="460" y="237" class="c3-t c3-field">@override speak()</text><text x="460" y="254" class="c3-t c3-field">→ "$name says meow!"</text></svg>
+      <br><br>
+      <strong>The @override annotation.</strong> It's optional but highly recommended. It tells Dart (and other developers) that we're intentionally replacing a parent method. If we misspell the method name, the compiler will warn us.
+      <br><br>
+      <strong>Calling the superclass.</strong> Inside an overridden method, we can call the parent's version with <code>super</code>.
+      <br><br>
+      <pre><code>class LoggingDog extends Dog {
+        LoggingDog(String name) : super(name);
+
+        @override
+        void speak() {
+          print('About to speak...');
+          super.speak();   // calls Dog.speak()
+          print('Done speaking.');
+        }
+      }</code></pre>
+
+  - id: abstract-classes
+    title: "Abstract classes and interfaces"
+    summary: |
+      Sometimes we want to define a contract without providing the implementation. That's what abstract classes are for.
+      <br><br>
+      <pre><code>abstract class Shape {
+        double get area;           // no body — must be implemented
+        double get perimeter;
+
+        void describe() {          // has a body — inherited as-is
+          print('Area: $area, Perimeter: $perimeter');
+        }
+      }
+
+      class Circle extends Shape {
+        final double radius;
+        Circle(this.radius);
+
+        @override
+        double get area => 3.14159 * radius * radius;
+
+        @override
+        double get perimeter => 2 * 3.14159 * radius;
+      }</code></pre>
+      An abstract class cannot be instantiated directly. <code>Shape()</code> is a compile error. But we can extend it, and then create instances of the concrete subclass.
+      <br><br>
+      <strong>Interfaces — implicit in Dart.</strong> Every class automatically defines an interface. Any class can implement any other class's interface.
+      <br><br>
+      <pre><code>class Printable {
+        void printSelf() => print(toString());
+      }
+
+      class Report implements Printable {
+        final String title;
+        Report(this.title);
+
+        @override
+        void printSelf() => print('Report: $title');
+
+        @override
+        String toString() => 'Report($title)';
+      }</code></pre>
+      <strong>extends vs implements:</strong>
+      <br>• <code>extends</code> — inherit implementation (fields, method bodies)
+      <br>• <code>implements</code> — promise to provide the interface (must override everything)
+      <br><br>
+      A class can extend one class but implement many interfaces. This gives us single inheritance with multiple interface conformance.
+      <br><br>
+      <pre><code>abstract class Flyable {
+        void fly();
+      }
+
+      abstract class Swimmable {
+        void swim();
+      }
+
+      class Duck extends Animal implements Flyable, Swimmable {
+        Duck(String name) : super(name);
+
+        @override
+        void fly() => print('$name is flying');
+
+        @override
+        void swim() => print('$name is swimming');
+      }</code></pre>
+
+  - id: equality
+    title: "Object equality — == vs identical()"
+    summary: |
+      When are two objects "the same"? Dart gives us two different answers.
+      <br><br>
+      <strong>identical()</strong> — are they the exact same object in memory?
+      <br><br>
+      <pre><code>var a = Point(3, 4);
+      var b = Point(3, 4);
+      var c = a;
+
+      print(identical(a, b));   // false — different objects
+      print(identical(a, c));   // true — same object</code></pre>
+      <strong>== operator</strong> — are they meaningfully equal?
+      <br><br>
+      By default, <code>==</code> does the same thing as <code>identical()</code>. But we can override it to define our own equality.
+      <br><br>
+      <pre><code>class Point {
+        final double x;
+        final double y;
+
+        Point(this.x, this.y);
+
+        @override
+        bool operator ==(Object other) {
+          if (identical(this, other)) return true;
+          return other is Point && other.x == x && other.y == y;
+        }
+
+        @override
+        int get hashCode => Object.hash(x, y);
+      }
+
+      var a = Point(3, 4);
+      var b = Point(3, 4);
+      print(a == b);            // true — same values
+      print(identical(a, b));   // false — different objects</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Identity vs equality" style="max-width: 100%; height: auto;"><style>.c4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.c4-title{font-size:16px;font-weight:600}.c4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.c4-label{font-size:12px;fill:#64748b}.c4-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="c4-t c4-title">Identity vs Equality</text><rect x="40" y="55" width="300" height="150" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="190" y="82" text-anchor="middle" class="c4-t c4-mn" font-weight="700">identical(a, b)</text><text x="60" y="110" class="c4-t c4-note">Same object in memory?</text><text x="60" y="135" class="c4-t c4-note">• Checks memory address</text><text x="60" y="155" class="c4-t c4-note">• Cannot be overridden</text><text x="60" y="175" class="c4-t c4-note">• Always O(1)</text><text x="60" y="195" class="c4-t c4-label">Use for: caching, singletons</text><rect x="380" y="55" width="300" height="150" fill="#dcfce7" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="82" text-anchor="middle" class="c4-t c4-mn" font-weight="700">a == b</text><text x="400" y="110" class="c4-t c4-note">Meaningfully equal?</text><text x="400" y="135" class="c4-t c4-note">• Checks logical equality</text><text x="400" y="155" class="c4-t c4-note">• Override operator ==</text><text x="400" y="175" class="c4-t c4-note">• Must also override hashCode</text><text x="400" y="195" class="c4-t c4-label">Use for: value comparison</text></svg>
+      <br><br>
+      <strong>The hashCode contract.</strong> If <code>a == b</code>, then <code>a.hashCode == b.hashCode</code>. This is required for Sets and Maps to work correctly. If two objects are equal, they must have the same hash code. The reverse isn't required — different objects can have the same hash code (that's a collision, and it's fine).
+
+  - id: getters-setters
+    title: "Getters, setters, and encapsulation"
+    summary: |
+      Fields expose data directly. Sometimes we want more control — validation, computation, or logging. That's where getters and setters come in.
+      <br><br>
+      <pre><code>class Temperature {
+        double _celsius;   // private field (underscore prefix)
+
+        Temperature(this._celsius);
+
+        // Getter — computed property
+        double get fahrenheit => _celsius * 9 / 5 + 32;
+
+        // Setter — with validation
+        set celsius(double value) {
+          if (value < -273.15) {
+            throw ArgumentError('Below absolute zero!');
+          }
+          _celsius = value;
+        }
+
+        double get celsius => _celsius;
+      }
+
+      var temp = Temperature(20);
+      print(temp.fahrenheit);   // 68.0
+      temp.celsius = 25;        // uses the setter
+      temp.celsius = -300;      // throws ArgumentError</code></pre>
+      <strong>The underscore convention.</strong> In Dart, a leading underscore makes a name <strong>library-private</strong>. It's not accessible from other files. This is how we hide implementation details.
+      <br><br>
+      <pre><code>// In user.dart
+      class User {
+        String _password;   // private — other files can't access
+
+        User(this._password);
+
+        bool checkPassword(String attempt) {
+          return attempt == _password;
+        }
+      }
+
+      // In main.dart
+      var user = User('secret123');
+      print(user._password);        // ERROR — can't access
+      print(user.checkPassword('secret123'));   // true</code></pre>
+      <strong>Final fields vs getters.</strong> For simple read-only data, a final field is simpler. Use a getter when the value is computed or when you might need to add logic later.
+      <br><br>
+      <pre><code>class Circle {
+        final double radius;     // simple read-only field
+
+        Circle(this.radius);
+
+        double get area => 3.14159 * radius * radius;   // computed
+        double get circumference => 2 * 3.14159 * radius;
+      }</code></pre>
+      The caller doesn't know (or care) whether <code>area</code> is a stored field or a computed getter. That's encapsulation — we can change the implementation without changing the interface.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering classes, constructors, inheritance, and object equality in Dart."
+  questions:
+    - question: "What is the difference between a class and an object?"
+      options:
+        - "They are the same thing"
+        - "A class is a blueprint; an object is an instance created from that blueprint"
+        - "An object is a blueprint; a class is an instance"
+        - "Classes are for data, objects are for methods"
+      correctIndex: 1
+      explanation: "A class defines the structure (fields) and behaviour (methods) that objects will have. An object is a specific instance created from that class, with its own values for the fields. Think of a class as a cookie cutter and objects as the cookies."
+
+    - question: "What can a factory constructor do that a generative constructor cannot?"
+      options:
+        - "Initialize final fields"
+        - "Take parameters"
+        - "Return an existing instance or a subtype"
+        - "Use the this keyword"
+      correctIndex: 2
+      explanation: "A factory constructor can return an existing instance (for singletons or caching), return a subtype, or even return null. A generative constructor always creates a new instance of exactly that class. Factory constructors cannot use initializer lists or access this before return."
+
+    - question: "When does the initializer list run relative to the constructor body?"
+      options:
+        - "After the constructor body"
+        - "Before the constructor body, and before the superclass constructor"
+        - "Before the constructor body, but after the superclass constructor"
+        - "At the same time as the constructor body"
+      correctIndex: 1
+      explanation: "The order is: initializer list first (including super()), then the constructor body. This matters because final fields must be set before the body runs, and the superclass must be fully constructed before the subclass body executes."
+
+    - question: "What is the difference between `extends` and `implements`?"
+      options:
+        - "extends is for classes, implements is for interfaces"
+        - "extends inherits implementation; implements only promises the interface"
+        - "implements inherits implementation; extends only promises the interface"
+        - "There is no difference"
+      correctIndex: 1
+      explanation: "When you extend a class, you inherit its fields and method implementations. When you implement a class, you only promise to provide the same interface — you must override every method yourself. A class can extend one class but implement many."
+
+    - question: "What must be true if `a == b` returns true?"
+      options:
+        - "identical(a, b) must also be true"
+        - "a.hashCode must equal b.hashCode"
+        - "a and b must be the same type"
+        - "a and b must have the same memory address"
+      correctIndex: 1
+      explanation: "The hashCode contract requires that equal objects have equal hash codes. This is essential for Sets and Maps to work correctly. The reverse is not required — different objects can have the same hash code (collisions are allowed). identical() checks memory address, which is independent of ==."
+
+    - question: "What does a leading underscore do to a name in Dart?"
+      options:
+        - "Makes it private to the class"
+        - "Makes it private to the library (file)"
+        - "Makes it a constant"
+        - "Makes it nullable"
+      correctIndex: 1
+      explanation: "In Dart, a leading underscore makes a name library-private, meaning it cannot be accessed from other files. This is different from class-private in other languages. Within the same file, even other classes can access underscore-prefixed members."
+
+    - question: "What is the advantage of using a getter over a public final field?"
+      options:
+        - "Getters are faster"
+        - "Getters use less memory"
+        - "Getters allow computed values and future implementation changes"
+        - "Final fields cannot be read"
+      correctIndex: 2
+      explanation: "A getter can compute its value on demand (like area from radius) and allows you to change the implementation later without changing the interface. The caller doesn't know if they're accessing a stored field or a computed getter. For simple read-only values, final fields are fine and slightly simpler."
+---
+
+{/* Episode 2 of Dart: Primitive Computation. Classes, constructors, inheritance,
+    abstract classes, equality, and encapsulation. 4 inline SVG diagrams. */}

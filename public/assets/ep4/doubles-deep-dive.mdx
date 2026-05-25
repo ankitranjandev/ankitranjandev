@@ -1,0 +1,367 @@
+---
+title: "Doubles in Dart — IEEE 754, Precision, and Special Values"
+description: "How a few clever switches let us store fractions, why 0.1 + 0.2 isn't 0.3, and how to work with floating-point numbers without getting bitten."
+color: "#0175C2"
+publishedAt: 2026-05-22
+topics:
+  - id: fixed-point
+    title: "Fixed point — the obvious-but-wasteful first attempt"
+    summary: |
+      How in the world do we represent fractions? Let's try representing them with switches.
+      <br><br>
+      Let's take a number — say <code>123.456</code>. If we have to represent it with switches, how about this: dedicate half our switches to the integral part, and half to the fractional part, with the decimal point always sitting in the middle?
+      <br><br>
+      That works for <code>123.456</code>. The number fits comfortably with room to spare.
+      <br><br>
+      But what about a really big integer, like <code>99 999 999</code>? The left half overflows even though the right half is sitting empty. And the other way around: a tiny fraction like <code>0.00000001</code> overflows the right half while the left half does nothing.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Fixed point wastes bits" style="max-width: 100%; height: auto;">
+        <style>
+          .d1-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d1-title { font-size: 16px; font-weight: 600; }
+          .d1-label { font-size: 13px; fill: #64748b; }
+          .d1-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; font-weight: 600; }
+          .d1-used { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 700; fill: #1e293b; }
+          .d1-unused { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; fill: #94a3b8; }
+          .d1-ovf { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 700; fill: #ffffff; }
+          .d1-good { font-size: 13px; font-weight: 600; fill: #059669; }
+          .d1-bad { font-size: 13px; font-weight: 600; fill: #b45309; }
+          .d1-caption { font-size: 13px; fill: #475569; font-style: italic; }
+        </style>
+        <text x="360" y="26" text-anchor="middle" class="d1-t d1-title">Fixed point — decimal point locked in the middle</text>
+        <text x="360" y="48" text-anchor="middle" class="d1-t d1-label">8 integral switches    .    8 fractional switches</text>
+        <text x="40" y="100" class="d1-t d1-mn">123.456</text>
+        <g transform="translate(170, 80)">
+          <rect x="0" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="32" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="64" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="96" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="128" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="160" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">1</text>
+          <rect x="192" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">2</text>
+          <rect x="224" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">3</text>
+          <circle cx="266" cy="22" r="3" fill="#dc2626"/>
+          <rect x="276" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-used">4</text>
+          <rect x="308" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-used">5</text>
+          <rect x="340" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-used">6</text>
+          <rect x="372" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="404" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="436" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="468" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="500" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
+        </g>
+        <text x="40" y="150" class="d1-t d1-good">✓ fits, but 10 of 16 switches sit unused</text>
+        <text x="40" y="220" class="d1-t d1-mn">99 999 999</text>
+        <g transform="translate(170, 200)">
+          <rect x="0" y="0" width="32" height="40" fill="#fecaca" stroke="#dc2626" stroke-width="2" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-ovf">X</text>
+          <rect x="32" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="64" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="96" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="128" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="160" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="192" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">9</text>
+          <rect x="224" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">9</text>
+          <circle cx="266" cy="22" r="3" fill="#dc2626"/>
+          <rect x="276" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="308" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="340" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="372" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="404" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="436" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="468" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
+          <rect x="500" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
+        </g>
+        <text x="40" y="270" class="d1-t d1-bad">✗ overflows the integral half, fractional half wasted</text>
+        <text x="360" y="315" text-anchor="middle" class="d1-t d1-caption">Fixed point wastes half our switches whenever a number isn't balanced.</text>
+      </svg>
+      <br><br>
+      This arrangement is called <strong>fixed point</strong> — the decimal point is always in the same place. And it is inefficient. We commit half our switches to each side regardless of what kind of number we are storing.
+      <br><br>
+      It would be great if the point could float — from the centre to the left or right, as the number demands.
+
+  - id: floating-insight
+    title: "Let the point float"
+    summary: |
+      Here is the idea. Instead of fixing where the decimal point lives, we let it slide.
+      <br><br>
+      For <code>123.456</code>, the point sits between the 3 and the 4.
+      <br>
+      For <code>99 999 999</code>, the point slides way to the right.
+      <br>
+      For <code>0.00000001</code>, the point slides way to the left.
+      <br><br>
+      In each case, we use all our switches to store the actual digits — none go to waste.
+      <br><br>
+      To make this work, we mention all the digits together without the decimal, then set aside a few switches to store the position of the point, and one more switch for the sign.
+      <br><br>
+      That is the basic idea of a <strong>floating-point number</strong>:
+      <br><br>
+      • some bits for the digits (we call this the <strong>mantissa</strong>)
+      <br>
+      • some bits for the position of the point (the <strong>exponent</strong>)
+      <br>
+      • one bit for the sign
+      <br><br>
+      Most modern languages, including Dart, use a standard called <strong>IEEE 754</strong> to define exactly how those bits are arranged. Let's look inside.
+
+  - id: ieee-754
+    title: "IEEE 754 — anatomy of a double"
+    summary: |
+      Dart's <code>double</code> type uses IEEE 754 double precision: 64 bits total, organised like this.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="IEEE 754 64-bit anatomy" style="max-width: 100%; height: auto;">
+        <style>
+          .d2-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d2-title { font-size: 17px; font-weight: 600; }
+          .d2-bits { font-size: 12px; font-weight: 600; fill: #64748b; font-family: "SF Mono", Menlo, monospace; }
+          .d2-section { font-size: 15px; font-weight: 700; fill: #ffffff; }
+          .d2-desc { font-size: 12px; fill: #475569; }
+          .d2-formula { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 15px; font-weight: 600; fill: #1e293b; }
+          .d2-note { font-size: 13px; fill: #475569; font-style: italic; }
+        </style>
+        <text x="360" y="32" text-anchor="middle" class="d2-t d2-title">IEEE 754 double-precision — 64 bits, split three ways</text>
+        <text x="90" y="76" text-anchor="middle" class="d2-t d2-bits">1 bit</text>
+        <text x="220" y="76" text-anchor="middle" class="d2-t d2-bits">11 bits</text>
+        <text x="500" y="76" text-anchor="middle" class="d2-t d2-bits">52 bits</text>
+        <rect x="60" y="90" width="60" height="60" fill="#0175C2" stroke="#0369a1" stroke-width="2" rx="4"/>
+        <text x="90" y="128" text-anchor="middle" class="d2-section">S</text>
+        <rect x="120" y="90" width="200" height="60" fill="#9333ea" stroke="#7e22ce" stroke-width="2" rx="4"/>
+        <text x="220" y="128" text-anchor="middle" class="d2-section">EXPONENT</text>
+        <rect x="320" y="90" width="360" height="60" fill="#10b981" stroke="#047857" stroke-width="2" rx="4"/>
+        <text x="500" y="128" text-anchor="middle" class="d2-section">MANTISSA</text>
+        <text x="90" y="180" text-anchor="middle" class="d2-t d2-desc">sign</text>
+        <text x="90" y="198" text-anchor="middle" class="d2-t d2-desc">0 = positive</text>
+        <text x="90" y="214" text-anchor="middle" class="d2-t d2-desc">1 = negative</text>
+        <text x="220" y="180" text-anchor="middle" class="d2-t d2-desc">where the point sits</text>
+        <text x="220" y="198" text-anchor="middle" class="d2-t d2-desc">(the scale, a power of 2)</text>
+        <text x="500" y="180" text-anchor="middle" class="d2-t d2-desc">the significant binary digits</text>
+        <text x="500" y="198" text-anchor="middle" class="d2-t d2-desc">(with an implicit leading 1)</text>
+        <text x="360" y="252" text-anchor="middle" class="d2-formula">value = (−1)^sign × mantissa × 2^exponent</text>
+        <text x="360" y="290" text-anchor="middle" class="d2-t d2-note">Range: ±1.7 × 10³⁰⁸  ·  Precision: about 15–17 decimal digits</text>
+      </svg>
+      <br><br>
+      • <strong>1 sign bit</strong> — <code>0</code> for positive, <code>1</code> for negative
+      <br>
+      • <strong>11 exponent bits</strong> — how far to shift the point (as a power of 2)
+      <br>
+      • <strong>52 mantissa bits</strong> — the actual significant binary digits
+      <br><br>
+      The number isn't stored as decimal digits, but as binary. So really we are representing a number like <code>± mantissa × 2^exponent</code>.
+      <br><br>
+      This gives us roughly 15 to 17 significant decimal digits of precision, with a range that runs from near zero up to about 1.7 × 10³⁰⁸. For graphics, audio, scientific work, and most everyday numerical code, this is plenty.
+      <br><br>
+      But "about 15 to 17 digits" hides a subtle problem. Let's meet it next.
+
+  - id: precision
+    title: "Why 0.1 + 0.2 isn't 0.3"
+    summary: |
+      Try this in DartPad:
+      <br><br>
+      <pre><code>print(0.1 + 0.2);  // 0.30000000000000004</code></pre>
+      This is not a Dart bug. It is a consequence of how binary floating-point works.
+      <br><br>
+      Some numbers have clean decimal representations but messy binary ones. The classic example we already know is in decimal:
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Why 0.1 is not exact in binary" style="max-width: 100%; height: auto;">
+        <style>
+          .d3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d3-title { font-size: 16px; font-weight: 600; }
+          .d3-sub { font-size: 14px; font-weight: 600; fill: #475569; }
+          .d3-mono { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 15px; }
+          .d3-mono-small { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; }
+          .d3-label { font-size: 12px; fill: #64748b; }
+          .d3-note { font-size: 13px; fill: #475569; font-style: italic; }
+          .d3-repeat { fill: #dc2626; font-weight: 700; }
+          .d3-cut { fill: #b45309; font-weight: 700; }
+        </style>
+        <text x="360" y="28" text-anchor="middle" class="d3-t d3-title">Some clean fractions in one base are messy in another</text>
+        <text x="40" y="68" class="d3-t d3-sub">In decimal — we already know this:</text>
+        <text x="60" y="110" class="d3-t d3-mono">1 / 3 = 0.</text>
+        <text x="158" y="110" class="d3-t d3-mono d3-repeat">3333333333…</text>
+        <text x="60" y="135" class="d3-t d3-label">an infinite repeating decimal, never exactly representable with a fixed number of digits</text>
+        <line x1="40" y1="170" x2="680" y2="170" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="40" y="200" class="d3-t d3-sub">In binary — what doubles actually see:</text>
+        <text x="60" y="240" class="d3-t d3-mono">0.1 (decimal) = 0.</text>
+        <text x="231" y="240" class="d3-t d3-mono d3-repeat">000110011001100110011…</text>
+        <text x="60" y="265" class="d3-t d3-label">an infinite repeating binary fraction</text>
+        <text x="60" y="305" class="d3-t d3-mono-small">a double has 52 mantissa bits, so the value gets <tspan class="d3-cut">cut off here ↓</tspan></text>
+        <text x="60" y="335" class="d3-t d3-mono-small">stored value ≈ 0.1000000000000000055511151231257827…</text>
+      </svg>
+      <br><br>
+      When we add <code>0.1</code> and <code>0.2</code>, both values are slightly off, and the sum carries those errors forward. We get <code>0.30000000000000004</code> instead of the clean <code>0.3</code>.
+      <br><br>
+      <strong>What this means in practice:</strong>
+      <br><br>
+      • Never use <code>==</code> to compare doubles directly. Compare with a small tolerance instead.
+      <br>
+      • For exact decimal maths (money, anything where <code>0.10 + 0.20</code> must equal exactly <code>0.30</code>), use integers instead of doubles. Store cents, not dollars. Or reach for a decimal library.
+      <br><br>
+      <pre><code>// Don't:
+      if (price == 0.30) { ... }
+
+      // Do:
+      if ((price - 0.30).abs() &lt; 1e-9) { ... }
+
+      // Even better for money:
+      int priceInCents = 30;</code></pre>
+
+  - id: special-values
+    title: "NaN, Infinity, and minus zero"
+    summary: |
+      IEEE 754 reserves some bit patterns for special values that aren't ordinary numbers. They exist so that numerical computations can keep running without crashing, even when the maths is undefined.
+      <br><br>
+      <pre><code>double inf    = 1.0 / 0.0;   // Infinity
+      double negInf = -1.0 / 0.0;  // -Infinity
+      double nan    = 0.0 / 0.0;   // NaN  (Not a Number)
+      double negZero = -0.0;        // -0</code></pre>
+      A few quirks worth knowing about:
+      <br><br>
+      <strong>NaN is not equal to anything — including itself.</strong> This trips everyone up the first time.
+      <br><br>
+      <pre><code>double x = 0.0 / 0.0;  // NaN
+      print(x == x);         // false!
+      print(x.isNaN);        // true — use this instead</code></pre>
+      So to check whether a value is NaN, always use <code>.isNaN</code>, never <code>== NaN</code>.
+      <br><br>
+      <strong>Positive and negative zero compare equal, but behave differently when used.</strong>
+      <br><br>
+      <pre><code>print(0.0 == -0.0);    // true
+      print(1 / 0.0);        // Infinity
+      print(1 / -0.0);       // -Infinity</code></pre>
+      <strong>Infinity is a real value in Dart.</strong> Dividing by zero does not throw — it gives us <code>Infinity</code> (or <code>-Infinity</code>), and our program keeps running. We can check with <code>.isInfinite</code> or <code>.isFinite</code>.
+      <br><br>
+      This is a feature, not a bug. Many numerical algorithms (especially in physics simulations and signal processing) deliberately let values flow through Infinity and NaN, checking only at the end whether the result is finite.
+
+  - id: typed-floats
+    title: "Float32List vs Float64List"
+    summary: |
+      Just as integers had typed list variants, <code>dart:typed_data</code> gives us packed, unboxed storage for floating-point numbers.
+      <br><br>
+      • <code>Float64List</code> — 8 bytes per element, full IEEE 754 double precision
+      <br>
+      • <code>Float32List</code> — 4 bytes per element, single precision (about 7 decimal digits)
+      <br><br>
+      <code>Float64List</code> matches what we get with plain <code>double</code> — same precision, same range, just packed contiguously in memory without boxing. This is what we want for general numeric work.
+      <br><br>
+      <code>Float32List</code> trades half the precision for half the memory. That trade is worth it in two big domains:
+      <br><br>
+      • <strong>Graphics</strong> — vertex positions, colours, texture coordinates. GPUs work in 32-bit floats natively, so passing them <code>Float32List</code> avoids a conversion step.
+      <br>
+      • <strong>Machine learning</strong> — neural network weights and activations, where speed and memory matter more than the last few digits of precision.
+      <br><br>
+      For finance, simulation, or anything where rounding errors must be kept tiny, stick with <code>Float64List</code> (or plain doubles).
+      <br><br>
+      <pre><code>import 'dart:typed_data';
+
+      // Vertex buffer for a 3D model
+      Float32List positions = Float32List(vertexCount * 3);
+
+      // Scientific computation
+      Float64List samples = Float64List(1000000);</code></pre>
+
+  - id: practical
+    title: "num, conversion, parsing, and practical tips"
+    summary: |
+      A few last things worth knowing.
+      <br><br>
+      <strong>The num type.</strong> Dart has a parent type <code>num</code> that is the supertype of both <code>int</code> and <code>double</code>. Use it when a function should accept either:
+      <br><br>
+      <pre><code>num average(num a, num b) =&gt; (a + b) / 2;
+
+      average(3, 4.5);     // works for both</code></pre>
+      <strong>Conversion is explicit.</strong> Dart will not silently convert between <code>int</code> and <code>double</code>.
+      <br><br>
+      <pre><code>int i = 42;
+      double d = i;            // error
+      double d = i.toDouble(); // ok
+      int back = d.toInt();    // ok (truncates toward zero)</code></pre>
+      <strong>Parsing from strings.</strong>
+      <br><br>
+      <pre><code>double x = double.parse("3.14");
+      double? y = double.tryParse("hello");  // null</code></pre>
+      <strong>Comparing doubles for equality.</strong> Always use a tolerance.
+      <br><br>
+      <pre><code>bool nearlyEqual(double a, double b, [double eps = 1e-9]) =&gt;
+        (a - b).abs() &lt; eps;</code></pre>
+      <strong>When to use what:</strong>
+      <br><br>
+      • Everyday numerical work, sensor readings, graphics, science → <code>double</code>
+      <br>
+      • Money, currency, exact decimal totals → integers (store cents) or the <code>decimal</code> package
+      <br>
+      • Large collections of floats → <code>Float64List</code> (or <code>Float32List</code> for graphics/ML)
+      <br>
+      • Either-int-or-double parameters → <code>num</code>
+      <br><br>
+      That is the full tour of <code>double</code> in Dart. We have seen how it stores fractions, why some values are inexact, and how to navigate the quirks safely. In the next episode we will get to strings — and discover that <code>"Hello"</code> isn't quite as simple as it looks either.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering floating-point representation, IEEE 754, precision pitfalls, and Dart's special double values."
+  questions:
+    - question: "Why does Dart print `0.30000000000000004` when you compute `0.1 + 0.2`?"
+      options:
+        - "It's a known bug in the Dart compiler"
+        - "Some decimal fractions like 0.1 are infinite repeating fractions in binary, so they get rounded when stored"
+        - "Double only supports up to 15 decimal digits of input"
+        - "Floating-point addition is not associative on some platforms"
+      correctIndex: 1
+      explanation: "0.1 is a repeating fraction in binary (0.0001100110011…), just like 1/3 is a repeating fraction in decimal. A 64-bit double has only 52 mantissa bits, so the value gets cut off — both 0.1 and 0.2 are stored slightly off from their true values, and the error carries through when they're added."
+
+    - question: "How are the 64 bits of a Dart double organised?"
+      options:
+        - "32 bits integral + 32 bits fractional, with the decimal point fixed in the middle"
+        - "1 sign bit + 11 exponent bits + 52 mantissa bits"
+        - "1 sign bit + 8 exponent bits + 23 mantissa bits + 32 reserved"
+        - "8 bytes of raw decimal digits, variable interpretation"
+      correctIndex: 1
+      explanation: "Dart uses IEEE 754 double-precision: 1 sign bit, 11 exponent bits (how far to shift the point), and 52 mantissa bits (the significant binary digits). The value is computed as (−1)^sign × mantissa × 2^exponent. This gives about 15-17 significant decimal digits of precision and a range up to about 1.7 × 10³⁰⁸."
+
+    - question: "What's the key difference between fixed-point and floating-point representation?"
+      options:
+        - "Floating-point can represent larger numbers; fixed-point cannot represent negatives"
+        - "Floating-point lets the decimal point move where it's needed; fixed-point keeps it in one place"
+        - "Fixed-point is faster than floating-point on all modern CPUs"
+        - "Floating-point is implemented in hardware; fixed-point is software-only"
+      correctIndex: 1
+      explanation: "Fixed-point reserves a fixed number of bits for the integral part and a fixed number for the fractional part. That wastes bits whenever the number is asymmetric — big integers overflow even when the fractional half is empty, and tiny fractions can't be represented either. Floating-point sidesteps this by storing the digits as a mantissa and the position of the decimal point as an exponent, letting the point 'float' to wherever the number needs it."
+
+    - question: "What's unusual about NaN in floating-point arithmetic?"
+      options:
+        - "NaN equals zero"
+        - "NaN is not equal to anything, including itself — `NaN == NaN` returns false"
+        - "NaN automatically converts to Infinity"
+        - "NaN throws an exception when assigned to a variable"
+      correctIndex: 1
+      explanation: "NaN means 'Not a Number' — the result of operations like 0.0/0.0 or sqrt(-1.0). It deliberately compares unequal to everything, including itself, so that any computation involving an invalid value propagates the invalidity. To check whether a double is NaN, always use the `.isNaN` property, never `== double.nan`."
+
+    - question: "What does `1.0 / 0.0` evaluate to in Dart?"
+      options:
+        - "It throws a DivisionByZeroException"
+        - "It returns `Infinity`, a valid double value, and the program continues"
+        - "It returns 0"
+        - "It returns `NaN`"
+      correctIndex: 1
+      explanation: "Unlike integer division by zero (which does throw), floating-point division by zero is well-defined in IEEE 754 and returns ±Infinity. This lets numerical algorithms keep running through edge cases without crashing — you check `.isFinite` at the end of the computation instead of catching exceptions throughout."
+
+    - question: "When would you choose Float32List over Float64List?"
+      options:
+        - "When you need maximum precision"
+        - "When working with graphics, machine learning, or large numeric datasets where memory and speed matter more than precision"
+        - "When storing integers"
+        - "When the values can be negative"
+      correctIndex: 1
+      explanation: "Float32List uses 4 bytes per element (single precision, ~7 decimal digits) instead of 8 bytes (double precision, ~15-17 digits). That trade is worth it for GPU work (graphics, ML) where hardware is natively 32-bit and memory bandwidth dominates. For finance, scientific work, or anything where rounding errors must stay small, prefer Float64List."
+
+    - question: "What's the safe way to compare two doubles for equality?"
+      options:
+        - "Use `==` directly"
+        - "Compare with a small tolerance: `(a - b).abs() < epsilon`"
+        - "Convert both to int first"
+        - "Convert both to strings and compare those"
+      correctIndex: 1
+      explanation: "Because of binary precision errors, two doubles that should be equal can differ by a tiny amount (like 0.30000000000000004 instead of 0.3). Direct `==` comparison fails. The standard fix is to compare the absolute difference against a small tolerance (epsilon). The right epsilon depends on the magnitude of your numbers and the kind of computation, but 1e-9 is a reasonable starting point for everyday work."
+---
+
+{/* All content lives in frontmatter `topics` and `quiz`. Three inline SVG
+    diagrams are embedded in the fixed-point, ieee-754, and precision topics. */}

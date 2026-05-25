@@ -1,0 +1,375 @@
+---
+title: "Mixins in Dart — Reusable Behaviour Without Inheritance"
+description: "When inheritance forces us to choose one parent, mixins let us combine behaviours freely. Here's how they work and when to use them."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Primitive Computation"
+order: 3
+publishedAt: 2026-05-24
+topics:
+  - id: the-problem-with-inheritance
+    title: "The problem with single inheritance"
+    summary: |
+      We saw in the previous episode that a class can only extend one other class. Dog extends Animal. That's it. One parent.
+      <br><br>
+      But what if Dog also needs to be Swimmable? And Trainable? And Serializable?
+      <br><br>
+      <pre><code>class Animal {
+        void breathe() => print('breathing');
+      }
+
+      class Swimmable {
+        void swim() => print('swimming');
+      }
+
+      class Dog extends Animal, Swimmable {  // ERROR!
+        // Dart doesn't allow multiple inheritance
+      }</code></pre>
+      We could use interfaces, but then we have to reimplement every method. If Swimmable has 10 methods, every swimming creature must write those 10 methods from scratch. That's not reuse — that's duplication.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Diamond problem illustration" style="max-width: 100%; height: auto;"><style>.m1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.m1-title{font-size:16px;font-weight:600}.m1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.m1-label{font-size:11px;fill:#64748b}.m1-note{font-size:11px;fill:#475569}</style><defs><marker id="m1-arrow" viewBox="0 0 10 10" refX="5" refY="10" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 10 L 5 0 L 10 10 z" fill="none" stroke="#475569" stroke-width="1.5"/></marker></defs><text x="360" y="26" text-anchor="middle" class="m1-t m1-title">The single inheritance constraint</text><rect x="260" y="50" width="200" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="360" y="82" text-anchor="middle" class="m1-t m1-mn">Animal</text><rect x="80" y="140" width="160" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="160" y="172" text-anchor="middle" class="m1-t m1-mn">Swimmable</text><rect x="480" y="140" width="160" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="560" y="172" text-anchor="middle" class="m1-t m1-mn">Trainable</text><rect x="260" y="220" width="200" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="360" y="252" text-anchor="middle" class="m1-t m1-mn">Dog</text><line x1="310" y1="100" x2="200" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#m1-arrow)"/><line x1="410" y1="100" x2="520" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#m1-arrow)"/><line x1="200" y1="190" x2="310" y2="220" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4"/><line x1="520" y1="190" x2="410" y2="220" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4"/><text x="180" y="210" class="m1-t m1-label" fill="#dc2626">can't extend</text><text x="470" y="210" class="m1-t m1-label" fill="#dc2626">both!</text></svg>
+      <br><br>
+      This is where mixins come in. They let us add behaviour to a class without using up our single inheritance slot.
+
+  - id: what-is-a-mixin
+    title: "What is a mixin?"
+    summary: |
+      A mixin is a class that provides methods for other classes to use — but it's not meant to be instantiated on its own.
+      <br><br>
+      <pre><code>mixin Swimmable {
+        void swim() => print('swimming');
+
+        void dive() => print('diving deep');
+      }
+
+      mixin Trainable {
+        bool trained = false;
+
+        void train() {
+          trained = true;
+          print('training complete');
+        }
+      }
+
+      class Dog extends Animal with Swimmable, Trainable {
+        Dog(String name) : super(name);
+      }
+
+      var dog = Dog('Buddy');
+      dog.swim();    // swimming
+      dog.train();   // training complete
+      dog.breathe(); // breathing (from Animal)</code></pre>
+      The keyword is <code>with</code>. A class can extend one parent and mix in any number of mixins. The dog gets behaviour from Animal, Swimmable, and Trainable — all without code duplication.
+      <br><br>
+      <strong>Key insight:</strong> Mixins are about sharing implementation, not just interfaces. When Dog mixes in Swimmable, it gets the actual <code>swim()</code> code. It doesn't have to write it.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Mixin composition diagram" style="max-width: 100%; height: auto;"><style>.m2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.m2-title{font-size:16px;font-weight:600}.m2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.m2-label{font-size:11px;fill:#64748b}.m2-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="m2-t m2-title">Mixins add behaviour without using up inheritance</text><rect x="40" y="60" width="180" height="80" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="130" y="90" text-anchor="middle" class="m2-t m2-mn" font-weight="700">Animal</text><text x="60" y="115" class="m2-t m2-note">breathe()</text><text x="60" y="132" class="m2-t m2-label">extends</text><rect x="270" y="60" width="180" height="80" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="360" y="90" text-anchor="middle" class="m2-t m2-mn" font-weight="700">mixin Swimmable</text><text x="290" y="115" class="m2-t m2-note">swim(), dive()</text><text x="290" y="132" class="m2-t m2-label">with</text><rect x="500" y="60" width="180" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="590" y="90" text-anchor="middle" class="m2-t m2-mn" font-weight="700">mixin Trainable</text><text x="520" y="115" class="m2-t m2-note">train(), trained</text><text x="520" y="132" class="m2-t m2-label">with</text><line x1="130" y1="140" x2="130" y2="175" stroke="#475569" stroke-width="2"/><line x1="360" y1="140" x2="360" y2="175" stroke="#475569" stroke-width="2"/><line x1="590" y1="140" x2="590" y2="175" stroke="#475569" stroke-width="2"/><line x1="130" y1="175" x2="590" y2="175" stroke="#475569" stroke-width="2"/><line x1="360" y1="175" x2="360" y2="200" stroke="#475569" stroke-width="2" marker-end="url(#m2-arrow)"/><rect x="230" y="205" width="260" height="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="360" y="235" text-anchor="middle" class="m2-t m2-mn" font-weight="700">class Dog</text><text x="250" y="258" class="m2-t m2-note">has: breathe(), swim(), dive(), train()</text><text x="250" y="275" class="m2-t m2-note">from: Animal + Swimmable + Trainable</text><defs><marker id="m2-arrow" viewBox="0 0 10 10" refX="5" refY="0" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 5 10 L 10 0 z" fill="#475569"/></marker></defs></svg>
+
+  - id: mixin-vs-class
+    title: "Mixin vs class — when to use which"
+    summary: |
+      Before Dart 3, you could use a class as a mixin with the <code>mixin class</code> declaration. But this blurred the line between classes and mixins. Modern Dart encourages a cleaner separation.
+      <br><br>
+      <strong>Use a mixin when:</strong>
+      <br>• You're defining reusable behaviour (not identity)
+      <br>• The behaviour doesn't need its own constructor
+      <br>• Multiple unrelated classes need this behaviour
+      <br><br>
+      <strong>Use a class when:</strong>
+      <br>• You're defining a concrete thing (a User, a File, a Button)
+      <br>• You need constructors and initialisers
+      <br>• Inheritance makes semantic sense (a Dog is-a Animal)
+      <br><br>
+      <pre><code>// Good: mixin for behaviour
+      mixin Loggable {
+        void log(String message) => print('[\$runtimeType] \$message');
+      }
+
+      // Good: class for identity
+      class User with Loggable {
+        final String name;
+        User(this.name);
+      }
+
+      // Bad: class pretending to be reusable behaviour
+      class LoggingCapability {  // should be a mixin
+        void log(String msg) => print(msg);
+      }</code></pre>
+      <strong>The practical test:</strong> If you'd never write <code>var x = MyThing()</code> to create an instance, it should probably be a mixin.
+
+  - id: mixin-on
+    title: "Restricting mixins with 'on'"
+    summary: |
+      Sometimes a mixin only makes sense on certain types of classes. A mixin that accesses <code>this.name</code> only works if the class has a <code>name</code> field.
+      <br><br>
+      The <code>on</code> keyword restricts which classes can use a mixin.
+      <br><br>
+      <pre><code>class Named {
+        final String name;
+        Named(this.name);
+      }
+
+      mixin Greeter on Named {
+        void greet() => print('Hello, I am \$name');
+      }
+
+      class Person extends Named with Greeter {
+        Person(String name) : super(name);
+      }
+
+      class Robot with Greeter {  // ERROR!
+        // Robot doesn't extend Named
+      }</code></pre>
+      The mixin Greeter can only be applied to classes that extend (or implement) Named. This gives us compile-time safety — if the mixin needs certain members, the <code>on</code> clause guarantees they exist.
+      <br><br>
+      <pre><code>mixin Persistable on Model {
+        Future&lt;void&gt; save() async {
+          // 'id' and 'toJson()' come from Model
+          await database.save(id, toJson());
+        }
+      }
+
+      abstract class Model {
+        int get id;
+        Map&lt;String, dynamic&gt; toJson();
+      }
+
+      class User extends Model with Persistable {
+        @override
+        int get id => _id;
+
+        @override
+        Map&lt;String, dynamic&gt; toJson() => {'name': name};
+      }</code></pre>
+      <strong>Multiple constraints:</strong> A mixin can require multiple supertypes.
+      <br><br>
+      <pre><code>mixin Auditable on Named, Timestamped {
+        void audit() {
+          print('\$name modified at \$lastModified');
+        }
+      }</code></pre>
+
+  - id: mixin-order
+    title: "Linearisation — the order of mixins matters"
+    summary: |
+      When multiple mixins define the same method, which one wins? Dart uses <strong>linearisation</strong> — the rightmost mixin takes precedence.
+      <br><br>
+      <pre><code>mixin A {
+        void greet() => print('A');
+      }
+
+      mixin B {
+        void greet() => print('B');
+      }
+
+      class Test with A, B {}
+
+      void main() {
+        Test().greet();   // prints: B
+      }</code></pre>
+      B comes after A, so B's <code>greet()</code> wins. The order is: first the superclass, then mixins left to right. Later entries override earlier ones.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" role="img" aria-label="Mixin linearisation order" style="max-width: 100%; height: auto;"><style>.m3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.m3-title{font-size:16px;font-weight:600}.m3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.m3-label{font-size:11px;fill:#64748b}.m3-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="m3-t m3-title">Linearisation: later mixins override earlier ones</text><text x="360" y="50" text-anchor="middle" class="m3-t m3-mn">class Dog extends Animal with A, B, C</text><rect x="60" y="80" width="120" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="120" y="112" text-anchor="middle" class="m3-t m3-mn">Animal</text><text x="120" y="145" text-anchor="middle" class="m3-t m3-label">base</text><line x1="180" y1="105" x2="220" y2="105" stroke="#475569" stroke-width="2" marker-end="url(#m3-arr)"/><rect x="220" y="80" width="100" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="270" y="112" text-anchor="middle" class="m3-t m3-mn">A</text><text x="270" y="145" text-anchor="middle" class="m3-t m3-label">overrides base</text><line x1="320" y1="105" x2="360" y2="105" stroke="#475569" stroke-width="2" marker-end="url(#m3-arr)"/><rect x="360" y="80" width="100" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="6"/><text x="410" y="112" text-anchor="middle" class="m3-t m3-mn">B</text><text x="410" y="145" text-anchor="middle" class="m3-t m3-label">overrides A</text><line x1="460" y1="105" x2="500" y2="105" stroke="#475569" stroke-width="2" marker-end="url(#m3-arr)"/><rect x="500" y="80" width="100" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="550" y="112" text-anchor="middle" class="m3-t m3-mn">C</text><text x="550" y="145" text-anchor="middle" class="m3-t m3-label">overrides B</text><line x1="550" y1="130" x2="550" y2="165" stroke="#10b981" stroke-width="2" marker-end="url(#m3-arr2)"/><text x="550" y="185" text-anchor="middle" class="m3-t m3-note" font-weight="600" fill="#10b981">C wins</text><defs><marker id="m3-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker><marker id="m3-arr2" viewBox="0 0 10 10" refX="5" refY="0" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 5 10 L 10 0 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      <strong>Calling super in mixins.</strong> A mixin can call <code>super.method()</code> to invoke the previous version in the chain.
+      <br><br>
+      <pre><code>mixin Logger {
+        void log(String msg) => print('LOG: \$msg');
+      }
+
+      mixin TimestampLogger on Object {
+        void log(String msg) {
+          var time = DateTime.now();
+          super.log('[\$time] \$msg');  // calls previous log()
+        }
+      }
+
+      class App with Logger, TimestampLogger {}
+
+      App().log('started');
+      // prints: LOG: [2026-05-24 10:30:00] started</code></pre>
+      TimestampLogger calls <code>super.log()</code>, which resolves to Logger's <code>log()</code> method. This is called the <strong>super chain</strong>.
+
+  - id: real-world-mixins
+    title: "Real-world mixin patterns"
+    summary: |
+      Mixins shine when you have cross-cutting concerns — behaviours that span multiple unrelated classes.
+      <br><br>
+      <strong>Pattern 1: Diagnostics and debugging</strong>
+      <br><br>
+      <pre><code>mixin DiagnosticableMixin {
+        String get debugLabel => '\$runtimeType#\$hashCode';
+
+        void debugPrint(String message) {
+          print('[\$debugLabel] \$message');
+        }
+
+        Map&lt;String, dynamic&gt; debugInfo() => {
+          'type': '\$runtimeType',
+          'hashCode': hashCode,
+        };
+      }</code></pre>
+      <strong>Pattern 2: State management helpers</strong>
+      <br><br>
+      <pre><code>mixin ChangeNotifierMixin {
+        final _listeners = &lt;void Function()&gt;[];
+
+        void addListener(void Function() listener) {
+          _listeners.add(listener);
+        }
+
+        void notifyListeners() {
+          for (var listener in _listeners) {
+            listener();
+          }
+        }
+      }
+
+      class Counter with ChangeNotifierMixin {
+        int _count = 0;
+
+        int get count => _count;
+
+        void increment() {
+          _count++;
+          notifyListeners();
+        }
+      }</code></pre>
+      <strong>Pattern 3: Validation</strong>
+      <br><br>
+      <pre><code>mixin Validatable {
+        List&lt;String&gt; validate();
+
+        bool get isValid => validate().isEmpty;
+
+        void assertValid() {
+          var errors = validate();
+          if (errors.isNotEmpty) {
+            throw ValidationError(errors);
+          }
+        }
+      }
+
+      class User with Validatable {
+        final String email;
+        final int age;
+
+        User(this.email, this.age);
+
+        @override
+        List&lt;String&gt; validate() {
+          var errors = &lt;String&gt;[];
+          if (!email.contains('@')) errors.add('Invalid email');
+          if (age < 0) errors.add('Age cannot be negative');
+          return errors;
+        }
+      }</code></pre>
+      These patterns work because the mixin provides a template — some behaviour is implemented, some is left for the class to define.
+
+  - id: mixins-vs-extension
+    title: "Mixins vs extension methods"
+    summary: |
+      Dart 2.7 introduced extension methods. They also add behaviour to classes. So when do we use which?
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Mixins vs extensions comparison" style="max-width: 100%; height: auto;"><style>.m4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.m4-title{font-size:16px;font-weight:600}.m4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.m4-hdr{font-size:13px;font-weight:700}.m4-cell{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="m4-t m4-title">Mixins vs Extension Methods</text><rect x="20" y="50" width="180" height="40" fill="#f1f5f9" stroke="#cbd5e1"/><text x="110" y="76" text-anchor="middle" class="m4-t m4-hdr">Aspect</text><rect x="200" y="50" width="250" height="40" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="325" y="76" text-anchor="middle" class="m4-t m4-hdr">Mixin</text><rect x="450" y="50" width="250" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="575" y="76" text-anchor="middle" class="m4-t m4-hdr">Extension Method</text><rect x="20" y="90" width="180" height="35" fill="#fff" stroke="#cbd5e1"/><text x="110" y="113" text-anchor="middle" class="m4-t m4-cell">Applied when?</text><rect x="200" y="90" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="325" y="113" text-anchor="middle" class="m4-t m4-cell">At class definition (with)</text><rect x="450" y="90" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="575" y="113" text-anchor="middle" class="m4-t m4-cell">At call site (import)</text><rect x="20" y="125" width="180" height="35" fill="#fff" stroke="#cbd5e1"/><text x="110" y="148" text-anchor="middle" class="m4-t m4-cell">Can add state?</text><rect x="200" y="125" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="325" y="148" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#059669">Yes — fields allowed</text><rect x="450" y="125" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="575" y="148" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#dc2626">No — methods only</text><rect x="20" y="160" width="180" height="35" fill="#fff" stroke="#cbd5e1"/><text x="110" y="183" text-anchor="middle" class="m4-t m4-cell">Can override methods?</text><rect x="200" y="160" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="325" y="183" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#059669">Yes</text><rect x="450" y="160" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="575" y="183" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#dc2626">No</text><rect x="20" y="195" width="180" height="35" fill="#fff" stroke="#cbd5e1"/><text x="110" y="218" text-anchor="middle" class="m4-t m4-cell">Works on types you own?</text><rect x="200" y="195" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="325" y="218" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#059669">Yes</text><rect x="450" y="195" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="575" y="218" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#059669">Yes</text><rect x="20" y="230" width="180" height="35" fill="#fff" stroke="#cbd5e1"/><text x="110" y="253" text-anchor="middle" class="m4-t m4-cell">Works on external types?</text><rect x="200" y="230" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="325" y="253" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#dc2626">No</text><rect x="450" y="230" width="250" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="575" y="253" text-anchor="middle" class="m4-t m4-cell" font-weight="700" fill="#059669">Yes — String, List, etc.</text></svg>
+      <br><br>
+      <strong>Use extensions when:</strong>
+      <br>• Adding convenience methods to types you don't control (String, int, List)
+      <br>• The method doesn't need instance state
+      <br>• You want optional, import-based activation
+      <br><br>
+      <pre><code>extension StringHelpers on String {
+        String get reversed => split('').reversed.join();
+        bool get isBlank => trim().isEmpty;
+      }
+
+      'hello'.reversed;   // 'olleh'</code></pre>
+      <strong>Use mixins when:</strong>
+      <br>• Adding state (fields) as well as methods
+      <br>• The behaviour is part of the class's identity
+      <br>• You need to override methods or participate in the type hierarchy
+      <br><br>
+      <pre><code>mixin Identifiable {
+        late final String id = _generateId();
+        String _generateId() => DateTime.now().millisecondsSinceEpoch.toString();
+      }
+
+      class Document with Identifiable {
+        final String title;
+        Document(this.title);
+      }
+
+      var doc = Document('Report');
+      print(doc.id);   // unique ID per instance</code></pre>
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering mixins, linearisation, and when to use mixins vs other patterns."
+  questions:
+    - question: "What problem do mixins solve that interfaces cannot?"
+      options:
+        - "Mixins allow multiple inheritance"
+        - "Mixins provide implementation reuse, not just interface contracts"
+        - "Mixins are faster at runtime"
+        - "Mixins support generics"
+      correctIndex: 1
+      explanation: "Interfaces (implements) only require you to provide methods with matching signatures — you must write the implementation yourself. Mixins provide actual implementation code that gets copied into the class, enabling true behaviour reuse across unrelated classes."
+
+    - question: "What keyword applies a mixin to a class?"
+      options:
+        - "implements"
+        - "extends"
+        - "with"
+        - "mixin"
+      correctIndex: 2
+      explanation: "The 'with' keyword applies one or more mixins to a class. You can combine it with 'extends' for inheritance: class Dog extends Animal with Swimmable, Trainable. The 'mixin' keyword is used to declare a mixin, not apply it."
+
+    - question: "If class C uses 'with A, B' and both A and B define method foo(), which implementation is used?"
+      options:
+        - "A's implementation — first wins"
+        - "B's implementation — last wins"
+        - "It's a compile error"
+        - "Neither — the class must override foo()"
+      correctIndex: 1
+      explanation: "Dart uses linearisation where later mixins override earlier ones. In 'with A, B', B comes after A, so B's foo() wins. This is the opposite of some other languages. The order is: superclass, then mixins left to right, with later entries taking precedence."
+
+    - question: "What does 'mixin Persistable on Model' mean?"
+      options:
+        - "Persistable extends Model"
+        - "Persistable can only be applied to classes that extend or implement Model"
+        - "Model must use the Persistable mixin"
+        - "Persistable replaces Model"
+      correctIndex: 1
+      explanation: "The 'on' clause restricts which classes can use a mixin. 'mixin Persistable on Model' means only classes that extend or implement Model can use Persistable. This provides compile-time safety when the mixin relies on members from Model."
+
+    - question: "Can a mixin have instance fields (state)?"
+      options:
+        - "No — mixins can only have methods"
+        - "Yes — mixins can have fields, unlike extension methods"
+        - "Only final fields"
+        - "Only static fields"
+      correctIndex: 1
+      explanation: "Mixins can have instance fields, which is one key difference from extension methods. When a class uses a mixin, it gets both the methods and the fields. Extension methods cannot add state — they can only add methods that work with existing state."
+
+    - question: "When should you use an extension method instead of a mixin?"
+      options:
+        - "When you need to add state"
+        - "When you need to override existing methods"
+        - "When adding methods to types you don't control, like String or List"
+        - "When you need the behaviour at compile time"
+      correctIndex: 2
+      explanation: "Extension methods are perfect for adding convenience methods to types you don't control (String, int, List, third-party classes). You can't add mixins to classes you don't own. Use mixins when you control the class definition and need state or method overriding."
+
+    - question: "What happens when a mixin calls super.method()?"
+      options:
+        - "It calls the method on Object"
+        - "It calls the previous implementation in the linearisation chain"
+        - "It's a compile error — mixins can't use super"
+        - "It calls the method on the class that uses the mixin"
+      correctIndex: 1
+      explanation: "When a mixin calls super.method(), it invokes the previous implementation in the linearisation chain. This could be from another mixin, the superclass, or Object. This allows mixins to wrap or extend behaviour from earlier in the chain rather than completely replacing it."
+---
+
+{/* Episode 3 of Dart: Primitive Computation. Mixins — reusable behaviour without
+    inheritance. Covers mixin declaration, 'on' constraints, linearisation order,
+    and comparison with extension methods. 4 inline SVG diagrams. */}

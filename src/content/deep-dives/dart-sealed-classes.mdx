@@ -1,0 +1,491 @@
+---
+title: "Sealed Classes in Dart — Exhaustive Switching and Algebraic Data Types"
+description: "When the compiler knows all possible subtypes, it can prove your switch is complete. Sealed classes bring this superpower to Dart 3."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 6
+publishedAt: 2026-05-24
+topics:
+  - id: the-problem-sealed-classes-solve
+    title: "The problem — switches that lie"
+    summary: |
+      Consider a network request. It can succeed, fail, or still be loading. We model this with inheritance:
+      <br><br>
+      <pre><code>abstract class NetworkState {}
+
+      class Loading extends NetworkState {}
+      class Success extends NetworkState {
+        final String data;
+        Success(this.data);
+      }
+      class Error extends NetworkState {
+        final String message;
+        Error(this.message);
+      }</code></pre>
+      Now we write a switch to handle all cases:
+      <br><br>
+      <pre><code>String describe(NetworkState state) {
+        switch (state) {
+          case Loading():
+            return 'Loading...';
+          case Success(:var data):
+            return 'Got: $data';
+          case Error(:var message):
+            return 'Failed: $message';
+        }
+      }</code></pre>
+      This looks complete. But the compiler doesn't know that. It sees an abstract class with three known subtypes — but someone could add a fourth subtype tomorrow. A new file could declare <code>class Timeout extends NetworkState {}</code> and suddenly our switch is missing a case.
+      <br><br>
+      The compiler forces us to add a default case, just in case:
+      <br><br>
+      <pre><code>default:
+          throw UnimplementedError();</code></pre>
+      That default is a lie. We don't expect it to run. But we have to write it anyway.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="The problem with abstract classes" style="max-width: 100%; height: auto;"><style>.sc1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sc1-title{font-size:16px;font-weight:600}.sc1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.sc1-label{font-size:11px;fill:#64748b}.sc1-note{font-size:11px;fill:#475569}.sc1-warn{font-size:12px;fill:#dc2626;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="sc1-t sc1-title">abstract class — the compiler can't guarantee exhaustiveness</text><rect x="260" y="50" width="200" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="360" y="82" text-anchor="middle" class="sc1-t sc1-mn">abstract class NetworkState</text><line x1="310" y1="100" x2="160" y2="140" stroke="#475569" stroke-width="2"/><line x1="360" y1="100" x2="360" y2="140" stroke="#475569" stroke-width="2"/><line x1="410" y1="100" x2="560" y2="140" stroke="#475569" stroke-width="2"/><rect x="80" y="140" width="160" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="160" y="168" text-anchor="middle" class="sc1-t sc1-mn">Loading</text><rect x="280" y="140" width="160" height="45" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="168" text-anchor="middle" class="sc1-t sc1-mn">Success</text><rect x="480" y="140" width="160" height="45" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="560" y="168" text-anchor="middle" class="sc1-t sc1-mn">Error</text><text x="360" y="215" text-anchor="middle" class="sc1-t sc1-label">These are the only subtypes we know about...</text><rect x="180" y="235" width="160" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6" stroke-dasharray="6,3"/><text x="260" y="263" text-anchor="middle" class="sc1-t sc1-mn">Timeout?</text><rect x="380" y="235" width="160" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6" stroke-dasharray="6,3"/><text x="460" y="263" text-anchor="middle" class="sc1-t sc1-mn">Cancelled?</text><text x="360" y="310" text-anchor="middle" class="sc1-t sc1-warn">...but anyone can add more. The switch is never provably complete.</text></svg>
+      <br><br>
+      Sealed classes fix this. They tell the compiler: "These are the only subtypes. There will never be more."
+
+  - id: sealed-class-syntax
+    title: "Sealed class syntax and rules"
+    summary: |
+      The fix is one word: <code>sealed</code>.
+      <br><br>
+      <pre><code>sealed class NetworkState {}
+
+      class Loading extends NetworkState {}
+      class Success extends NetworkState {
+        final String data;
+        Success(this.data);
+      }
+      class Error extends NetworkState {
+        final String message;
+        Error(this.message);
+      }</code></pre>
+      Now the compiler knows the complete set of subtypes. And now our switch needs no default:
+      <br><br>
+      <pre><code>String describe(NetworkState state) {
+        return switch (state) {
+          Loading() => 'Loading...',
+          Success(:var data) => 'Got: $data',
+          Error(:var message) => 'Failed: $message',
+        };
+      }</code></pre>
+      No default. No <code>throw UnimplementedError()</code>. The compiler has verified that every possible case is handled.
+      <br><br>
+      <strong>The rules of sealed classes:</strong>
+      <br><br>
+      1. <strong>All subtypes must be in the same library.</strong> The sealed class and all its direct children must be in the same file (or the same library if you use <code>part</code> files). This is how the compiler knows it has seen everything.
+      <br><br>
+      2. <strong>Sealed classes are implicitly abstract.</strong> You cannot write <code>NetworkState()</code> — only the subtypes can be instantiated.
+      <br><br>
+      3. <strong>Subtypes can be classes, sealed classes, or final classes.</strong> You have full control over what each subtype allows.
+      <br><br>
+      <pre><code>sealed class Shape {}
+
+      class Circle extends Shape {
+        final double radius;
+        Circle(this.radius);
+      }
+
+      class Rectangle extends Shape {
+        final double width, height;
+        Rectangle(this.width, this.height);
+      }
+
+      // ERROR: This is in a different file
+      class Triangle extends Shape {}</code></pre>
+      The last line is a compile error. Triangle cannot extend Shape because Shape is sealed and Triangle is in a different library. The compiler can now guarantee that Shape is either Circle or Rectangle — nothing else.
+
+  - id: exhaustive-switching
+    title: "Exhaustive switching — the compiler proves completeness"
+    summary: |
+      The real power of sealed classes shows up in switches. When the compiler knows all possible subtypes, it can check that we handle every single one.
+      <br><br>
+      <pre><code>sealed class Result&lt;T&gt; {}
+
+      class Ok&lt;T&gt; extends Result&lt;T&gt; {
+        final T value;
+        Ok(this.value);
+      }
+
+      class Err&lt;T&gt; extends Result&lt;T&gt; {
+        final String error;
+        Err(this.error);
+      }
+
+      // This compiles — both cases handled
+      T unwrap&lt;T&gt;(Result&lt;T&gt; result) {
+        return switch (result) {
+          Ok(:var value) => value,
+          Err(:var error) => throw Exception(error),
+        };
+      }</code></pre>
+      But watch what happens if we add a new subtype:
+      <br><br>
+      <pre><code>class Pending&lt;T&gt; extends Result&lt;T&gt; {}</code></pre>
+      Now the switch in <code>unwrap</code> is incomplete. The compiler tells us:
+      <br><br>
+      <code>Error: The type 'Result&lt;T&gt;' is not exhaustively matched by the switch cases since it doesn't match 'Pending&lt;T&gt;()'.</code>
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Exhaustive switching with sealed classes" style="max-width: 100%; height: auto;"><style>.sc2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sc2-title{font-size:16px;font-weight:600}.sc2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.sc2-label{font-size:11px;fill:#64748b}.sc2-note{font-size:11px;fill:#475569}.sc2-good{font-size:12px;fill:#059669;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="sc2-t sc2-title">sealed class — the compiler guarantees exhaustiveness</text><rect x="260" y="50" width="200" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="360" y="82" text-anchor="middle" class="sc2-t sc2-mn">sealed class Result</text><line x1="310" y1="100" x2="200" y2="140" stroke="#10b981" stroke-width="2"/><line x1="410" y1="100" x2="520" y2="140" stroke="#10b981" stroke-width="2"/><rect x="100" y="140" width="200" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="200" y="168" text-anchor="middle" class="sc2-t sc2-mn">Ok</text><rect x="420" y="140" width="200" height="45" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="520" y="168" text-anchor="middle" class="sc2-t sc2-mn">Err</text><rect x="100" y="200" width="520" height="45" fill="#f0fdf4" stroke="#10b981" stroke-width="2" rx="6" stroke-dasharray="0"/><text x="360" y="228" text-anchor="middle" class="sc2-t sc2-mn">switch handles Ok and Err = exhaustive</text><text x="360" y="268" text-anchor="middle" class="sc2-t sc2-good">No default needed. Compiler proves the switch is complete.</text></svg>
+      <br><br>
+      This is the payoff. Every time we add a new case to the sealed hierarchy, the compiler tells us everywhere we need to update. We get compile-time errors instead of runtime crashes.
+
+  - id: sealed-vs-abstract-vs-final
+    title: "Sealed vs abstract vs final"
+    summary: |
+      Dart 3 added several class modifiers. Let's see how they compare.
+      <br><br>
+      <strong>abstract class:</strong> Cannot be instantiated. Can be extended by anyone, anywhere. The compiler doesn't know all subtypes.
+      <br><br>
+      <strong>sealed class:</strong> Cannot be instantiated. Can only be extended in the same library. The compiler knows all subtypes. Enables exhaustive switching.
+      <br><br>
+      <strong>final class:</strong> Can be instantiated. Cannot be extended at all. There are no subtypes.
+      <br><br>
+      <strong>base class:</strong> Can be instantiated and extended. Cannot be implemented (no interfaces from this class).
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Class modifiers comparison table" style="max-width: 100%; height: auto;"><style>.sc3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sc3-title{font-size:16px;font-weight:600}.sc3-hdr{font-size:13px;font-weight:700}.sc3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.sc3-cell{font-size:11px;fill:#475569}.sc3-yes{font-size:14px;font-weight:700;fill:#059669}.sc3-no{font-size:14px;font-weight:700;fill:#dc2626}.sc3-partial{font-size:11px;font-weight:600;fill:#b45309}</style><text x="360" y="26" text-anchor="middle" class="sc3-t sc3-title">Class modifiers compared</text><rect x="20" y="50" width="140" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="90" y="78" text-anchor="middle" class="sc3-t sc3-hdr">Modifier</text><rect x="160" y="50" width="130" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="225" y="78" text-anchor="middle" class="sc3-t sc3-hdr">Instantiate?</text><rect x="290" y="50" width="130" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="355" y="78" text-anchor="middle" class="sc3-t sc3-hdr">Extend?</text><rect x="420" y="50" width="140" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="490" y="78" text-anchor="middle" class="sc3-t sc3-hdr">Exhaustive?</text><rect x="560" y="50" width="140" height="45" fill="#f1f5f9" stroke="#cbd5e1"/><text x="630" y="78" text-anchor="middle" class="sc3-t sc3-hdr">Implement?</text><rect x="20" y="95" width="140" height="40" fill="#fff" stroke="#cbd5e1"/><text x="90" y="120" text-anchor="middle" class="sc3-t sc3-mn">abstract</text><rect x="160" y="95" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="225" y="120" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="290" y="95" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="355" y="120" text-anchor="middle" class="sc3-t sc3-yes">Anywhere</text><rect x="420" y="95" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="490" y="120" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="560" y="95" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="630" y="120" text-anchor="middle" class="sc3-t sc3-yes">Yes</text><rect x="20" y="135" width="140" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="90" y="160" text-anchor="middle" class="sc3-t sc3-mn" font-weight="700">sealed</text><rect x="160" y="135" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="225" y="160" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="290" y="135" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="355" y="160" text-anchor="middle" class="sc3-t sc3-partial">Same library</text><rect x="420" y="135" width="140" height="40" fill="#dcfce7" stroke="#10b981"/><text x="490" y="160" text-anchor="middle" class="sc3-t sc3-yes">Yes</text><rect x="560" y="135" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="630" y="160" text-anchor="middle" class="sc3-t sc3-partial">Same library</text><rect x="20" y="175" width="140" height="40" fill="#fff" stroke="#cbd5e1"/><text x="90" y="200" text-anchor="middle" class="sc3-t sc3-mn">final</text><rect x="160" y="175" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="225" y="200" text-anchor="middle" class="sc3-t sc3-yes">Yes</text><rect x="290" y="175" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="355" y="200" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="420" y="175" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="490" y="200" text-anchor="middle" class="sc3-t sc3-cell">N/A (no subs)</text><rect x="560" y="175" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="630" y="200" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="20" y="215" width="140" height="40" fill="#fff" stroke="#cbd5e1"/><text x="90" y="240" text-anchor="middle" class="sc3-t sc3-mn">base</text><rect x="160" y="215" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="225" y="240" text-anchor="middle" class="sc3-t sc3-yes">Yes</text><rect x="290" y="215" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="355" y="240" text-anchor="middle" class="sc3-t sc3-yes">Anywhere</text><rect x="420" y="215" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="490" y="240" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="560" y="215" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="630" y="240" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="20" y="255" width="140" height="40" fill="#fff" stroke="#cbd5e1"/><text x="90" y="280" text-anchor="middle" class="sc3-t sc3-mn">(no modifier)</text><rect x="160" y="255" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="225" y="280" text-anchor="middle" class="sc3-t sc3-yes">Yes</text><rect x="290" y="255" width="130" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="355" y="280" text-anchor="middle" class="sc3-t sc3-yes">Anywhere</text><rect x="420" y="255" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="490" y="280" text-anchor="middle" class="sc3-t sc3-no">No</text><rect x="560" y="255" width="140" height="40" fill="#f8fafc" stroke="#cbd5e1"/><text x="630" y="280" text-anchor="middle" class="sc3-t sc3-yes">Yes</text></svg>
+      <br><br>
+      <strong>When to use sealed:</strong> When you have a fixed set of variants and want the compiler to enforce that switches handle all of them. State machines, result types, command patterns.
+      <br><br>
+      <strong>When to use abstract:</strong> When you're defining a contract that many unrelated classes will implement. Database drivers, serialisation strategies, plugin interfaces.
+      <br><br>
+      <strong>When to use final:</strong> When the class is complete as-is and should not be extended. Value types, configuration objects, immutable data.
+
+  - id: modelling-state-with-sealed
+    title: "Modelling state with sealed classes"
+    summary: |
+      Sealed classes are perfect for modelling state machines. Let's build some common patterns.
+      <br><br>
+      <strong>Pattern 1: Result type</strong>
+      <br><br>
+      The classic Result pattern encapsulates success or failure without using exceptions for control flow.
+      <br><br>
+      <pre><code>sealed class Result&lt;T&gt; {
+        const Result();
+      }
+
+      final class Ok&lt;T&gt; extends Result&lt;T&gt; {
+        final T value;
+        const Ok(this.value);
+      }
+
+      final class Err&lt;T&gt; extends Result&lt;T&gt; {
+        final Object error;
+        final StackTrace? stackTrace;
+        const Err(this.error, [this.stackTrace]);
+      }
+
+      // Usage
+      Result&lt;int&gt; divide(int a, int b) {
+        if (b == 0) return Err('Division by zero');
+        return Ok(a ~/ b);
+      }
+
+      var result = divide(10, 2);
+      var message = switch (result) {
+        Ok(:var value) => 'Result: $value',
+        Err(:var error) => 'Error: $error',
+      };</code></pre>
+      <strong>Pattern 2: Option type</strong>
+      <br><br>
+      Option (also called Maybe) represents a value that might not exist, without using null.
+      <br><br>
+      <pre><code>sealed class Option&lt;T&gt; {
+        const Option();
+      }
+
+      final class Some&lt;T&gt; extends Option&lt;T&gt; {
+        final T value;
+        const Some(this.value);
+      }
+
+      final class None&lt;T&gt; extends Option&lt;T&gt; {
+        const None();
+      }
+
+      // Usage
+      Option&lt;User&gt; findUser(String id) {
+        var user = database.lookup(id);
+        return user != null ? Some(user) : None();
+      }
+
+      var greeting = switch (findUser('123')) {
+        Some(:var value) => 'Hello, ${value.name}',
+        None() => 'User not found',
+      };</code></pre>
+      <strong>Pattern 3: Async state</strong>
+      <br><br>
+      <pre><code>sealed class AsyncState&lt;T&gt; {}
+
+      final class Initial&lt;T&gt; extends AsyncState&lt;T&gt; {}
+
+      final class Loading&lt;T&gt; extends AsyncState&lt;T&gt; {}
+
+      final class Loaded&lt;T&gt; extends AsyncState&lt;T&gt; {
+        final T data;
+        Loaded(this.data);
+      }
+
+      final class Failed&lt;T&gt; extends AsyncState&lt;T&gt; {
+        final String message;
+        Failed(this.message);
+      }
+
+      // In a widget
+      Widget build(AsyncState&lt;User&gt; state) {
+        return switch (state) {
+          Initial() => Text('Press button to load'),
+          Loading() => CircularProgressIndicator(),
+          Loaded(:var data) => Text('Hello, ${data.name}'),
+          Failed(:var message) => Text('Error: $message'),
+        };
+      }</code></pre>
+      These patterns are called <strong>algebraic data types</strong> (ADTs). The sealed class defines a sum type — a value that is one of several variants. Each variant can carry different data. The compiler ensures we handle every variant.
+
+  - id: sealed-with-patterns
+    title: "Sealed classes with pattern matching"
+    summary: |
+      Dart 3 introduced both sealed classes and pattern matching. They work beautifully together.
+      <br><br>
+      <strong>Destructuring in switch cases:</strong>
+      <br><br>
+      <pre><code>sealed class Shape {}
+
+      final class Circle extends Shape {
+        final double radius;
+        Circle(this.radius);
+      }
+
+      final class Rectangle extends Shape {
+        final double width, height;
+        Rectangle(this.width, this.height);
+      }
+
+      double area(Shape shape) {
+        return switch (shape) {
+          Circle(:var radius) => 3.14159 * radius * radius,
+          Rectangle(:var width, :var height) => width * height,
+        };
+      }</code></pre>
+      The <code>:var radius</code> syntax extracts the field into a local variable. No casting, no temporary variables.
+      <br><br>
+      <strong>Guards for additional conditions:</strong>
+      <br><br>
+      <pre><code>String describe(Shape shape) {
+        return switch (shape) {
+          Circle(radius: var r) when r > 100 => 'Large circle',
+          Circle(radius: var r) when r > 10 => 'Medium circle',
+          Circle() => 'Small circle',
+          Rectangle(width: var w, height: var h) when w == h => 'Square',
+          Rectangle() => 'Rectangle',
+        };
+      }</code></pre>
+      The <code>when</code> clause adds a guard. The case only matches if both the type matches and the guard is true.
+      <br><br>
+      <strong>Nested sealed hierarchies:</strong>
+      <br><br>
+      <pre><code>sealed class Event {}
+
+      sealed class UserEvent extends Event {}
+      final class UserLoggedIn extends UserEvent {
+        final String userId;
+        UserLoggedIn(this.userId);
+      }
+      final class UserLoggedOut extends UserEvent {}
+
+      sealed class SystemEvent extends Event {}
+      final class SystemStarted extends SystemEvent {}
+      final class SystemShutdown extends SystemEvent {}
+
+      void handleEvent(Event event) {
+        switch (event) {
+          case UserLoggedIn(:var userId):
+            print('User $userId logged in');
+          case UserLoggedOut():
+            print('User logged out');
+          case SystemStarted():
+            print('System started');
+          case SystemShutdown():
+            print('System shutting down');
+        }
+      }</code></pre>
+      The switch is exhaustive because it covers all leaf types in the hierarchy.
+
+  - id: real-world-examples
+    title: "Real-world examples"
+    summary: |
+      Let's see sealed classes in action with patterns from real Flutter apps.
+      <br><br>
+      <strong>Example 1: Navigation events</strong>
+      <br><br>
+      <pre><code>sealed class NavigationEvent {}
+
+      final class PushRoute extends NavigationEvent {
+        final String routeName;
+        final Object? arguments;
+        PushRoute(this.routeName, [this.arguments]);
+      }
+
+      final class PopRoute extends NavigationEvent {}
+
+      final class ReplaceRoute extends NavigationEvent {
+        final String routeName;
+        ReplaceRoute(this.routeName);
+      }
+
+      final class PopUntil extends NavigationEvent {
+        final bool Function(Route) predicate;
+        PopUntil(this.predicate);
+      }
+
+      void handleNavigation(NavigationEvent event, NavigatorState navigator) {
+        switch (event) {
+          case PushRoute(:var routeName, :var arguments):
+            navigator.pushNamed(routeName, arguments: arguments);
+          case PopRoute():
+            navigator.pop();
+          case ReplaceRoute(:var routeName):
+            navigator.pushReplacementNamed(routeName);
+          case PopUntil(:var predicate):
+            navigator.popUntil(predicate);
+        }
+      }</code></pre>
+      <strong>Example 2: Form validation</strong>
+      <br><br>
+      <pre><code>sealed class ValidationResult {}
+
+      final class Valid extends ValidationResult {}
+
+      final class Invalid extends ValidationResult {
+        final List&lt;String&gt; errors;
+        Invalid(this.errors);
+      }
+
+      ValidationResult validateEmail(String email) {
+        var errors = &lt;String&gt;[];
+        if (email.isEmpty) errors.add('Email is required');
+        if (!email.contains('@')) errors.add('Invalid email format');
+        return errors.isEmpty ? Valid() : Invalid(errors);
+      }
+
+      Widget buildEmailField(ValidationResult validation) {
+        return switch (validation) {
+          Valid() => TextField(decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              suffixIcon: Icon(Icons.check, color: Colors.green),
+            )),
+          Invalid(:var errors) => TextField(decoration: InputDecoration(
+              border: OutlineInputBorder(borderSide: BorderSide(color: Colors.red)),
+              errorText: errors.first,
+            )),
+        };
+      }</code></pre>
+      <strong>Example 3: API response handling</strong>
+      <br><br>
+      <pre><code>sealed class ApiResponse&lt;T&gt; {}
+
+      final class ApiSuccess&lt;T&gt; extends ApiResponse&lt;T&gt; {
+        final T data;
+        final int statusCode;
+        ApiSuccess(this.data, this.statusCode);
+      }
+
+      final class ApiError&lt;T&gt; extends ApiResponse&lt;T&gt; {
+        final String message;
+        final int? statusCode;
+        ApiError(this.message, [this.statusCode]);
+      }
+
+      final class ApiLoading&lt;T&gt; extends ApiResponse&lt;T&gt; {}
+
+      Future&lt;ApiResponse&lt;User&gt;&gt; fetchUser(String id) async {
+        try {
+          final response = await http.get(Uri.parse('/users/$id'));
+          if (response.statusCode == 200) {
+            return ApiSuccess(User.fromJson(response.body), 200);
+          }
+          return ApiError('Failed to load user', response.statusCode);
+        } catch (e) {
+          return ApiError(e.toString());
+        }
+      }</code></pre>
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-label="Sealed class use cases" style="max-width: 100%; height: auto;"><style>.sc4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sc4-title{font-size:16px;font-weight:600}.sc4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.sc4-label{font-size:12px;fill:#475569;font-weight:500}.sc4-note{font-size:10px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="sc4-t sc4-title">When to reach for sealed classes</text><rect x="30" y="55" width="200" height="80" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="130" y="85" text-anchor="middle" class="sc4-t sc4-label">State machines</text><text x="130" y="105" text-anchor="middle" class="sc4-t sc4-mn">Loading | Success | Error</text><text x="130" y="125" text-anchor="middle" class="sc4-t sc4-note">UI state, async operations</text><rect x="260" y="55" width="200" height="80" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="360" y="85" text-anchor="middle" class="sc4-t sc4-label">Result types</text><text x="360" y="105" text-anchor="middle" class="sc4-t sc4-mn">Ok | Err</text><text x="360" y="125" text-anchor="middle" class="sc4-t sc4-note">Explicit error handling</text><rect x="490" y="55" width="200" height="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/><text x="590" y="85" text-anchor="middle" class="sc4-t sc4-label">Commands/Events</text><text x="590" y="105" text-anchor="middle" class="sc4-t sc4-mn">Add | Remove | Update</text><text x="590" y="125" text-anchor="middle" class="sc4-t sc4-note">Event-driven architectures</text><rect x="145" y="155" width="200" height="80" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="245" y="185" text-anchor="middle" class="sc4-t sc4-label">Domain models</text><text x="245" y="205" text-anchor="middle" class="sc4-t sc4-mn">Circle | Rectangle | Triangle</text><text x="245" y="225" text-anchor="middle" class="sc4-t sc4-note">Fixed set of variants</text><rect x="375" y="155" width="200" height="80" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="8"/><text x="475" y="185" text-anchor="middle" class="sc4-t sc4-label">Validation</text><text x="475" y="205" text-anchor="middle" class="sc4-t sc4-mn">Valid | Invalid</text><text x="475" y="225" text-anchor="middle" class="sc4-t sc4-note">Form states, input checking</text></svg>
+      <br><br>
+      The pattern is always the same: a fixed set of possibilities, and a switch that handles each one. The compiler enforces completeness.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering sealed classes, exhaustive switching, and algebraic data types in Dart 3."
+  questions:
+    - question: "What problem do sealed classes solve that abstract classes cannot?"
+      options:
+        - "Sealed classes are faster at runtime"
+        - "Sealed classes enable exhaustive switch checking by guaranteeing all subtypes are known"
+        - "Sealed classes allow multiple inheritance"
+        - "Sealed classes can have constructors"
+      correctIndex: 1
+      explanation: "The key advantage of sealed classes is exhaustive switching. Because the compiler knows all possible subtypes (they must be in the same library), it can verify that a switch handles every case. Abstract classes allow subtypes anywhere, so the compiler can never prove a switch is complete."
+
+    - question: "Where must all direct subtypes of a sealed class be declared?"
+      options:
+        - "In any file that imports the sealed class"
+        - "In a separate 'subtypes' file"
+        - "In the same library as the sealed class"
+        - "Anywhere, as long as they use the 'sealed' keyword too"
+      correctIndex: 2
+      explanation: "All direct subtypes of a sealed class must be in the same library (typically the same file). This restriction is what allows the compiler to know the complete set of subtypes and enforce exhaustive switching."
+
+    - question: "Can you instantiate a sealed class directly?"
+      options:
+        - "Yes, like any other class"
+        - "No — sealed classes are implicitly abstract"
+        - "Only if it has a constructor"
+        - "Only inside the same library"
+      correctIndex: 1
+      explanation: "Sealed classes are implicitly abstract. You cannot write 'var x = MySealedClass()'. You can only instantiate the concrete subtypes. This makes sense because the sealed class represents 'one of these variants' — it's not a concrete thing itself."
+
+    - question: "What does the :var syntax do in a switch case like 'case Ok(:var value)'?"
+      options:
+        - "It declares a constant named value"
+        - "It creates a reference to the Ok class"
+        - "It destructures and extracts the 'value' field into a local variable"
+        - "It checks that value is not null"
+      correctIndex: 2
+      explanation: "The ':var value' syntax is destructuring. It extracts the 'value' field from the matched object and binds it to a local variable named 'value'. This avoids the need for casting or explicit field access."
+
+    - question: "What happens if you add a new subtype to a sealed class hierarchy?"
+      options:
+        - "Nothing — existing code continues to work"
+        - "All switches on that type become compile errors until updated"
+        - "A runtime exception is thrown"
+        - "The new subtype is ignored by the compiler"
+      correctIndex: 1
+      explanation: "When you add a new subtype to a sealed hierarchy, every switch that was exhaustive now becomes incomplete. The compiler reports errors at each location that needs to handle the new case. This is the main benefit — you can't forget to handle new variants."
+
+    - question: "Which class modifier prevents a class from being extended at all?"
+      options:
+        - "sealed"
+        - "abstract"
+        - "final"
+        - "base"
+      correctIndex: 2
+      explanation: "The 'final' modifier prevents any class from extending or implementing the class. Sealed allows extending but only in the same library. Abstract and base both allow extending. Use 'final' when a class is complete and should not have subtypes."
+
+    - question: "In the pattern 'Result<T>' with subtypes Ok and Err, what is this design pattern called?"
+      options:
+        - "Factory pattern"
+        - "Algebraic data type (sum type)"
+        - "Singleton pattern"
+        - "Strategy pattern"
+      correctIndex: 1
+      explanation: "This is an algebraic data type, specifically a sum type. A sum type is a type that can be one of several variants (Ok OR Err). Each variant can carry different data. Sealed classes in Dart implement sum types with compile-time exhaustiveness checking."
+---
+
+{/* Episode 3 of Dart: Modern Features. Sealed classes — exhaustive switching
+    and algebraic data types. Covers sealed syntax, exhaustive switch checking,
+    comparison with other class modifiers, common patterns (Result, Option, State),
+    and integration with Dart 3 pattern matching. 4 inline SVG diagrams. */}

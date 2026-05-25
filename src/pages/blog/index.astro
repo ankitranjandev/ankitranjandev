@@ -1,0 +1,52 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import TagPill from '@/components/TagPill.astro';
+import { sortByDate, filterDrafts, getUniqueTags } from '@/lib/utils';
+
+const allPosts = await getCollection('posts');
+const allNotes = await getCollection('notes');
+const posts = sortByDate(filterDrafts(allPosts));
+
+const tags = getUniqueTags(filterDrafts(allPosts), allNotes);
+---
+
+<BaseLayout
+  title="Blog"
+  description="Articles about Flutter development, mobile app architecture, and software engineering."
+>
+  <div class="content-grid py-12 md:py-16">
+    <header class="mb-10">
+      <h1 class="mb-4 text-3xl font-bold tracking-tight md:text-4xl">Blog</h1>
+      <p class="text-lg text-[var(--text-secondary)]">
+        Articles about Flutter, mobile development, and software engineering.
+      </p>
+    </header>
+
+    {tags.size > 0 && (
+      <div class="mb-10 flex flex-wrap gap-2">
+        {Array.from(tags.entries()).map(([tag, count]) => (
+          <TagPill tag={tag} count={count} linked />
+        ))}
+      </div>
+    )}
+
+    {posts.length > 0 ? (
+      <div class="grid gap-10">
+        {posts.map((post) => (
+          <PostCard
+            title={post.data.title}
+            description={post.data.description}
+            publishedAt={post.data.publishedAt}
+            tags={post.data.tags}
+            href={`/blog/${post.id}/`}
+            body={post.body}
+          />
+        ))}
+      </div>
+    ) : (
+      <p class="text-[var(--text-secondary)]">No posts yet.</p>
+    )}
+  </div>
+</BaseLayout>

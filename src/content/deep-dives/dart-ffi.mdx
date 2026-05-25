@@ -1,0 +1,453 @@
+---
+title: "Dart FFI — Calling Native Code and Breaking Out of the VM"
+description: "When Dart's sandbox isn't enough. How to call C libraries, allocate native memory, and bridge the gap between managed and unmanaged code."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: The Platform"
+order: 2
+publishedAt: 2026-05-24
+topics:
+  - id: why-ffi-exists
+    title: "Why FFI exists — when Dart isn't enough"
+    summary: |
+      Dart runs inside a virtual machine. The VM handles memory, checks types, and keeps us safe from the kind of bugs that crash airplanes. That's good. But sometimes we need to escape.
+      <br><br>
+      <strong>The four reasons to reach for FFI:</strong>
+      <br><br>
+      <strong>1. Existing C libraries.</strong> Decades of battle-tested code exists in C — compression (zlib), encryption (OpenSSL), image processing (libpng), databases (SQLite). Rewriting them in Dart would take years and introduce bugs. FFI lets us call them directly.
+      <br><br>
+      <strong>2. Performance-critical code.</strong> The Dart VM is fast, but C is faster. For tight loops processing millions of data points — audio DSP, physics simulations, machine learning inference — the overhead of garbage collection and bounds checking matters. Native code skips all of it.
+      <br><br>
+      <strong>3. Platform APIs.</strong> Operating systems expose their functionality through C. Want to read battery level on iOS, enumerate Bluetooth devices on Android, or call Windows system APIs? The OS speaks C. FFI translates.
+      <br><br>
+      <strong>4. Hardware access.</strong> Sensors, GPUs, USB devices — they all have C drivers. To talk to a barcode scanner or control a robotic arm, we go through native code.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Dart FFI bridge diagram" style="max-width: 100%; height: auto;"><defs><marker id="ffi1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.ffi1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi1-title{font-size:16px;font-weight:600}.ffi1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.ffi1-label{font-size:12px;fill:#64748b}.ffi1-head{font-size:14px;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="ffi1-t ffi1-title">The FFI bridge — managed to unmanaged</text><rect x="40" y="55" width="200" height="240" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="140" y="82" text-anchor="middle" class="ffi1-t ffi1-head" fill="#0175C2">Dart World</text><text x="140" y="105" text-anchor="middle" class="ffi1-t ffi1-label">(managed memory, type-safe)</text><rect x="60" y="125" width="160" height="40" fill="#fff" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="140" y="150" text-anchor="middle" class="ffi1-t ffi1-mn">Your Dart code</text><rect x="60" y="175" width="160" height="40" fill="#fff" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="140" y="200" text-anchor="middle" class="ffi1-t ffi1-mn">dart:ffi</text><rect x="60" y="225" width="160" height="50" fill="#e0f2fe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="140" y="248" text-anchor="middle" class="ffi1-t ffi1-mn">Pointer&lt;T&gt;</text><text x="140" y="265" text-anchor="middle" class="ffi1-t ffi1-label">NativeType wrappers</text><rect x="270" y="130" width="180" height="100" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="360" y="165" text-anchor="middle" class="ffi1-t ffi1-head" fill="#b45309">FFI Boundary</text><text x="360" y="190" text-anchor="middle" class="ffi1-t ffi1-label">Type marshalling</text><text x="360" y="210" text-anchor="middle" class="ffi1-t ffi1-label">Pointer conversion</text><line x1="220" y1="195" x2="270" y2="180" stroke="#475569" stroke-width="2" marker-end="url(#ffi1-arrow)"/><line x1="450" y1="180" x2="480" y2="195" stroke="#475569" stroke-width="2" marker-end="url(#ffi1-arrow)"/><rect x="480" y="55" width="200" height="240" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="8"/><text x="580" y="82" text-anchor="middle" class="ffi1-t ffi1-head" fill="#dc2626">Native World</text><text x="580" y="105" text-anchor="middle" class="ffi1-t ffi1-label">(raw memory, no safety net)</text><rect x="500" y="125" width="160" height="40" fill="#fff" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="580" y="150" text-anchor="middle" class="ffi1-t ffi1-mn">C library (.so/.dylib/.dll)</text><rect x="500" y="175" width="160" height="40" fill="#fff" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="580" y="200" text-anchor="middle" class="ffi1-t ffi1-mn">System APIs</text><rect x="500" y="225" width="160" height="50" fill="#fecaca" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="580" y="248" text-anchor="middle" class="ffi1-t ffi1-mn">Hardware drivers</text><text x="580" y="265" text-anchor="middle" class="ffi1-t ffi1-label">Raw pointers</text><text x="360" y="320" text-anchor="middle" class="ffi1-t" font-size="12" fill="#475569" font-style="italic">dart:ffi provides zero-copy interop — Dart and C share the same memory.</text></svg>
+      <br><br>
+      <strong>The trade-off.</strong> FFI gives us power, but it takes away safety. Inside the Dart VM, null pointer access throws an exception. In native code, it crashes the process. Memory leaks are impossible in pure Dart — the garbage collector handles everything. In FFI, we allocate and free manually. One mistake and we leak gigabytes.
+      <br><br>
+      <pre><code>// Pure Dart — safe, managed, automatic
+      var list = [1, 2, 3];   // GC will clean this up
+
+      // FFI — manual memory management, no safety net
+      final ptr = calloc&lt;Int32&gt;(3);   // we own this memory
+      // ... use it ...
+      calloc.free(ptr);                // forget this = memory leak</code></pre>
+      That's the deal. FFI lets us escape the sandbox, but we become responsible for everything the sandbox was protecting us from.
+
+  - id: loading-native-libraries
+    title: "Loading native libraries — DynamicLibrary and platform differences"
+    summary: |
+      Before we can call any C function, we need to load the library that contains it. The <code>DynamicLibrary</code> class handles this, but the file extension depends on the platform.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Library extensions by platform" style="max-width: 100%; height: auto;"><style>.ffi2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi2-title{font-size:16px;font-weight:600}.ffi2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px}.ffi2-label{font-size:12px;fill:#64748b}.ffi2-head{font-size:14px;font-weight:600}.ffi2-ext{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:18px;font-weight:700}</style><text x="360" y="26" text-anchor="middle" class="ffi2-t ffi2-title">Native library extensions by platform</text><rect x="40" y="55" width="200" height="110" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="140" y="85" text-anchor="middle" class="ffi2-t ffi2-head" fill="#0175C2">macOS / iOS</text><text x="140" y="120" text-anchor="middle" class="ffi2-t ffi2-ext" fill="#0175C2">.dylib</text><text x="140" y="148" text-anchor="middle" class="ffi2-t ffi2-label">libsqlite3.dylib</text><rect x="260" y="55" width="200" height="110" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="360" y="85" text-anchor="middle" class="ffi2-t ffi2-head" fill="#059669">Linux / Android</text><text x="360" y="120" text-anchor="middle" class="ffi2-t ffi2-ext" fill="#059669">.so</text><text x="360" y="148" text-anchor="middle" class="ffi2-t ffi2-label">libsqlite3.so</text><rect x="480" y="55" width="200" height="110" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="580" y="85" text-anchor="middle" class="ffi2-t ffi2-head" fill="#7e22ce">Windows</text><text x="580" y="120" text-anchor="middle" class="ffi2-t ffi2-ext" fill="#7e22ce">.dll</text><text x="580" y="148" text-anchor="middle" class="ffi2-t ffi2-label">sqlite3.dll</text><rect x="40" y="185" width="640" height="85" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="60" y="212" class="ffi2-t ffi2-mn">DynamicLibrary.open('libfoo.so')    // Linux</text><text x="60" y="235" class="ffi2-t ffi2-mn">DynamicLibrary.open('libfoo.dylib') // macOS</text><text x="60" y="258" class="ffi2-t ffi2-mn">DynamicLibrary.open('foo.dll')      // Windows (no 'lib' prefix)</text></svg>
+      <br><br>
+      <strong>Loading a library at runtime.</strong>
+      <br><br>
+      <pre><code>import 'dart:ffi';
+      import 'dart:io' show Platform;
+
+      DynamicLibrary loadLibrary() {
+        if (Platform.isMacOS || Platform.isIOS) {
+          return DynamicLibrary.open('libsqlite3.dylib');
+        } else if (Platform.isAndroid || Platform.isLinux) {
+          return DynamicLibrary.open('libsqlite3.so');
+        } else if (Platform.isWindows) {
+          return DynamicLibrary.open('sqlite3.dll');
+        }
+        throw UnsupportedError('Unsupported platform');
+      }
+
+      void main() {
+        final lib = loadLibrary();
+        print('Library loaded: $lib');
+      }</code></pre>
+      <strong>DynamicLibrary.process()</strong> gives access to symbols already loaded in the current process — useful for system libraries that are linked at compile time.
+      <br><br>
+      <strong>DynamicLibrary.executable()</strong> returns symbols from the main executable itself — used when native code is statically linked into the app.
+      <br><br>
+      <strong>Bundling with Flutter.</strong> For Flutter apps, native libraries go in specific directories per platform:
+      <br><br>
+      <pre><code>// iOS: ios/Frameworks/libfoo.framework
+      // Android: android/app/src/main/jniLibs/&lt;arch&gt;/libfoo.so
+      // macOS: macos/Frameworks/libfoo.dylib
+      // Linux: linux/libs/libfoo.so
+      // Windows: windows/libs/foo.dll</code></pre>
+      <strong>Common errors.</strong> The most frequent mistake is a path issue. <code>DynamicLibrary.open()</code> throws <code>ArgumentError</code> if the library isn't found. On Android, the path must be just the filename — Android's linker searches the right directories. On desktop, we often need an absolute path or to place the library in the working directory.
+      <br><br>
+      <pre><code>// Wrong on Android — full paths don't work
+      DynamicLibrary.open('/data/app/libfoo.so');  // fails
+
+      // Right on Android — just the filename
+      DynamicLibrary.open('libfoo.so');  // linker finds it
+
+      // Desktop — relative to working directory, or absolute path
+      DynamicLibrary.open('./libs/libfoo.so');</code></pre>
+
+  - id: pointers-and-memory
+    title: "Pointers and memory — the heart of FFI"
+    summary: |
+      In Dart, we never think about memory addresses. The VM handles allocation, moves objects around during GC, and cleans up when we're done. In FFI land, we work with raw pointers — fixed addresses in memory that don't move and don't get cleaned up automatically.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Pointer and memory layout" style="max-width: 100%; height: auto;"><style>.ffi3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi3-title{font-size:16px;font-weight:600}.ffi3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.ffi3-label{font-size:11px;fill:#64748b}.ffi3-addr{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:10px;fill:#94a3b8}.ffi3-head{font-size:13px;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="ffi3-t ffi3-title">Pointer&lt;Int32&gt; — a raw memory address</text><rect x="40" y="55" width="180" height="100" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="130" y="82" text-anchor="middle" class="ffi3-t ffi3-head" fill="#0175C2">Dart side</text><rect x="60" y="100" width="140" height="40" fill="#fff" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="130" y="118" text-anchor="middle" class="ffi3-t ffi3-mn">Pointer&lt;Int32&gt;</text><text x="130" y="132" text-anchor="middle" class="ffi3-t ffi3-label">ptr.address = 0x7fff5678</text><line x1="200" y1="120" x2="260" y2="120" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/><text x="230" y="110" text-anchor="middle" class="ffi3-t ffi3-label" font-size="10">points to</text><rect x="260" y="55" width="420" height="130" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="470" y="78" text-anchor="middle" class="ffi3-t ffi3-head">Native memory (heap)</text><g transform="translate(280, 95)"><rect x="0" y="0" width="60" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/><text x="30" y="20" text-anchor="middle" class="ffi3-t ffi3-mn">42</text><text x="30" y="42" text-anchor="middle" class="ffi3-t ffi3-addr">0x7fff5678</text><rect x="60" y="0" width="60" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="90" y="20" text-anchor="middle" class="ffi3-t ffi3-mn">100</text><text x="90" y="42" text-anchor="middle" class="ffi3-t ffi3-addr">0x7fff567C</text><rect x="120" y="0" width="60" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="150" y="20" text-anchor="middle" class="ffi3-t ffi3-mn">-7</text><text x="150" y="42" text-anchor="middle" class="ffi3-t ffi3-addr">0x7fff5680</text><rect x="180" y="0" width="60" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="210" y="20" text-anchor="middle" class="ffi3-t ffi3-mn">255</text><text x="210" y="42" text-anchor="middle" class="ffi3-t ffi3-addr">0x7fff5684</text><rect x="240" y="0" width="60" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2"/><text x="270" y="28" text-anchor="middle" class="ffi3-t ffi3-label">...</text><rect x="300" y="0" width="60" height="50" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2"/><text x="330" y="28" text-anchor="middle" class="ffi3-t ffi3-label">...</text></g><text x="470" y="168" text-anchor="middle" class="ffi3-t ffi3-label">4 bytes per Int32, contiguous in memory</text><rect x="40" y="205" width="320" height="145" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="200" y="228" text-anchor="middle" class="ffi3-t ffi3-head">Allocating memory</text><text x="60" y="255" class="ffi3-t ffi3-mn">final ptr = calloc&lt;Int32&gt;(4);</text><text x="60" y="278" class="ffi3-t ffi3-label">// allocates 4 Int32s (16 bytes), zeroed</text><text x="60" y="305" class="ffi3-t ffi3-mn">ptr[0] = 42;   // write to first slot</text><text x="60" y="328" class="ffi3-t ffi3-mn">ptr[2] = -7;   // write to third slot</text><rect x="380" y="205" width="300" height="145" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="530" y="228" text-anchor="middle" class="ffi3-t ffi3-head" fill="#dc2626">Freeing memory (required!)</text><text x="400" y="255" class="ffi3-t ffi3-mn">calloc.free(ptr);</text><text x="400" y="278" class="ffi3-t ffi3-label">// Must call this when done</text><text x="400" y="305" class="ffi3-t ffi3-label">// Forget = memory leak</text><text x="400" y="328" class="ffi3-t ffi3-label">// Use after free = crash</text></svg>
+      <br><br>
+      <strong>Pointer&lt;T&gt;</strong> is the core type. The type parameter tells us what's at that address.
+      <br><br>
+      <pre><code>import 'dart:ffi';
+      import 'package:ffi/ffi.dart';  // for calloc/malloc
+
+      void main() {
+        // Allocate space for one Int32
+        final ptr = calloc&lt;Int32&gt;();
+        ptr.value = 42;
+        print(ptr.value);  // 42
+        print(ptr.address); // something like 140732920829952
+
+        // Allocate an array of 10 Int32s
+        final array = calloc&lt;Int32&gt;(10);
+        array[0] = 100;
+        array[9] = 999;
+
+        // Don't forget to free!
+        calloc.free(ptr);
+        calloc.free(array);
+      }</code></pre>
+      <strong>calloc vs malloc.</strong> Both allocate memory. <code>calloc</code> zeroes the memory first; <code>malloc</code> leaves it uninitialised (faster, but we must write before reading). Both come from <code>package:ffi</code>.
+      <br><br>
+      <strong>nullptr — the null pointer.</strong> In C, null is just the address 0. Dart FFI represents this with <code>nullptr</code>. Dereferencing it crashes.
+      <br><br>
+      <pre><code>Pointer&lt;Int32&gt; ptr = nullptr;
+      print(ptr.address);  // 0
+      // ptr.value;  // CRASH — null pointer dereference</code></pre>
+      <strong>Pointer arithmetic.</strong> We can move a pointer forward or backward with <code>elementAt()</code> or array indexing.
+      <br><br>
+      <pre><code>final array = calloc&lt;Int32&gt;(5);
+      final third = array.elementAt(2);  // pointer to array[2]
+      third.value = 777;
+      print(array[2]);  // 777</code></pre>
+      <strong>The Arena pattern — automatic cleanup.</strong> Manual free calls are error-prone. The <code>Arena</code> allocator collects all allocations and frees them at once when we're done.
+      <br><br>
+      <pre><code>import 'package:ffi/ffi.dart';
+
+      void processData() {
+        using((Arena arena) {
+          final buffer = arena&lt;Uint8&gt;(1024);
+          final name = arena&lt;Utf8&gt;();
+          // ... use buffer and name ...
+          // No need to free — Arena handles it when the block exits
+        });
+      }</code></pre>
+
+  - id: native-types-and-marshalling
+    title: "Native types and marshalling — bridging two type systems"
+    summary: |
+      Dart and C have different type systems. An <code>int</code> in Dart is arbitrary precision (on the VM). An <code>int</code> in C is usually 32 bits. FFI bridges this with <code>NativeType</code> — a hierarchy of classes that mirror C's primitive types.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="Native type mapping table" style="max-width: 100%; height: auto;"><style>.ffi4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi4-title{font-size:16px;font-weight:600}.ffi4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.ffi4-hdr{font-size:13px;font-weight:700}.ffi4-cell{font-size:12px;fill:#1e293b}</style><text x="360" y="26" text-anchor="middle" class="ffi4-t ffi4-title">NativeType — mapping C types to Dart</text><rect x="20" y="50" width="170" height="40" fill="#f1f5f9" stroke="#cbd5e1"/><text x="105" y="75" text-anchor="middle" class="ffi4-t ffi4-hdr">C type</text><rect x="190" y="50" width="170" height="40" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="275" y="75" text-anchor="middle" class="ffi4-t ffi4-hdr" fill="#0175C2">dart:ffi NativeType</text><rect x="360" y="50" width="170" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="445" y="75" text-anchor="middle" class="ffi4-t ffi4-hdr" fill="#059669">Dart equivalent</text><rect x="530" y="50" width="170" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="615" y="75" text-anchor="middle" class="ffi4-t ffi4-hdr" fill="#b45309">Size</text><rect x="20" y="90" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="113" text-anchor="middle" class="ffi4-t ffi4-mn">int8_t / char</text><rect x="190" y="90" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="113" text-anchor="middle" class="ffi4-t ffi4-mn">Int8</text><rect x="360" y="90" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="113" text-anchor="middle" class="ffi4-t ffi4-mn">int</text><rect x="530" y="90" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="113" text-anchor="middle" class="ffi4-t ffi4-cell">1 byte</text><rect x="20" y="125" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="148" text-anchor="middle" class="ffi4-t ffi4-mn">int16_t / short</text><rect x="190" y="125" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="148" text-anchor="middle" class="ffi4-t ffi4-mn">Int16</text><rect x="360" y="125" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="148" text-anchor="middle" class="ffi4-t ffi4-mn">int</text><rect x="530" y="125" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="148" text-anchor="middle" class="ffi4-t ffi4-cell">2 bytes</text><rect x="20" y="160" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="183" text-anchor="middle" class="ffi4-t ffi4-mn">int32_t / int</text><rect x="190" y="160" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="183" text-anchor="middle" class="ffi4-t ffi4-mn">Int32</text><rect x="360" y="160" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="183" text-anchor="middle" class="ffi4-t ffi4-mn">int</text><rect x="530" y="160" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="183" text-anchor="middle" class="ffi4-t ffi4-cell">4 bytes</text><rect x="20" y="195" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="218" text-anchor="middle" class="ffi4-t ffi4-mn">int64_t / long long</text><rect x="190" y="195" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="218" text-anchor="middle" class="ffi4-t ffi4-mn">Int64</text><rect x="360" y="195" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="218" text-anchor="middle" class="ffi4-t ffi4-mn">int</text><rect x="530" y="195" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="218" text-anchor="middle" class="ffi4-t ffi4-cell">8 bytes</text><rect x="20" y="230" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="253" text-anchor="middle" class="ffi4-t ffi4-mn">float</text><rect x="190" y="230" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="253" text-anchor="middle" class="ffi4-t ffi4-mn">Float</text><rect x="360" y="230" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="253" text-anchor="middle" class="ffi4-t ffi4-mn">double</text><rect x="530" y="230" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="253" text-anchor="middle" class="ffi4-t ffi4-cell">4 bytes</text><rect x="20" y="265" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="288" text-anchor="middle" class="ffi4-t ffi4-mn">double</text><rect x="190" y="265" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="288" text-anchor="middle" class="ffi4-t ffi4-mn">Double</text><rect x="360" y="265" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="288" text-anchor="middle" class="ffi4-t ffi4-mn">double</text><rect x="530" y="265" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="288" text-anchor="middle" class="ffi4-t ffi4-cell">8 bytes</text><rect x="20" y="300" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="323" text-anchor="middle" class="ffi4-t ffi4-mn">void*</text><rect x="190" y="300" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="323" text-anchor="middle" class="ffi4-t ffi4-mn">Pointer&lt;Void&gt;</text><rect x="360" y="300" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="323" text-anchor="middle" class="ffi4-t ffi4-mn">Pointer&lt;Void&gt;</text><rect x="530" y="300" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="323" text-anchor="middle" class="ffi4-t ffi4-cell">platform word</text><rect x="20" y="335" width="170" height="35" fill="#fff" stroke="#cbd5e1"/><text x="105" y="358" text-anchor="middle" class="ffi4-t ffi4-mn">char* (string)</text><rect x="190" y="335" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="275" y="358" text-anchor="middle" class="ffi4-t ffi4-mn">Pointer&lt;Utf8&gt;</text><rect x="360" y="335" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="358" text-anchor="middle" class="ffi4-t ffi4-mn">String (convert)</text><rect x="530" y="335" width="170" height="35" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="358" text-anchor="middle" class="ffi4-t ffi4-cell">null-terminated</text><text x="360" y="400" text-anchor="middle" class="ffi4-t" font-size="12" fill="#475569" font-style="italic">NativeType is only used in type annotations — we never instantiate these classes directly.</text></svg>
+      <br><br>
+      <strong>The key insight:</strong> <code>NativeType</code> classes (<code>Int32</code>, <code>Double</code>, etc.) are compile-time markers. We don't create instances of them. We use them as type parameters: <code>Pointer&lt;Int32&gt;</code>, <code>Pointer&lt;Double&gt;</code>.
+      <br><br>
+      <strong>Strings require conversion.</strong> Dart strings are UTF-16 internally. C strings are typically UTF-8, null-terminated. The <code>package:ffi</code> helpers handle conversion.
+      <br><br>
+      <pre><code>import 'package:ffi/ffi.dart';
+
+      // Dart String → Native UTF-8
+      final nativeString = 'Hello, FFI!'.toNativeUtf8();
+      print(nativeString.address);  // raw pointer address
+
+      // Native UTF-8 → Dart String
+      String dartString = nativeString.toDartString();
+      print(dartString);  // 'Hello, FFI!'
+
+      // Don't forget to free the allocated memory
+      calloc.free(nativeString);</code></pre>
+      <strong>Arrays.</strong> C arrays are just contiguous memory. We access them through pointer indexing.
+      <br><br>
+      <pre><code>final arr = calloc&lt;Float&gt;(100);
+      for (var i = 0; i &lt; 100; i++) {
+        arr[i] = i * 1.5;
+      }
+      print(arr[50]);  // 75.0
+      calloc.free(arr);</code></pre>
+      <strong>Unsigned types.</strong> For unsigned integers, use <code>Uint8</code>, <code>Uint16</code>, <code>Uint32</code>, <code>Uint64</code>. Dart's <code>int</code> is signed, so values get reinterpreted as unsigned when crossing the boundary.
+
+  - id: calling-c-functions
+    title: "Calling C functions — lookupFunction and signatures"
+    summary: |
+      We've loaded the library and understand the types. Now we call functions. The key method is <code>lookupFunction</code>, and it has two type parameters that often confuse newcomers.
+      <br><br>
+      <pre><code>// C function we want to call:
+      // int add(int a, int b);
+
+      // In Dart:
+      import 'dart:ffi';
+
+      // 1. Native signature — how C sees it
+      typedef AddNative = Int32 Function(Int32 a, Int32 b);
+
+      // 2. Dart signature — how Dart sees it
+      typedef AddDart = int Function(int a, int b);
+
+      void main() {
+        final lib = DynamicLibrary.open('libmath.so');
+
+        // Look up the function, casting between signatures
+        final add = lib.lookupFunction&lt;AddNative, AddDart&gt;('add');
+
+        // Now call it like a normal Dart function
+        print(add(40, 2));  // 42
+      }</code></pre>
+      <strong>Why two type parameters?</strong> The native signature uses FFI types (<code>Int32</code>, <code>Float</code>, <code>Pointer</code>) — these describe the C ABI. The Dart signature uses Dart types (<code>int</code>, <code>double</code>, <code>Pointer</code>) — these are what we actually work with in Dart code. The two must match in structure, but use different type vocabularies.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="lookupFunction type parameters" style="max-width: 100%; height: auto;"><defs><marker id="ffi5-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.ffi5-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi5-title{font-size:16px;font-weight:600}.ffi5-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.ffi5-label{font-size:11px;fill:#64748b}.ffi5-head{font-size:13px;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="ffi5-t ffi5-title">lookupFunction&lt;NativeSignature, DartSignature&gt;</text><rect x="40" y="55" width="300" height="90" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="190" y="78" text-anchor="middle" class="ffi5-t ffi5-head" fill="#dc2626">Native Signature (C ABI)</text><text x="190" y="105" text-anchor="middle" class="ffi5-t ffi5-mn">Int32 Function(Int32 a, Int32 b)</text><text x="190" y="130" text-anchor="middle" class="ffi5-t ffi5-label">Uses NativeType: Int32, Float, Pointer&lt;X&gt;</text><rect x="380" y="55" width="300" height="90" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="530" y="78" text-anchor="middle" class="ffi5-t ffi5-head" fill="#0175C2">Dart Signature (Dart types)</text><text x="530" y="105" text-anchor="middle" class="ffi5-t ffi5-mn">int Function(int a, int b)</text><text x="530" y="130" text-anchor="middle" class="ffi5-t ffi5-label">Uses Dart types: int, double, Pointer&lt;X&gt;</text><line x1="340" y1="100" x2="380" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#ffi5-arrow)"/><text x="360" y="90" text-anchor="middle" class="ffi5-t ffi5-label">maps to</text><rect x="120" y="170" width="480" height="80" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="360" y="195" text-anchor="middle" class="ffi5-t ffi5-mn">final add = lib.lookupFunction&lt;AddNative, AddDart&gt;('add');</text><text x="360" y="225" text-anchor="middle" class="ffi5-t ffi5-label">Returns a callable Dart function that invokes the native code</text></svg>
+      <br><br>
+      <strong>Calling functions that take pointers.</strong> Many C APIs pass data through pointers. We allocate memory, pass the pointer, and read the result.
+      <br><br>
+      <pre><code>// C: void get_version(int* major, int* minor);
+      typedef GetVersionNative = Void Function(Pointer&lt;Int32&gt;, Pointer&lt;Int32&gt;);
+      typedef GetVersionDart = void Function(Pointer&lt;Int32&gt;, Pointer&lt;Int32&gt;);
+
+      void main() {
+        final lib = DynamicLibrary.open('libfoo.so');
+        final getVersion = lib.lookupFunction&lt;GetVersionNative, GetVersionDart&gt;('get_version');
+
+        // Allocate two integers to receive the output
+        final major = calloc&lt;Int32&gt;();
+        final minor = calloc&lt;Int32&gt;();
+
+        getVersion(major, minor);
+        print('Version: ${major.value}.${minor.value}');
+
+        calloc.free(major);
+        calloc.free(minor);
+      }</code></pre>
+      <strong>Error handling from C.</strong> C functions often return error codes. We check them and throw Dart exceptions.
+      <br><br>
+      <pre><code>// C: int open_file(const char* path);  // returns -1 on error
+      final result = openFile(path);
+      if (result &lt; 0) {
+        throw FileSystemException('Failed to open file');
+      }</code></pre>
+      <strong>Variadic functions.</strong> C's variadic functions (<code>printf</code>, etc.) require special handling — they need <code>@FfiNative</code> annotations or generated bindings. Manual FFI can't handle them directly because the ABI varies by argument count.
+
+  - id: callbacks-from-c
+    title: "Callbacks — when C calls Dart"
+    summary: |
+      Sometimes the data flows the other way. A C library calls our Dart code — for progress updates, event notifications, or custom comparison functions. This is where callbacks come in.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Callback flow diagram" style="max-width: 100%; height: auto;"><defs><marker id="ffi6-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.ffi6-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi6-title{font-size:16px;font-weight:600}.ffi6-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.ffi6-label{font-size:11px;fill:#64748b}.ffi6-head{font-size:13px;font-weight:600}.ffi6-step{font-size:12px;font-weight:600;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="ffi6-t ffi6-title">Callback flow — C calling Dart</text><rect x="40" y="55" width="180" height="80" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="130" y="82" text-anchor="middle" class="ffi6-t ffi6-head" fill="#0175C2">Dart function</text><text x="130" y="105" text-anchor="middle" class="ffi6-t ffi6-mn">void onProgress(int pct)</text><text x="130" y="125" text-anchor="middle" class="ffi6-t ffi6-label">{ print('$pct%'); }</text><line x1="220" y1="95" x2="280" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#ffi6-arrow)"/><text x="250" y="85" text-anchor="middle" class="ffi6-t ffi6-step">1. wrap</text><rect x="280" y="55" width="180" height="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="370" y="82" text-anchor="middle" class="ffi6-t ffi6-head" fill="#b45309">NativeCallable</text><text x="370" y="105" text-anchor="middle" class="ffi6-t ffi6-mn">.isolateLocal()</text><text x="370" y="125" text-anchor="middle" class="ffi6-t ffi6-label">Pointer to trampoline</text><line x1="460" y1="95" x2="520" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#ffi6-arrow)"/><text x="490" y="85" text-anchor="middle" class="ffi6-t ffi6-step">2. pass</text><rect x="520" y="55" width="160" height="80" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="600" y="82" text-anchor="middle" class="ffi6-t ffi6-head" fill="#dc2626">C library</text><text x="600" y="105" text-anchor="middle" class="ffi6-t ffi6-mn">doWork(callback)</text><text x="600" y="125" text-anchor="middle" class="ffi6-t ffi6-label">stores the pointer</text><line x1="600" y1="135" x2="600" y2="175" stroke="#475569" stroke-width="2" marker-end="url(#ffi6-arrow)"/><text x="615" y="160" class="ffi6-t ffi6-step">3. call</text><rect x="520" y="175" width="160" height="60" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="600" y="202" text-anchor="middle" class="ffi6-t ffi6-mn">callback(50)</text><text x="600" y="222" text-anchor="middle" class="ffi6-t ffi6-label">invokes trampoline</text><line x1="520" y1="205" x2="220" y2="205" stroke="#10b981" stroke-width="2" marker-end="url(#ffi6-arrow)"/><text x="370" y="195" text-anchor="middle" class="ffi6-t ffi6-step" fill="#059669">4. executes Dart code</text><rect x="40" y="175" width="180" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="130" y="202" text-anchor="middle" class="ffi6-t ffi6-mn">onProgress(50)</text><text x="130" y="222" text-anchor="middle" class="ffi6-t ffi6-label">prints "50%"</text><text x="360" y="275" text-anchor="middle" class="ffi6-t" font-size="12" fill="#475569" font-style="italic">The NativeCallable wraps the Dart function in a native-callable trampoline.</text></svg>
+      <br><br>
+      <strong>NativeCallable</strong> creates a native function pointer that, when called from C, invokes a Dart function.
+      <br><br>
+      <pre><code>import 'dart:ffi';
+
+      // The C function type for our callback
+      typedef ProgressCallback = Void Function(Int32 percent);
+
+      // The Dart function we want C to call
+      void onProgress(int percent) {
+        print('Progress: $percent%');
+      }
+
+      void main() {
+        // Wrap the Dart function as a native callable
+        final callback = NativeCallable&lt;ProgressCallback&gt;.isolateLocal(
+          onProgress,
+        );
+
+        // Get the pointer to pass to C
+        final ptr = callback.nativeFunction;
+
+        // Pass ptr to the C library...
+        // When C calls ptr(50), onProgress(50) runs in Dart
+
+        // When done, close the callable to free resources
+        callback.close();
+      }</code></pre>
+      <strong>isolateLocal vs listener.</strong> <code>NativeCallable.isolateLocal</code> creates a callback that must be called from the same isolate. <code>NativeCallable.listener</code> creates one that can be called from any thread — the call gets queued to the isolate's event loop.
+      <br><br>
+      <strong>The closure limitation.</strong> Callbacks passed to C cannot be closures that capture local variables. The underlying mechanism doesn't support carrying extra state. If we need state, we must use a global or static variable, or pass user data through a <code>void*</code> parameter that C passes back to us.
+      <br><br>
+      <pre><code>// This won't work — captures 'prefix'
+      // void logWithPrefix(String prefix) {
+      //   final callback = NativeCallable&lt;...&gt;.isolateLocal(
+      //     (int n) => print('$prefix: $n'),  // closure!
+      //   );
+      // }
+
+      // Instead, use a top-level or static function
+      void onEvent(int code) {
+        print('Event: $code');
+      }
+
+      final callback = NativeCallable&lt;...&gt;.isolateLocal(onEvent);</code></pre>
+      <strong>Pointer.fromFunction — the older approach.</strong> Before <code>NativeCallable</code>, we used <code>Pointer.fromFunction</code>. It still works but has limitations: the function must be a top-level or static function (not a lambda), and we must provide an <code>exceptionalReturn</code> value for error cases.
+      <br><br>
+      <pre><code>static int compare(int a, int b) => a - b;
+
+      void main() {
+        // exceptionalReturn is returned if the Dart code throws
+        final ptr = Pointer.fromFunction&lt;Int32 Function(Int32, Int32)&gt;(
+          compare,
+          0,  // exceptionalReturn value
+        );
+      }</code></pre>
+
+  - id: structs-and-complex-types
+    title: "Structs — complex data across the boundary"
+    summary: |
+      Real C APIs don't just pass integers. They pass structs — compound types with multiple fields. Dart FFI supports these through the <code>Struct</code> base class.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Struct memory layout" style="max-width: 100%; height: auto;"><style>.ffi7-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ffi7-title{font-size:16px;font-weight:600}.ffi7-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.ffi7-label{font-size:11px;fill:#64748b}.ffi7-head{font-size:13px;font-weight:600}.ffi7-offset{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:9px;fill:#94a3b8}</style><text x="360" y="26" text-anchor="middle" class="ffi7-t ffi7-title">Struct memory layout — Point and Rect</text><rect x="40" y="55" width="300" height="130" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="60" y="80" class="ffi7-t ffi7-head">C struct:</text><text x="60" y="105" class="ffi7-t ffi7-mn">typedef struct {</text><text x="80" y="125" class="ffi7-t ffi7-mn">double x;</text><text x="80" y="145" class="ffi7-t ffi7-mn">double y;</text><text x="60" y="165" class="ffi7-t ffi7-mn">} Point;</text><rect x="380" y="55" width="300" height="130" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="6"/><text x="400" y="80" class="ffi7-t ffi7-head" fill="#0175C2">Dart equivalent:</text><text x="400" y="105" class="ffi7-t ffi7-mn">final class Point extends Struct {</text><text x="420" y="125" class="ffi7-t ffi7-mn">@Double()</text><text x="420" y="145" class="ffi7-t ffi7-mn">external double x;</text><text x="420" y="165" class="ffi7-t ffi7-mn">@Double()</text><text x="400" y="178" class="ffi7-t ffi7-mn">  external double y;</text><text x="400" y="178" class="ffi7-t ffi7-mn">}</text><text x="360" y="220" text-anchor="middle" class="ffi7-t ffi7-head">Memory layout (16 bytes total):</text><g transform="translate(120, 240)"><rect x="0" y="0" width="120" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/><text x="60" y="22" text-anchor="middle" class="ffi7-t ffi7-mn">x: 3.14159</text><text x="60" y="38" text-anchor="middle" class="ffi7-t ffi7-label">8 bytes (Double)</text><text x="0" y="62" class="ffi7-t ffi7-offset">offset 0</text><rect x="120" y="0" width="120" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="180" y="22" text-anchor="middle" class="ffi7-t ffi7-mn">y: 2.71828</text><text x="180" y="38" text-anchor="middle" class="ffi7-t ffi7-label">8 bytes (Double)</text><text x="120" y="62" class="ffi7-t ffi7-offset">offset 8</text><rect x="240" y="0" width="120" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/><text x="300" y="28" text-anchor="middle" class="ffi7-t ffi7-label">next struct or</text><text x="300" y="44" text-anchor="middle" class="ffi7-t ffi7-label">padding</text><text x="240" y="62" class="ffi7-t ffi7-offset">offset 16</text></g></svg>
+      <br><br>
+      <strong>Defining a struct in Dart.</strong>
+      <br><br>
+      <pre><code>import 'dart:ffi';
+
+      final class Point extends Struct {
+        @Double()
+        external double x;
+
+        @Double()
+        external double y;
+      }
+
+      void main() {
+        // Allocate a Point
+        final p = calloc&lt;Point&gt;();
+        p.ref.x = 3.14;
+        p.ref.y = 2.71;
+
+        print('Point: (${p.ref.x}, ${p.ref.y})');
+
+        calloc.free(p);
+      }</code></pre>
+      <strong>Key rules for structs:</strong>
+      <br>• The class must be <code>final</code> and extend <code>Struct</code>
+      <br>• Fields must be <code>external</code> — they're backed by native memory
+      <br>• Each field needs a type annotation: <code>@Int32()</code>, <code>@Double()</code>, <code>@Pointer()</code>, etc.
+      <br>• Use <code>.ref</code> to access the struct through a pointer
+      <br><br>
+      <strong>Nested structs.</strong> Structs can contain other structs.
+      <br><br>
+      <pre><code>final class Rect extends Struct {
+        external Point topLeft;
+        external Point bottomRight;
+      }
+
+      void main() {
+        final rect = calloc&lt;Rect&gt;();
+        rect.ref.topLeft.x = 0;
+        rect.ref.topLeft.y = 0;
+        rect.ref.bottomRight.x = 100;
+        rect.ref.bottomRight.y = 50;
+
+        calloc.free(rect);
+      }</code></pre>
+      <strong>Passing structs by value vs by pointer.</strong> Some C functions take structs by value (the whole struct is copied onto the stack). Others take pointers. FFI supports both.
+      <br><br>
+      <pre><code>// C: double distance(Point a, Point b);  // by value
+      typedef DistanceNative = Double Function(Point a, Point b);
+      typedef DistanceDart = double Function(Point a, Point b);
+
+      // C: void scale(Point* p, double factor);  // by pointer
+      typedef ScaleNative = Void Function(Pointer&lt;Point&gt;, Double);
+      typedef ScaleDart = void Function(Pointer&lt;Point&gt;, double);</code></pre>
+      <strong>Arrays in structs.</strong> Fixed-size arrays use the <code>@Array</code> annotation.
+      <br><br>
+      <pre><code>final class Matrix3x3 extends Struct {
+        @Array(9)
+        external Array&lt;Float&gt; values;
+      }
+
+      void main() {
+        final m = calloc&lt;Matrix3x3&gt;();
+        m.ref.values[0] = 1.0;  // identity diagonal
+        m.ref.values[4] = 1.0;
+        m.ref.values[8] = 1.0;
+        calloc.free(m);
+      }</code></pre>
+      <strong>Packed structs.</strong> Some C structs use <code>#pragma pack</code> to remove padding. Dart supports this with <code>@Packed</code>.
+      <br><br>
+      <pre><code>@Packed(1)  // no padding between fields
+      final class CompactData extends Struct {
+        @Uint8()
+        external int flags;
+
+        @Uint32()
+        external int value;
+      }
+      // Total size: 5 bytes (not 8 with default alignment)</code></pre>
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering Dart FFI — from loading libraries to calling native code and managing memory."
+  questions:
+    - question: "What is the primary purpose of Dart FFI?"
+      options:
+        - "To make Dart code run faster by compiling to machine code"
+        - "To call native C libraries and access system APIs from Dart"
+        - "To convert Dart code to JavaScript for web deployment"
+        - "To enable multithreading in Dart applications"
+      correctIndex: 1
+      explanation: "FFI (Foreign Function Interface) enables Dart to call native C code directly. This allows using existing C libraries (like SQLite, OpenSSL), accessing platform APIs, calling hardware drivers, and running performance-critical code. FFI bridges the managed Dart world with the unmanaged native world."
+
+    - question: "What must we do with memory allocated using calloc in FFI?"
+      options:
+        - "Nothing — Dart's garbage collector handles it automatically"
+        - "Call calloc.free() when done, or the memory leaks"
+        - "Set the pointer to null to trigger collection"
+        - "Wait for the isolate to exit"
+      correctIndex: 1
+      explanation: "Memory allocated through FFI (calloc, malloc) is NOT managed by Dart's garbage collector. We must manually free it with calloc.free() or malloc.free(). Forgetting to free causes memory leaks. Using memory after freeing causes crashes. The Arena pattern helps manage this by freeing all allocations at once."
+
+    - question: "Why does lookupFunction have two type parameters?"
+      options:
+        - "One for the library name and one for the function name"
+        - "One for the native signature (C types) and one for the Dart signature (Dart types)"
+        - "One for input types and one for output types"
+        - "One for debug builds and one for release builds"
+      correctIndex: 1
+      explanation: "lookupFunction<NativeSignature, DartSignature>() needs two type parameters because C and Dart use different type systems. The native signature uses FFI types (Int32, Float, Pointer) that describe the C ABI. The Dart signature uses Dart types (int, double, Pointer) that we work with in code. The two must match structurally but use their respective type vocabularies."
+
+    - question: "What is the correct native library extension for Linux and Android?"
+      options:
+        - ".dll"
+        - ".dylib"
+        - ".so"
+        - ".lib"
+      correctIndex: 2
+      explanation: "Linux and Android use .so (shared object) files. macOS and iOS use .dylib (dynamic library). Windows uses .dll (dynamic link library). When loading libraries with DynamicLibrary.open(), we must use the correct extension for the current platform, typically with Platform checks."
+
+    - question: "How do we pass a Dart function as a callback to C code?"
+      options:
+        - "Pass the function directly — FFI handles conversion automatically"
+        - "Use NativeCallable to wrap the Dart function and get a native pointer"
+        - "Convert the function to a string and pass the name"
+        - "Callbacks from C to Dart are not supported"
+      correctIndex: 1
+      explanation: "NativeCallable wraps a Dart function to create a native-callable trampoline. We call NativeCallable.isolateLocal() or NativeCallable.listener() with the Dart function, then pass the .nativeFunction pointer to C. When C calls this pointer, it invokes the Dart function. We must call .close() when done to free resources."
+
+    - question: "Which annotation marks struct fields with their native type?"
+      options:
+        - "@native"
+        - "@ffi"
+        - "@Int32(), @Double(), etc."
+        - "@Field"
+      correctIndex: 2
+      explanation: "Struct fields in Dart FFI use annotations like @Int32(), @Double(), @Uint8(), @Array(n), etc. to specify their native type. These annotations tell FFI the size and layout of each field. Fields must also be marked 'external' since they're backed by native memory, not Dart heap memory."
+
+    - question: "What happens if we dereference nullptr in FFI code?"
+      options:
+        - "The operation returns null"
+        - "An ArgumentError is thrown"
+        - "The process crashes — there's no Dart exception to catch"
+        - "The value defaults to zero"
+      correctIndex: 2
+      explanation: "In native code, dereferencing a null pointer (address 0) is undefined behaviour — typically a segmentation fault that crashes the entire process. Unlike pure Dart where null access throws a catchable exception, FFI operates outside the safety of the Dart VM. There's no exception handler — the crash is immediate and unrecoverable. Always check for nullptr before dereferencing."
+---
+
+{/* Episode: Dart FFI — Calling Native Code and Breaking Out of the VM
+    Part of the "Dart: The Platform" series. 7 topics covering why FFI exists,
+    loading libraries, pointers and memory, native types, calling C functions,
+    callbacks, and structs. 7 inline SVG diagrams. */}

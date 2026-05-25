@@ -1,0 +1,327 @@
+---
+title: "Futures in Dart — Async, Await, and the Event Loop"
+description: "Futures represent values that don't exist yet. Understanding them unlocks network calls, file I/O, and responsive Flutter apps."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Async"
+order: 1
+publishedAt: 2026-05-24
+topics:
+  - id: why-async
+    title: "Why we need asynchronous code"
+    summary: |
+      Some operations take time. A network request might take 500 milliseconds. Reading a large file might take 100 milliseconds. If our code just waited — did nothing else — the entire app would freeze.
+      <br><br>
+      <pre><code>// Hypothetical synchronous code (don't do this)
+      var data = httpGet('https://api.example.com/users');  // blocks for 500ms
+      print(data);  // nothing can happen until the above finishes</code></pre>
+      In a Flutter app, blocking means no animations, no scrolling, no user input. The screen literally freezes. Users think the app has crashed.
+      <br><br>
+      <strong>Asynchronous code solves this.</strong> Instead of waiting, we say "start this operation and tell me when it's done." Meanwhile, other code can run — animations continue, buttons respond, the app stays alive.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Sync vs async comparison" style="max-width: 100%; height: auto;"><style>.a1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.a1-title{font-size:16px;font-weight:600}.a1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.a1-label{font-size:11px;fill:#64748b}.a1-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="a1-t a1-title">Synchronous vs Asynchronous execution</text><text x="180" y="55" text-anchor="middle" class="a1-t a1-label" font-weight="600">Synchronous (blocking)</text><rect x="40" y="70" width="280" height="30" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="4"/><text x="180" y="90" text-anchor="middle" class="a1-t a1-mn">fetch data (500ms)</text><rect x="40" y="105" width="80" height="30" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="80" y="125" text-anchor="middle" class="a1-t a1-mn">process</text><rect x="125" y="105" width="60" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="155" y="125" text-anchor="middle" class="a1-t a1-mn">render</text><text x="40" y="155" class="a1-t a1-note">Total: 500ms blocked, then work begins</text><text x="40" y="175" class="a1-t a1-note" fill="#dc2626">UI frozen during fetch!</text><text x="540" y="55" text-anchor="middle" class="a1-t a1-label" font-weight="600">Asynchronous (non-blocking)</text><rect x="400" y="70" width="120" height="30" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/><text x="460" y="90" text-anchor="middle" class="a1-t a1-mn">start fetch</text><rect x="400" y="105" width="60" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="430" y="125" text-anchor="middle" class="a1-t a1-mn">animate</text><rect x="465" y="105" width="60" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="495" y="125" text-anchor="middle" class="a1-t a1-mn">scroll</text><rect x="530" y="105" width="60" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/><text x="560" y="125" text-anchor="middle" class="a1-t a1-mn">tap</text><rect x="520" y="70" width="160" height="30" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="4" stroke-dasharray="4,2"/><text x="600" y="90" text-anchor="middle" class="a1-t a1-mn">...waiting...</text><rect x="400" y="145" width="120" height="30" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="460" y="165" text-anchor="middle" class="a1-t a1-mn">data arrives!</text><rect x="525" y="145" width="80" height="30" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="565" y="165" text-anchor="middle" class="a1-t a1-mn">process</text><text x="400" y="195" class="a1-t a1-note">UI stays responsive during fetch</text><text x="400" y="215" class="a1-t a1-note" fill="#10b981">User can interact the whole time!</text><line x1="360" y1="50" x2="360" y2="230" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/></svg>
+      <br><br>
+      Dart's answer to this is the <strong>Future</strong> — an object that represents a value that will exist later.
+
+  - id: what-is-a-future
+    title: "What is a Future?"
+    summary: |
+      A <code>Future&lt;T&gt;</code> is a promise that a value of type T will be available eventually. It's not the value itself — it's a container that will hold the value when the operation completes.
+      <br><br>
+      <pre><code>Future&lt;String&gt; fetchUsername() {
+        // Returns immediately with a Future
+        // The actual string comes later
+        return Future.delayed(
+          Duration(seconds: 2),
+          () => 'Ankit',
+        );
+      }
+
+      void main() {
+        var future = fetchUsername();
+        print(future);         // Instance of 'Future&lt;String&gt;'
+        print(future.runtimeType);  // Future&lt;String&gt;
+      }</code></pre>
+      A Future can be in one of three states:
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-label="Future states" style="max-width: 100%; height: auto;"><style>.a2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.a2-title{font-size:16px;font-weight:600}.a2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.a2-label{font-size:11px;fill:#64748b}.a2-note{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="a2-t a2-title">The three states of a Future</text><rect x="40" y="55" width="180" height="100" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="130" y="85" text-anchor="middle" class="a2-t a2-mn" font-weight="700">Uncompleted</text><text x="130" y="110" text-anchor="middle" class="a2-t a2-note">Operation in progress</text><text x="130" y="130" text-anchor="middle" class="a2-t a2-note">No value yet</text><text x="130" y="150" text-anchor="middle" class="a2-t a2-label">waiting...</text><line x1="220" y1="105" x2="260" y2="75" stroke="#475569" stroke-width="2" marker-end="url(#a2-arr)"/><line x1="220" y1="105" x2="260" y2="135" stroke="#475569" stroke-width="2" marker-end="url(#a2-arr)"/><rect x="270" y="35" width="200" height="70" fill="#dcfce7" stroke="#10b981" stroke-width="2" rx="6"/><text x="370" y="62" text-anchor="middle" class="a2-t a2-mn" font-weight="700">Completed (value)</text><text x="370" y="82" text-anchor="middle" class="a2-t a2-note">Success! Value available</text><text x="370" y="98" text-anchor="middle" class="a2-t a2-mn">Future&lt;String&gt; → 'Ankit'</text><rect x="270" y="115" width="200" height="70" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="370" y="142" text-anchor="middle" class="a2-t a2-mn" font-weight="700">Completed (error)</text><text x="370" y="162" text-anchor="middle" class="a2-t a2-note">Failed! Error available</text><text x="370" y="178" text-anchor="middle" class="a2-t a2-mn">Future&lt;String&gt; → Error</text><rect x="500" y="55" width="200" height="100" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="600" y="85" text-anchor="middle" class="a2-t a2-label" font-weight="600">Once completed:</text><text x="520" y="110" class="a2-t a2-note">• State never changes</text><text x="520" y="130" class="a2-t a2-note">• Value/error is cached</text><text x="520" y="150" class="a2-t a2-note">• Can be awaited again</text><defs><marker id="a2-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>Key insight:</strong> A Future completes exactly once. Once it has a value (or an error), it never changes. If you await the same Future multiple times, you get the same result.
+
+  - id: then-catcherror
+    title: "Handling Futures with then() and catchError()"
+    summary: |
+      The classic way to handle a Future is with callbacks. The <code>then()</code> method registers a callback that runs when the Future completes successfully.
+      <br><br>
+      <pre><code>fetchUsername().then((name) {
+        print('Got name: \$name');
+      });
+
+      print('This prints first!');
+
+      // Output:
+      // This prints first!
+      // Got name: Ankit  (after 2 seconds)</code></pre>
+      Notice that "This prints first!" appears immediately. The <code>then()</code> callback doesn't block — it schedules code to run later.
+      <br><br>
+      <strong>Chaining Futures.</strong> If the callback returns a Future, the chain continues.
+      <br><br>
+      <pre><code>fetchUsername()
+          .then((name) => fetchUserDetails(name))
+          .then((details) => print(details));</code></pre>
+      <strong>Catching errors.</strong> Use <code>catchError()</code> to handle failures.
+      <br><br>
+      <pre><code>fetchUsername()
+          .then((name) => print('Hello, \$name'))
+          .catchError((error) => print('Failed: \$error'));</code></pre>
+      <strong>The finally equivalent.</strong> Use <code>whenComplete()</code> to run code regardless of success or failure.
+      <br><br>
+      <pre><code>fetchData()
+          .then((data) => process(data))
+          .catchError((e) => handleError(e))
+          .whenComplete(() => hideLoadingSpinner());</code></pre>
+      This callback style works, but it gets messy with complex logic. That's why Dart has async/await.
+
+  - id: async-await
+    title: "Async and await — making futures readable"
+    summary: |
+      The <code>async</code> and <code>await</code> keywords let us write asynchronous code that looks synchronous.
+      <br><br>
+      <pre><code>// With callbacks
+      void loadData() {
+        fetchUsername().then((name) {
+          fetchDetails(name).then((details) {
+            updateUI(details);
+          });
+        });
+      }
+
+      // With async/await
+      Future&lt;void&gt; loadData() async {
+        var name = await fetchUsername();
+        var details = await fetchDetails(name);
+        updateUI(details);
+      }</code></pre>
+      Same logic, but the second version reads top-to-bottom like synchronous code.
+      <br><br>
+      <strong>Rules of async/await:</strong>
+      <br>• A function using <code>await</code> must be marked <code>async</code>
+      <br>• An <code>async</code> function always returns a <code>Future</code>
+      <br>• <code>await</code> pauses execution until the Future completes
+      <br>• Code after <code>await</code> runs when the Future completes
+      <br><br>
+      <pre><code>Future&lt;int&gt; calculate() async {
+        var a = await fetchA();   // pauses here
+        var b = await fetchB();   // pauses here
+        return a + b;             // runs after both complete
+      }
+
+      // Even returning a plain value, it's wrapped in a Future
+      Future&lt;int&gt; simple() async {
+        return 42;   // actually returns Future&lt;int&gt; that completes with 42
+      }</code></pre>
+      <strong>Error handling with try/catch.</strong> Errors in async code work just like synchronous code.
+      <br><br>
+      <pre><code>Future&lt;void&gt; loadData() async {
+        try {
+          var data = await fetchData();
+          process(data);
+        } catch (e) {
+          print('Error: \$e');
+        } finally {
+          hideSpinner();
+        }
+      }</code></pre>
+
+  - id: event-loop
+    title: "The event loop — how Dart runs async code"
+    summary: |
+      Dart is single-threaded. There's only one thread of execution. So how does async code work without blocking?
+      <br><br>
+      The answer is the <strong>event loop</strong>. Dart maintains a queue of tasks. When your code awaits a Future, it's not blocking — it's scheduling the rest of the function to run later, when the Future completes.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Event loop diagram" style="max-width: 100%; height: auto;"><style>.a3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.a3-title{font-size:16px;font-weight:600}.a3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.a3-label{font-size:12px;fill:#64748b}.a3-note{font-size:10px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="a3-t a3-title">The Dart Event Loop</text><rect x="40" y="50" width="180" height="250" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" rx="6"/><text x="130" y="75" text-anchor="middle" class="a3-t a3-label" font-weight="600">Event Queue</text><rect x="55" y="90" width="150" height="35" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="130" y="113" text-anchor="middle" class="a3-t a3-mn">user tap</text><rect x="55" y="130" width="150" height="35" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="130" y="153" text-anchor="middle" class="a3-t a3-mn">timer callback</text><rect x="55" y="170" width="150" height="35" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5" rx="4"/><text x="130" y="193" text-anchor="middle" class="a3-t a3-mn">network response</text><rect x="55" y="210" width="150" height="35" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1" rx="4" stroke-dasharray="4,2"/><text x="130" y="233" text-anchor="middle" class="a3-t a3-note">more events...</text><text x="130" y="270" text-anchor="middle" class="a3-t a3-note">Events processed one</text><text x="130" y="285" text-anchor="middle" class="a3-t a3-note">at a time, in order</text><line x1="220" y1="107" x2="280" y2="107" stroke="#475569" stroke-width="2" marker-end="url(#a3-arr)"/><text x="250" y="95" text-anchor="middle" class="a3-t a3-note">dequeue</text><rect x="290" y="50" width="200" height="120" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="390" y="75" text-anchor="middle" class="a3-t a3-label" font-weight="600">Dart Runtime</text><text x="310" y="100" class="a3-t a3-note">1. Pick event from queue</text><text x="310" y="120" class="a3-t a3-note">2. Run to completion</text><text x="310" y="140" class="a3-t a3-note">3. Pick next event</text><text x="310" y="160" class="a3-t a3-note">4. Repeat forever</text><rect x="290" y="185" width="200" height="115" fill="#dcfce7" stroke="#10b981" stroke-width="2" rx="6"/><text x="390" y="210" text-anchor="middle" class="a3-t a3-label" font-weight="600">Microtask Queue</text><text x="310" y="235" class="a3-t a3-note">Higher priority than events</text><text x="310" y="255" class="a3-t a3-note">Schedulled by Future.then(),</text><text x="310" y="275" class="a3-t a3-note">scheduleMicrotask(), etc.</text><text x="310" y="295" class="a3-t a3-note">Drained before next event</text><rect x="520" y="50" width="180" height="250" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="610" y="75" text-anchor="middle" class="a3-t a3-label" font-weight="600">Key Points</text><text x="540" y="100" class="a3-t a3-note">• Single-threaded</text><text x="540" y="120" class="a3-t a3-note">• One event at a time</text><text x="540" y="140" class="a3-t a3-note">• await = schedule later</text><text x="540" y="160" class="a3-t a3-note">• Never blocks the loop</text><text x="540" y="190" class="a3-t a3-note">• Long sync code freezes</text><text x="540" y="210" class="a3-t a3-note">  the entire app!</text><text x="540" y="240" class="a3-t a3-note">• Keep event handlers</text><text x="540" y="260" class="a3-t a3-note">  short and fast</text><defs><marker id="a3-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <strong>Two queues:</strong> Dart actually has two queues. The <strong>microtask queue</strong> has higher priority — it's drained completely before the event loop picks the next event. Most Future callbacks are microtasks.
+      <br><br>
+      <pre><code>void main() {
+        print('1 - main starts');
+
+        Future(() => print('4 - event queue'));
+
+        Future.microtask(() => print('3 - microtask'));
+
+        print('2 - main ends');
+      }
+
+      // Output:
+      // 1 - main starts
+      // 2 - main ends
+      // 3 - microtask
+      // 4 - event queue</code></pre>
+      <strong>Warning:</strong> Long synchronous code blocks the event loop. No events are processed. The UI freezes. This is why heavy computation should go to isolates (covered in a later episode).
+
+  - id: parallel-futures
+    title: "Running Futures in parallel"
+    summary: |
+      Sequential awaits are easy to read, but sometimes we want operations to run simultaneously.
+      <br><br>
+      <pre><code>// Sequential — takes 3 seconds total
+      var a = await fetchA();   // 1 second
+      var b = await fetchB();   // 1 second
+      var c = await fetchC();   // 1 second
+
+      // Parallel — takes 1 second total (all run at once)
+      var results = await Future.wait([
+        fetchA(),
+        fetchB(),
+        fetchC(),
+      ]);
+      // results is a List: [resultA, resultB, resultC]</code></pre>
+      <code>Future.wait()</code> takes a list of Futures and returns a Future that completes when all of them complete. The result is a list of all values.
+      <br><br>
+      <strong>Records for typed results.</strong> With Dart 3 records, we can do better:
+      <br><br>
+      <pre><code>Future&lt;(User, List&lt;Post&gt;, Settings)&gt; loadProfile(int userId) async {
+        var (user, posts, settings) = await (
+          fetchUser(userId),
+          fetchPosts(userId),
+          fetchSettings(userId),
+        ).wait;
+        return (user, posts, settings);
+      }</code></pre>
+      <strong>Error handling in parallel.</strong> If any Future fails, <code>Future.wait()</code> fails. Use <code>eagerError: false</code> to wait for all Futures regardless.
+      <br><br>
+      <pre><code>try {
+        var results = await Future.wait(
+          [fetchA(), fetchB(), fetchC()],
+          eagerError: false,
+        );
+      } catch (e) {
+        // At least one failed
+      }</code></pre>
+      <strong>First to complete.</strong> Use <code>Future.any()</code> when you only need the first result.
+      <br><br>
+      <pre><code>// Race multiple servers, use first response
+      var fastest = await Future.any([
+        fetchFromServer1(),
+        fetchFromServer2(),
+        fetchFromServer3(),
+      ]);</code></pre>
+
+  - id: creating-futures
+    title: "Creating Futures"
+    summary: |
+      Most Futures come from libraries — HTTP clients, file I/O, timers. But sometimes we need to create our own.
+      <br><br>
+      <strong>Future.value()</strong> — a Future that's already complete.
+      <br><br>
+      <pre><code>Future&lt;int&gt; getCachedOrFetch(String key) {
+        var cached = cache[key];
+        if (cached != null) {
+          return Future.value(cached);   // already have it
+        }
+        return fetchFromNetwork(key);    // need to fetch
+      }</code></pre>
+      <strong>Future.error()</strong> — a Future that's already failed.
+      <br><br>
+      <pre><code>Future&lt;User&gt; getUser(int id) {
+        if (id < 0) {
+          return Future.error(ArgumentError('ID must be positive'));
+        }
+        return fetchUser(id);
+      }</code></pre>
+      <strong>Future.delayed()</strong> — completes after a delay.
+      <br><br>
+      <pre><code>Future&lt;String&gt; fetchWithDelay() {
+        return Future.delayed(
+          Duration(seconds: 2),
+          () => 'Data loaded',
+        );
+      }</code></pre>
+      <strong>Completer</strong> — manual control over completion. Useful when bridging callback-based APIs to Future-based code.
+      <br><br>
+      <pre><code>Future&lt;String&gt; readFileCallback() {
+        var completer = Completer&lt;String&gt;();
+
+        legacyReadFile(
+          'data.txt',
+          onSuccess: (content) => completer.complete(content),
+          onError: (error) => completer.completeError(error),
+        );
+
+        return completer.future;
+      }</code></pre>
+      <strong>Warning:</strong> A Completer can only be completed once. Calling <code>complete()</code> or <code>completeError()</code> twice throws an error.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering Futures, async/await, and the event loop."
+  questions:
+    - question: "What is a Future in Dart?"
+      options:
+        - "A function that runs in the background"
+        - "A container that will hold a value when an async operation completes"
+        - "A separate thread for concurrent execution"
+        - "A way to make code run faster"
+      correctIndex: 1
+      explanation: "A Future<T> is a promise that a value of type T will be available eventually. It's not the value itself — it's a container that will hold the value when the asynchronous operation completes. Futures can complete with a value or an error."
+
+    - question: "What happens when you await a Future?"
+      options:
+        - "The entire program pauses"
+        - "A new thread is created"
+        - "Execution pauses at that point and continues when the Future completes"
+        - "The Future is cancelled"
+      correctIndex: 2
+      explanation: "When you await a Future, execution of that async function pauses at that point. But the rest of the program continues — other events are processed, animations run, UI stays responsive. When the Future completes, execution resumes after the await."
+
+    - question: "Dart is single-threaded. How does async code work without blocking?"
+      options:
+        - "Futures create new threads automatically"
+        - "The event loop schedules code to run later instead of blocking"
+        - "Async code actually does block, just quickly"
+        - "Dart secretly uses multiple threads"
+      correctIndex: 1
+      explanation: "Dart uses an event loop. When you await a Future, instead of blocking, Dart schedules the rest of the function to run later and returns to processing other events. This keeps the UI responsive. Heavy computation should use Isolates for true parallelism."
+
+    - question: "What is the difference between the event queue and microtask queue?"
+      options:
+        - "They are the same thing"
+        - "Microtasks have higher priority and are drained before the next event"
+        - "Events have higher priority than microtasks"
+        - "Microtasks are for errors only"
+      correctIndex: 1
+      explanation: "The microtask queue has higher priority. All microtasks are processed before the event loop picks the next event from the event queue. Most Future callbacks (like then()) are scheduled as microtasks. This ensures continuations run promptly."
+
+    - question: "How do you run multiple Futures in parallel?"
+      options:
+        - "Use multiple await statements"
+        - "Use Future.wait() with a list of Futures"
+        - "Futures always run in parallel automatically"
+        - "Use Future.sync()"
+      correctIndex: 1
+      explanation: "Sequential awaits run one after another. To run Futures in parallel, use Future.wait([future1, future2, future3]). This starts all Futures immediately and completes when all finish. The result is a List containing all values in order."
+
+    - question: "What does Future.value(42) return?"
+      options:
+        - "The integer 42"
+        - "A Future that's already completed with the value 42"
+        - "A function that returns 42"
+        - "null"
+      correctIndex: 1
+      explanation: "Future.value(42) creates a Future that's already completed with the value 42. This is useful when an API expects a Future but you already have the value — for example, returning cached data immediately."
+
+    - question: "What happens if a Future completes with an error and nothing catches it?"
+      options:
+        - "The error is silently ignored"
+        - "The program crashes immediately"
+        - "The error is reported as an unhandled exception"
+        - "The Future retries automatically"
+      correctIndex: 2
+      explanation: "Uncaught Future errors are reported as unhandled exceptions. In Flutter, this can cause red error screens in debug mode. Always handle errors with try/catch (for await) or catchError() (for then()). In production, consider a global error handler."
+---
+
+{/* Episode 1 of Dart: Async. Futures, async/await, and the event loop.
+    Covers why async matters, Future states, callbacks vs async/await,
+    parallel execution, and creating Futures. 3 inline SVG diagrams. */}

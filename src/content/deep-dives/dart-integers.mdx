@@ -1,0 +1,413 @@
+---
+title: "Integers in Dart — Smi, Mint, BigInt, and Typed Buffers"
+description: "Every int in Dart hides a strategy. A deep dive into how Dart stores numbers, what boxing costs, and how typed buffers let you write code that flies."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Data Foundations"
+order: 3
+publishedAt: 2026-05-22
+topics:
+  - id: smi
+    title: "Smi — when the number lives inside the pointer"
+    summary: |
+      Every time we write <code>int x = 42</code>, Dart has a choice to make. It can store our number in a fast, lightweight way, or in a heavier, more flexible way — and that choice happens automatically, behind the scenes.
+      <br><br>
+      We might expect this: Dart allocates an object somewhere in memory holding the value 42, and our variable x holds a reference to that object. But here's the thing — 42 is small. So small that it can fit inside the pointer itself, no allocation needed.
+      <br><br>
+      This is the <strong>Smi (Small Integer)</strong> trick. A pointer on a 64-bit machine is 64 bits wide. Dart steals one bit to mark whether the pointer is "a real reference to an object" or "actually the number itself". For Smi values, the value lives directly in the pointer slot.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Smi vs normal pointer comparison" style="max-width: 100%; height: auto;">
+        <defs>
+          <marker id="ah1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/></marker>
+        </defs>
+        <style>
+          .d1-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d1-title { font-size: 16px; font-weight: 600; }
+          .d1-lbl { font-size: 12px; fill: #64748b; }
+          .d1-mn { font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace; font-size: 14px; }
+          .d1-tag { font-size: 11px; font-weight: 700; fill: #ffffff; font-family: "SF Mono", Menlo, monospace; }
+          .d1-cap { font-size: 13px; fill: #475569; }
+          .d1-key { font-size: 14px; font-weight: 600; fill: #047857; }
+        </style>
+        <text x="20" y="30" class="d1-t d1-title">Normal pointer (object reference)</text>
+        <rect x="20" y="55" width="360" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/>
+        <text x="200" y="78" text-anchor="middle" class="d1-t d1-lbl">63 bits — heap address</text>
+        <text x="200" y="98" text-anchor="middle" class="d1-t d1-mn">0x7FF8AB3D…</text>
+        <rect x="380" y="55" width="40" height="50" fill="#0175C2" rx="4"/>
+        <text x="400" y="80" text-anchor="middle" class="d1-tag">tag</text>
+        <text x="400" y="96" text-anchor="middle" class="d1-tag">1</text>
+        <line x1="425" y1="80" x2="478" y2="80" stroke="#1e293b" stroke-width="2" marker-end="url(#ah1)"/>
+        <rect x="485" y="55" width="170" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+        <line x1="555" y1="55" x2="555" y2="105" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="520" y="78" text-anchor="middle" class="d1-t d1-lbl">header</text>
+        <text x="605" y="78" text-anchor="middle" class="d1-t d1-lbl">value</text>
+        <text x="605" y="98" text-anchor="middle" class="d1-t d1-mn">42</text>
+        <text x="570" y="130" text-anchor="middle" class="d1-t d1-cap">heap object</text>
+        <text x="20" y="190" class="d1-t d1-title">Smi pointer (small integer)</text>
+        <rect x="20" y="215" width="360" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/>
+        <text x="200" y="238" text-anchor="middle" class="d1-t d1-lbl">63 bits — the value itself</text>
+        <text x="200" y="258" text-anchor="middle" class="d1-t d1-mn">42 (encoded inline)</text>
+        <rect x="380" y="215" width="40" height="50" fill="#10b981" rx="4"/>
+        <text x="400" y="240" text-anchor="middle" class="d1-tag">tag</text>
+        <text x="400" y="256" text-anchor="middle" class="d1-tag">0</text>
+        <text x="220" y="310" text-anchor="middle" class="d1-t d1-key">The value IS the pointer.</text>
+        <text x="220" y="332" text-anchor="middle" class="d1-t d1-cap">No heap allocation. No indirection.</text>
+      </svg>
+      <br><br>
+      When we do arithmetic on a Smi, the CPU operates on the value directly. There's no following a pointer to find the data — the value is the pointer. This is as fast as integer math can be.
+      <br><br>
+      <strong>How small is "small enough"?</strong> It depends on the build. On 64-bit Dart with compressed pointers (which Flutter uses on mobile), a Smi can hold about ±1 billion. Without compressed pointers (desktop Dart), it can hold up to about ±4.6 quintillion. For most code this is more than enough.
+      <br><br>
+      The takeaway: Smi values are free. Zero heap allocation, zero indirection, full CPU speed.
+
+  - id: mint
+    title: "Mint — when the number outgrows the pointer"
+    summary: |
+      So what happens when our integer doesn't fit as a Smi anymore?
+      <br><br>
+      <pre><code>int x = 1 &lt;&lt; 62;  // way too big to be a Smi</code></pre>
+      Now Dart has to <strong>box</strong> the value. Boxing means allocating a heap object, storing the 64-bit integer inside it, and putting a real pointer to that object in our variable.
+      <br><br>
+      We call this a <strong>Mint (Medium Integer)</strong>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Smi vs Mint boxing cost comparison" style="max-width: 100%; height: auto;">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/></marker>
+        </defs>
+        <style>
+          .d2-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d2-title { font-size: 17px; font-weight: 600; }
+          .d2-sub { font-size: 14px; font-weight: 500; fill: #475569; }
+          .d2-lbl { font-size: 12px; fill: #64748b; }
+          .d2-slbl { font-size: 10px; fill: #64748b; }
+          .d2-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; }
+          .d2-var { font-size: 18px; font-weight: 700; font-family: "SF Mono", Menlo, monospace; fill: #1e293b; }
+          .d2-tag { font-size: 11px; font-weight: 700; fill: #ffffff; font-family: "SF Mono", Menlo, monospace; }
+          .d2-cost { font-size: 12px; fill: #b45309; }
+          .d2-free { font-size: 12px; fill: #059669; }
+          .d2-mint { font-size: 12px; fill: #92400e; font-style: italic; }
+        </style>
+        <text x="360" y="32" text-anchor="middle" class="d2-t d2-title">What boxing costs</text>
+        <text x="180" y="78" text-anchor="middle" class="d2-t d2-sub">x = 42 (fits as Smi)</text>
+        <text x="40" y="148" class="d2-var">x</text>
+        <line x1="60" y1="143" x2="92" y2="143" stroke="#1e293b" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <rect x="98" y="120" width="170" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="4"/>
+        <text x="183" y="148" text-anchor="middle" class="d2-t d2-mn">value: 42</text>
+        <rect x="268" y="120" width="35" height="50" fill="#10b981" rx="4"/>
+        <text x="285" y="153" text-anchor="middle" class="d2-tag">0</text>
+        <text x="180" y="220" text-anchor="middle" class="d2-t d2-free">✓  0 extra bytes</text>
+        <text x="180" y="240" text-anchor="middle" class="d2-t d2-free">✓  no allocation</text>
+        <text x="180" y="260" text-anchor="middle" class="d2-t d2-free">✓  invisible to GC</text>
+        <line x1="360" y1="65" x2="360" y2="320" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="540" y="78" text-anchor="middle" class="d2-t d2-sub">x = 1 &lt;&lt; 62 (boxed as Mint)</text>
+        <text x="395" y="148" class="d2-var">x</text>
+        <line x1="415" y1="143" x2="447" y2="143" stroke="#1e293b" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <rect x="452" y="120" width="135" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+        <text x="519" y="142" text-anchor="middle" class="d2-t d2-lbl">pointer</text>
+        <text x="519" y="162" text-anchor="middle" class="d2-t d2-mn" font-size="11">0xA1B2…</text>
+        <rect x="587" y="120" width="35" height="50" fill="#f59e0b" rx="4"/>
+        <text x="604" y="153" text-anchor="middle" class="d2-tag">1</text>
+        <line x1="519" y1="175" x2="519" y2="210" stroke="#1e293b" stroke-width="2" marker-end="url(#ah2)"/>
+        <rect x="430" y="215" width="180" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+        <line x1="498" y1="215" x2="498" y2="270" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="464" y="237" text-anchor="middle" class="d2-t d2-lbl">header</text>
+        <text x="464" y="258" text-anchor="middle" class="d2-t d2-slbl">+ GC tags</text>
+        <text x="554" y="237" text-anchor="middle" class="d2-t d2-lbl">value</text>
+        <text x="554" y="260" text-anchor="middle" class="d2-t d2-mn">8 bytes</text>
+        <text x="520" y="292" text-anchor="middle" class="d2-t d2-mint">Mint heap object</text>
+        <text x="540" y="335" text-anchor="middle" class="d2-t d2-cost">✗  extra allocation</text>
+        <text x="540" y="355" text-anchor="middle" class="d2-t d2-cost">✗  pointer indirection on every read</text>
+        <text x="540" y="375" text-anchor="middle" class="d2-t d2-cost">✗  GC has to track it</text>
+      </svg>
+      <br><br>
+      The transition from Smi to Mint is invisible to us in code — we still see <code>int</code>. But under the hood, our program just got slower and heavier. Every Mint is something the garbage collector has to track and eventually clean up. Smis don't exist as objects, so they're invisible to GC.
+
+  - id: bigint
+    title: "BigInt — when 64 bits aren't enough"
+    summary: |
+      <pre><code>BigInt huge = BigInt.parse("9999999999999999999999999999999");</code></pre>
+      <code>BigInt</code> is a completely separate class. It is not "an int that grew" — we have to opt in by explicitly using <code>BigInt</code>.
+      <br><br>
+      A BigInt stores its value as an array of digits (typically 32-bit chunks under the hood). Want a number with 1000 digits? BigInt allocates a larger digit array. Every arithmetic operation involves allocations, comparisons, and carry propagation across digits. It is slow, but it is the only way to handle truly massive numbers.
+      <br><br>
+      <strong>When BigInt is the right tool:</strong> cryptography, scientific computation with arbitrary precision, and financial maths where overflow is unacceptable.
+      <br><br>
+      <strong>When BigInt is overkill:</strong> counters, IDs, scores, file sizes, timestamps — anything that fits in 64 bits.
+
+  - id: collection-problem
+    title: "The collection problem"
+    summary: |
+      Here is where things get interesting. Boxing is not usually a big deal for one number. It becomes a big deal for <strong>many</strong> numbers.
+      <br><br>
+      <pre><code>List&lt;int&gt; data = List.filled(1000000, 0);</code></pre>
+      A list of one million ints. How is this stored?
+      <br><br>
+      The list itself is a contiguous block of slots — one per element. Each slot is either a Smi (value inline) or a reference to a Mint. If our values fit as Smis we are fine, but the list is still holding a million pointer-sized slots, when we may only need a million 4-byte or even 1-byte numbers.
+      <br><br>
+      For numeric work — image processing, audio, networking, game physics — this overhead adds up fast.
+      <br><br>
+      The solution is <strong>typed data</strong>.
+
+  - id: typed-lists
+    title: "Typed lists — packed and unboxed"
+    summary: |
+      Dart's <code>dart:typed_data</code> library is built for the case where we have lots of numbers and we want them stored efficiently.
+      <br><br>
+      <pre><code>import 'dart:typed_data';
+
+      Int32List numbers = Int32List(1000000);
+      numbers[0] = 42;
+      numbers[1] = -100;</code></pre>
+      The crucial difference: <code>Int32List</code> stores raw 32-bit integers, packed contiguously, with no boxing. A million of them is exactly 4 MB. There are no pointers, no Mint objects, no per-element overhead. The CPU can stream through them at maximum speed because they live next to each other in memory.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="List int vs Int32List memory layout" style="max-width: 100%; height: auto;">
+        <defs>
+          <marker id="ah3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker>
+        </defs>
+        <style>
+          .d3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+          .d3-title { font-size: 16px; font-weight: 600; }
+          .d3-sub { font-size: 13px; fill: #64748b; }
+          .d3-lbl { font-size: 11px; fill: #64748b; }
+          .d3-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; }
+          .d3-smn { font-family: "SF Mono", Menlo, monospace; font-size: 11px; }
+          .d3-bad { font-size: 13px; font-weight: 600; fill: #b45309; }
+          .d3-good { font-size: 13px; font-weight: 600; fill: #059669; }
+        </style>
+        <text x="20" y="28" class="d3-t d3-title">List&lt;int&gt; — 8 elements</text>
+        <text x="20" y="48" class="d3-t d3-sub">pointer-sized slots, with some values boxed into Mint heap objects</text>
+        <rect x="20" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="60" y="95" text-anchor="middle" class="d3-t d3-mn">42</text>
+        <rect x="100" y="65" width="80" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="3"/>
+        <text x="140" y="88" text-anchor="middle" class="d3-t d3-lbl">ptr</text>
+        <text x="140" y="104" text-anchor="middle" class="d3-t d3-smn">0xA1B…</text>
+        <rect x="180" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="220" y="95" text-anchor="middle" class="d3-t d3-mn">7</text>
+        <rect x="260" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="300" y="95" text-anchor="middle" class="d3-t d3-mn">1000</text>
+        <rect x="340" y="65" width="80" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="3"/>
+        <text x="380" y="88" text-anchor="middle" class="d3-t d3-lbl">ptr</text>
+        <text x="380" y="104" text-anchor="middle" class="d3-t d3-smn">0xC3D…</text>
+        <rect x="420" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="460" y="95" text-anchor="middle" class="d3-t d3-mn">-3</text>
+        <rect x="500" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="540" y="95" text-anchor="middle" class="d3-t d3-mn">99</text>
+        <rect x="580" y="65" width="80" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+        <text x="620" y="95" text-anchor="middle" class="d3-t d3-mn">256</text>
+        <line x1="140" y1="120" x2="140" y2="148" stroke="#475569" stroke-width="1.5" marker-end="url(#ah3)"/>
+        <line x1="380" y1="120" x2="380" y2="148" stroke="#475569" stroke-width="1.5" marker-end="url(#ah3)"/>
+        <rect x="95" y="155" width="90" height="35" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="3"/>
+        <text x="140" y="170" text-anchor="middle" class="d3-t d3-lbl">Mint</text>
+        <text x="140" y="184" text-anchor="middle" class="d3-t d3-smn">9000000000</text>
+        <rect x="335" y="155" width="90" height="35" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="3"/>
+        <text x="380" y="170" text-anchor="middle" class="d3-t d3-lbl">Mint</text>
+        <text x="380" y="184" text-anchor="middle" class="d3-t d3-smn">5000000000</text>
+        <text x="20" y="218" class="d3-t d3-bad">~64 bytes of slots + heap objects, scattered across memory</text>
+        <line x1="20" y1="240" x2="700" y2="240" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="20" y="270" class="d3-t d3-title">Int32List — 8 elements</text>
+        <text x="20" y="290" class="d3-t d3-sub">raw 4-byte cells, packed contiguously, no boxing</text>
+        <rect x="20" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="40" y="335" text-anchor="middle" class="d3-t d3-smn">42</text>
+        <rect x="60" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="80" y="335" text-anchor="middle" class="d3-t d3-smn">8400</text>
+        <rect x="100" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="120" y="335" text-anchor="middle" class="d3-t d3-smn">7</text>
+        <rect x="140" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="160" y="335" text-anchor="middle" class="d3-t d3-smn">1000</text>
+        <rect x="180" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="200" y="335" text-anchor="middle" class="d3-t d3-smn">9999</text>
+        <rect x="220" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="240" y="335" text-anchor="middle" class="d3-t d3-smn">-3</text>
+        <rect x="260" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="280" y="335" text-anchor="middle" class="d3-t d3-smn">99</text>
+        <rect x="300" y="310" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+        <text x="320" y="335" text-anchor="middle" class="d3-t d3-smn">256</text>
+        <line x1="20" y1="362" x2="340" y2="362" stroke="#64748b" stroke-width="1"/>
+        <line x1="20" y1="358" x2="20" y2="366" stroke="#64748b" stroke-width="1"/>
+        <line x1="340" y1="358" x2="340" y2="366" stroke="#64748b" stroke-width="1"/>
+        <text x="180" y="378" text-anchor="middle" class="d3-t d3-lbl">32 bytes total — all contiguous</text>
+        <text x="20" y="408" class="d3-t d3-good">Half the memory. Cache-friendly. No GC pressure.</text>
+      </svg>
+      <br><br>
+      Dart provides typed lists for every common numeric width.
+      <br><br>
+      <strong>Signed integers:</strong>
+      <br>
+      • <code>Int8List</code> — one byte per element, range -128 to 127
+      <br>
+      • <code>Int16List</code> — two bytes, range -32,768 to 32,767
+      <br>
+      • <code>Int32List</code> — four bytes
+      <br>
+      • <code>Int64List</code> — eight bytes
+      <br><br>
+      <strong>Unsigned integers:</strong>
+      <br>
+      • <code>Uint8List</code> — one byte, range 0 to 255 (the workhorse for file and network bytes)
+      <br>
+      • <code>Uint16List</code>, <code>Uint32List</code>, <code>Uint64List</code>
+      <br>
+      • <code>Uint8ClampedList</code> — like Uint8List, but values above 255 are clamped to 255 instead of wrapping. Used heavily in image processing.
+      <br><br>
+      <strong>Floating point:</strong>
+      <br>
+      • <code>Float32List</code>, <code>Float64List</code> — we'll meet these properly in the next episode on doubles.
+      <br><br>
+      <strong>A rough guide to picking one:</strong>
+      <br>
+      • File bytes, network bytes, raw binary protocols → <code>Uint8List</code>
+      <br>
+      • Image pixel channels → <code>Uint8List</code> or <code>Uint8ClampedList</code>
+      <br>
+      • 16-bit audio samples → <code>Int16List</code>
+      <br>
+      • Coordinate buffers for graphics → <code>Float32List</code>
+      <br>
+      • General numeric work where 64-bit is overkill → pick the smallest type that comfortably fits our range
+
+  - id: byte-buffers
+    title: "ByteBuffer and ByteData — down to the bytes"
+    summary: |
+      Sometimes we don't know in advance what types we'll read out of a chunk of bytes. We might be parsing a binary file format where the first 4 bytes are a magic number, the next 2 bytes are a version, the next 4 bytes are a length, and so on.
+      <br><br>
+      For that, Dart gives us two lower-level tools.
+      <br><br>
+      <strong>ByteBuffer</strong> is a raw buffer of bytes. We can't read from it directly — we always go through a view.
+      <br><br>
+      <strong>ByteData</strong> is a view over a ByteBuffer that lets us read or write any numeric type at any byte offset.
+      <br><br>
+      <pre><code>ByteData data = ByteData(8);
+      data.setInt32(0, 42);        // write a 32-bit int at offset 0
+      data.setFloat32(4, 3.14);    // write a 32-bit float at offset 4
+
+      int x = data.getInt32(0);    // read it back
+      double y = data.getFloat32(4);</code></pre>
+      ByteData also lets us specify <strong>endianness</strong> — the order in which the bytes of a multi-byte value are arranged.
+      <br><br>
+      <pre><code>data.setInt32(0, 42, Endian.big);     // big-endian (network byte order)
+      data.setInt32(0, 42, Endian.little);  // little-endian (most CPUs natively)</code></pre>
+      This matters when reading binary formats. PNG files use big-endian. Most CPUs use little-endian internally. If we get this wrong, we read garbage.
+      <br><br>
+      We can also reinterpret the same bytes as a different typed view, with no copying:
+      <br><br>
+      <pre><code>Uint8List bytes = Uint8List(16);
+      ByteBuffer buffer = bytes.buffer;
+      Int32List asInts = buffer.asInt32List();  // same bytes, viewed as four 32-bit ints</code></pre>
+      Both views look at the same underlying memory. Writing through one is visible through the other. This is incredibly powerful for performance — and a little dangerous, because we're working very close to the metal.
+
+  - id: optimization
+    title: "Putting it to work — optimization in practice"
+    summary: |
+      Let us make this practical. When should we reach for which representation?
+      <br><br>
+      <strong>For single values:</strong>
+      <br>
+      • Just use <code>int</code>. Dart will pick Smi or Mint for us.
+      <br>
+      • Avoid <code>BigInt</code> unless we actually need precision beyond 64 bits.
+      <br>
+      • In hot loops, try to keep values within Smi range. A counter that stays under a billion runs faster than one that doesn't.
+      <br><br>
+      <strong>For nullable ints:</strong>
+      <br>
+      • <code>int?</code> can force boxing because the slot has to also be able to hold null. Avoid <code>int?</code> in tight loops or large collections. Use a sentinel value (<code>-1</code>, <code>0</code>, <code>int.minValue</code>) if we can.
+      <br><br>
+      <strong>For collections of numbers:</strong>
+      <br>
+      • Use typed lists (<code>Int32List</code>, <code>Float64List</code>, etc.) instead of <code>List&lt;int&gt;</code> or <code>List&lt;double&gt;</code> whenever the collection is bigger than a few dozen elements.
+      <br>
+      • Pick the smallest type that fits our range. Don't use <code>Int64List</code> for byte data.
+      <br>
+      • For very large collections, the difference can be 4-8× memory and a similar factor in speed.
+      <br><br>
+      <strong>For binary I/O:</strong>
+      <br>
+      • File bytes, sockets, codecs → <code>Uint8List</code> is the workhorse.
+      <br>
+      • For parsing structured binary → <code>ByteData</code> with explicit endianness.
+      <br><br>
+      <strong>For native interop (FFI):</strong>
+      <br>
+      • Typed lists can be passed to C code without copying. The buffer is a contiguous block of memory that native code can read and write directly. Huge for performance when calling native libraries.
+      <br><br>
+      <strong>A practical example.</strong> Say we're loading a 1024×1024 grayscale image — one million pixels, each a value 0-255.
+      <br><br>
+      <pre><code>// The wrong way — boxes everything
+      List&lt;int&gt; pixels = List.filled(1024 * 1024, 0);
+      // Memory: ~8 MB (pointer per element on 64-bit), plus potential Mint objects
+
+      // The right way — packed and unboxed
+      Uint8List pixels = Uint8List(1024 * 1024);
+      // Memory: exactly 1 MB</code></pre>
+      That's an 8× memory saving, plus much faster iteration because the bytes are contiguous and the CPU's cache loves them. For a real image processing pipeline, the difference between these two choices is the difference between snappy and sluggish.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering Smi, Mint, BigInt, boxing, typed lists, and byte buffers. Pick the best answer for each."
+  questions:
+    - question: "What is special about how Dart stores small integers (Smi)?"
+      options:
+        - "The value is stored directly inside the pointer slot, with no heap allocation"
+        - "The value is always allocated on a special 'small integer' heap"
+        - "Smi integers are stored in a global cache and shared between programs"
+        - "Smi integers always live in CPU registers"
+      correctIndex: 0
+      explanation: "For Smi values, Dart stores the value directly in the pointer slot itself, using one bit as a tag to distinguish it from a real object reference. This avoids heap allocation entirely — the value is the pointer. That is why Smi arithmetic is as fast as raw CPU integer math."
+
+    - question: "What does 'boxing' mean in the context of Dart integers?"
+      options:
+        - "Wrapping a value in a protective wrapper class for type safety"
+        - "Allocating a heap object to hold a value that won't fit as a Smi"
+        - "Converting an int to a BigInt"
+        - "Encrypting an integer for secure storage"
+      correctIndex: 1
+      explanation: "Boxing means allocating a heap object to hold a value, then storing a pointer to that object. When an integer exceeds the Smi range, Dart boxes it into a Mint — a heap-allocated 64-bit integer. This adds memory overhead, GC pressure, and pointer indirection on every operation."
+
+    - question: "When should you use BigInt?"
+      options:
+        - "For every integer in performance-critical code"
+        - "When working with values that need to exceed the 64-bit limit, like cryptography"
+        - "Whenever you want faster arithmetic"
+        - "For all financial calculations, always"
+      correctIndex: 1
+      explanation: "BigInt is an opt-in type for arbitrary precision integers. Every operation involves allocation, so it is much slower than int. Reserve it for cases where you genuinely need numbers beyond the 64-bit range — cryptography, arbitrary-precision scientific work, or financial maths where overflow is unacceptable. For ordinary counters and IDs, plain int is the right choice."
+
+    - question: "Why is List<int> often inefficient for storing one million integers compared to Int32List?"
+      options:
+        - "List<int> is read-only by default"
+        - "List<int> stores pointer-sized slots and may require boxing, while Int32List packs values contiguously without boxing"
+        - "List<int> only supports up to 1000 elements"
+        - "List<int> internally uses BigInt for every element"
+      correctIndex: 1
+      explanation: "A List<int> is an array of pointer-sized slots. Values that exceed Smi range get boxed into separate Mint heap objects, and even Smi values waste space because each slot is pointer-sized. Int32List stores raw 32-bit integers packed contiguously in memory, saving both memory and CPU cache pressure."
+
+    - question: "Which typed list is the best choice for raw bytes from a file or network socket?"
+      options:
+        - "Int64List"
+        - "Float64List"
+        - "Uint8List"
+        - "BigInt"
+      correctIndex: 2
+      explanation: "Uint8List stores unsigned 8-bit values (0-255), one byte each. It is the workhorse type for file bytes, network bytes, image data, and any raw binary content. Dart's file and socket APIs return Uint8List by default."
+
+    - question: "What does endianness control when reading or writing binary data with ByteData?"
+      options:
+        - "Whether numbers are signed or unsigned"
+        - "The order in which the bytes of a multi-byte value are arranged in memory"
+        - "Whether the buffer is mutable or immutable"
+        - "The maximum size of the buffer"
+      correctIndex: 1
+      explanation: "Endianness determines whether the most significant byte is stored first (big-endian, used in network protocols and PNG files) or last (little-endian, used by most CPUs). When parsing binary formats, getting endianness wrong causes the bytes to be interpreted in the wrong order — the number 42 might be read as 704643072 instead."
+
+    - question: "What happens when you create both a Uint8List and an Int32List view over the same ByteBuffer?"
+      options:
+        - "Dart copies the data into two separate buffers"
+        - "Both views point to the same underlying memory; writing through one is visible through the other"
+        - "The Int32List throws an exception because the data was originally bytes"
+        - "The Uint8List becomes read-only"
+      correctIndex: 1
+      explanation: "ByteBuffer views are aliases over the same memory — no copying happens. Writing through one view is immediately visible through any other view of the same buffer. This is powerful for performance (zero-copy reinterpretation) but means you have to be careful about which view modifies what."
+---
+
+{/* All content lives in frontmatter `topics` and `quiz`. Three inline SVG
+    diagrams are embedded in topic summaries (smi, mint, typed-lists). */}

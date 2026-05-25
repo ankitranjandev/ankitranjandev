@@ -1,0 +1,80 @@
+---
+const repo = import.meta.env.PUBLIC_GISCUS_REPO;
+const repoId = import.meta.env.PUBLIC_GISCUS_REPO_ID;
+const category = import.meta.env.PUBLIC_GISCUS_CATEGORY;
+const categoryId = import.meta.env.PUBLIC_GISCUS_CATEGORY_ID;
+
+const isConfigured = repo && repoId && category && categoryId;
+---
+
+{
+  isConfigured && (
+    <div id="giscus-container" class="mt-12 border-t border-[var(--border)] pt-8">
+      <h2 class="mb-6 text-xl font-semibold">Comments</h2>
+      <div id="giscus-target" />
+    </div>
+  )
+}
+
+{
+  isConfigured && (
+    <script
+      define:vars={{ repo, repoId, category, categoryId }}
+      data-giscus-loader
+    >
+      const container = document.getElementById('giscus-container');
+      const target = document.getElementById('giscus-target');
+
+      if (container && target) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (entries[0]?.isIntersecting) {
+              observer.disconnect();
+
+              const isDark = document.documentElement.classList.contains('dark');
+              const theme = isDark ? 'dark' : 'light';
+
+              const script = document.createElement('script');
+              script.src = 'https://giscus.app/client.js';
+              script.setAttribute('data-repo', repo);
+              script.setAttribute('data-repo-id', repoId);
+              script.setAttribute('data-category', category);
+              script.setAttribute('data-category-id', categoryId);
+              script.setAttribute('data-mapping', 'pathname');
+              script.setAttribute('data-strict', '0');
+              script.setAttribute('data-reactions-enabled', '1');
+              script.setAttribute('data-emit-metadata', '0');
+              script.setAttribute('data-input-position', 'top');
+              script.setAttribute('data-theme', theme);
+              script.setAttribute('data-lang', 'en');
+              script.setAttribute('data-loading', 'lazy');
+              script.setAttribute('crossorigin', 'anonymous');
+              script.async = true;
+
+              target.appendChild(script);
+            }
+          },
+          { rootMargin: '200px' }
+        );
+
+        observer.observe(container);
+
+        // Listen for theme changes
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle?.addEventListener('click', () => {
+          const iframe = document.querySelector<HTMLIFrameElement>(
+            'iframe.giscus-frame'
+          );
+          if (iframe) {
+            const isDark = document.documentElement.classList.contains('dark');
+            const theme = isDark ? 'dark' : 'light';
+            iframe.contentWindow?.postMessage(
+              { giscus: { setConfig: { theme } } },
+              'https://giscus.app'
+            );
+          }
+        });
+      }
+    </script>
+  )
+}

@@ -1,0 +1,362 @@
+---
+title: "Collections in Dart — Lists, Sets, Maps, and Performance Trade-offs"
+description: "Three collections, three problems. How Dart organises bulk data — from phone contacts to high-performance arrays — and how to pick the right tool for the job."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Data Foundations"
+order: 7
+publishedAt: 2026-05-22
+topics:
+  - id: three-collections
+    title: "The contacts problem — three answers"
+    summary: |
+      Open the contacts app on your phone. You see a long list of contacts. How does Dart actually store all of that?
+      <br><br>
+      There are several built-in data types that can hold bulk data. Each one solves a slightly different problem, and choosing the right one shapes the performance of the whole program.
+      <br><br>
+      Let's start with the same set of phone numbers and see what each collection does with them.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Three collections side by side" style="max-width: 100%; height: auto;"><style>.e1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e1-title{font-size:16px;font-weight:600}.e1-head{font-size:16px;font-weight:700}.e1-sub{font-size:11px;fill:#64748b;font-style:italic}.e1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.e1-idx{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#94a3b8;font-weight:700}.e1-dup{fill:#dc2626;font-weight:700}.e1-cap{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="e1-t e1-title">Three answers to the contacts problem</text><text x="120" y="60" text-anchor="middle" class="e1-t e1-head" fill="#0175C2">List</text><text x="120" y="78" text-anchor="middle" class="e1-t e1-sub">ordered · duplicates allowed</text><rect x="30" y="95" width="180" height="200" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="46" y="120" class="e1-t e1-idx">[0]</text><text x="80" y="120" class="e1-t e1-mn">987654321</text><text x="46" y="148" class="e1-t e1-idx">[1]</text><text x="80" y="148" class="e1-t e1-mn">123456789</text><text x="46" y="176" class="e1-t e1-idx">[2]</text><text x="80" y="176" class="e1-t e1-mn">9876102345</text><text x="46" y="204" class="e1-t e1-idx">[3]</text><text x="80" y="204" class="e1-t e1-mn">7876413232</text><text x="46" y="232" class="e1-t e1-idx">[4]</text><text x="80" y="232" class="e1-t e1-mn e1-dup">123456789</text><text x="120" y="265" text-anchor="middle" class="e1-t e1-cap" fill="#dc2626">duplicate at [4]</text><text x="360" y="60" text-anchor="middle" class="e1-t e1-head" fill="#10b981">Set</text><text x="360" y="78" text-anchor="middle" class="e1-t e1-sub">unique items · insertion-ordered</text><rect x="270" y="95" width="180" height="200" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="290" y="120" class="e1-t e1-mn">987654321</text><text x="290" y="148" class="e1-t e1-mn">123456789</text><text x="290" y="176" class="e1-t e1-mn">9876102345</text><text x="290" y="204" class="e1-t e1-mn">7876413232</text><text x="290" y="232" class="e1-t e1-sub" fill="#64748b">(duplicate dropped)</text><text x="360" y="265" text-anchor="middle" class="e1-t e1-cap" fill="#059669">4 entries, 5 inputs</text><text x="600" y="60" text-anchor="middle" class="e1-t e1-head" fill="#9333ea">Map</text><text x="600" y="78" text-anchor="middle" class="e1-t e1-sub">key → value · lookup by name</text><rect x="500" y="95" width="200" height="200" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="515" y="120" class="e1-t e1-mn">Ankit  →  987654321</text><text x="515" y="148" class="e1-t e1-mn">Mom    →  123456789</text><text x="515" y="176" class="e1-t e1-mn">Dad    →  9876102345</text><text x="515" y="204" class="e1-t e1-mn">Brother→  7876413232</text><text x="515" y="232" class="e1-t e1-mn">Sister →  123456789</text><text x="600" y="265" text-anchor="middle" class="e1-t e1-cap" fill="#7e22ce">same number, different name — OK</text><text x="360" y="340" text-anchor="middle" class="e1-t e1-cap">Same data, three structures. Each one loses something the others keep.</text></svg>
+      <br><br>
+      <strong>List</strong> keeps the order we put things in. It also keeps the duplicate at <code>[4]</code> — Lists don't ask any questions. <strong>Set</strong> silently drops the duplicate, but loses the position index. <strong>Map</strong> attaches each number to a name, which is what we usually want for contacts — but now the structure is fundamentally different.
+      <br><br>
+      So how do we pick? The mental algorithm is small enough to memorise.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-label="Decision flowchart" style="max-width: 100%; height: auto;"><defs><marker id="m-flow-mdx" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.e2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e2-title{font-size:16px;font-weight:600}.e2-q{font-size:14px;font-weight:500}.e2-yn{font-size:12px;font-weight:600;fill:#475569}.e2-result{font-size:20px;font-weight:700;fill:#ffffff}.e2-resultlbl{font-size:11px;fill:#ffffff}</style><text x="360" y="28" text-anchor="middle" class="e2-t e2-title">Which collection should I use?</text><path d="M 360 60 L 540 110 L 360 160 L 180 110 Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="360" y="105" text-anchor="middle" class="e2-t e2-q">Need to look up</text><text x="360" y="122" text-anchor="middle" class="e2-t e2-q">by a key (like a name)?</text><line x1="540" y1="110" x2="610" y2="110" stroke="#475569" stroke-width="2" marker-end="url(#m-flow-mdx)"/><text x="572" y="100" text-anchor="middle" class="e2-t e2-yn">yes</text><rect x="615" y="80" width="90" height="60" fill="#9333ea" stroke="#7e22ce" stroke-width="2" rx="6"/><text x="660" y="108" text-anchor="middle" class="e2-t e2-result">Map</text><text x="660" y="128" text-anchor="middle" class="e2-t e2-resultlbl">name → number</text><line x1="360" y1="160" x2="360" y2="195" stroke="#475569" stroke-width="2" marker-end="url(#m-flow-mdx)"/><text x="375" y="180" class="e2-t e2-yn">no</text><path d="M 360 200 L 540 250 L 360 300 L 180 250 Z" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="360" y="240" text-anchor="middle" class="e2-t e2-q">Need ordered</text><text x="360" y="257" text-anchor="middle" class="e2-t e2-q">access by position?</text><text x="360" y="276" text-anchor="middle" class="e2-t e2-q">(or duplicates?)</text><line x1="540" y1="250" x2="610" y2="250" stroke="#475569" stroke-width="2" marker-end="url(#m-flow-mdx)"/><text x="572" y="240" text-anchor="middle" class="e2-t e2-yn">yes</text><rect x="615" y="220" width="90" height="60" fill="#0175C2" stroke="#0369a1" stroke-width="2" rx="6"/><text x="660" y="248" text-anchor="middle" class="e2-t e2-result">List</text><text x="660" y="268" text-anchor="middle" class="e2-t e2-resultlbl">ordered, indexed</text><line x1="360" y1="300" x2="360" y2="335" stroke="#475569" stroke-width="2" marker-end="url(#m-flow-mdx)"/><text x="375" y="320" class="e2-t e2-yn">no</text><rect x="285" y="340" width="150" height="60" fill="#10b981" stroke="#047857" stroke-width="2" rx="6"/><text x="360" y="368" text-anchor="middle" class="e2-t e2-result">Set</text><text x="360" y="388" text-anchor="middle" class="e2-t e2-resultlbl">unique items, fast lookup</text><text x="360" y="445" text-anchor="middle" class="e2-t" font-size="12" fill="#475569" font-style="italic">When all three would work, prefer the most restrictive — it documents intent.</text></svg>
+      <br><br>
+      With the map in our head, let's go deep on each one.
+
+  - id: lists
+    title: "Lists — ordered and growable"
+    summary: |
+      A List is an ordered collection of objects. Each element has an index, starting at zero. We can store anything in a list, including duplicates.
+      <br><br>
+      <pre><code>void main() {
+        List phoneNumbers = [
+          '987654321',
+          '123456789',
+          '9876102345',
+          '7876413232',
+          '123456789',   // happily kept — Lists ask no questions
+        ];
+        print(phoneNumbers);
+        print(phoneNumbers.length);   // 5
+        print(phoneNumbers[2]);       // '9876102345'
+      }</code></pre>
+      Common operations on a list include:
+      <br><br>
+      <pre><code>phoneNumbers.add('555444333');         // append at end
+      phoneNumbers.insert(0, '111000222');    // insert at front
+      phoneNumbers.removeAt(1);               // remove by position
+      phoneNumbers.remove('123456789');       // remove first match by value
+      phoneNumbers.contains('987654321');     // true
+      phoneNumbers.indexOf('9876102345');     // 2
+      phoneNumbers.sort();                    // in-place sort</code></pre>
+      <strong>List flavours.</strong> Not all lists are equal. Dart gives us four shapes of list, each with its own rules.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="List flavors comparison" style="max-width: 100%; height: auto;"><style>.e3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e3-title{font-size:16px;font-weight:600}.e3-hdr{font-size:13px;font-weight:700;fill:#1e293b}.e3-prop{font-size:13px;font-weight:600;fill:#475569}.e3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.e3-yes{font-size:18px;font-weight:700;fill:#059669}.e3-no{font-size:18px;font-weight:700;fill:#dc2626}.e3-cell{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="e3-t e3-title">List flavors — same data, different rules</text><rect x="20" y="50" width="160" height="55" fill="#f1f5f9" stroke="#cbd5e1"/><text x="100" y="80" text-anchor="middle" class="e3-t e3-hdr">Property</text><rect x="180" y="50" width="135" height="55" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="247" y="74" text-anchor="middle" class="e3-t e3-hdr">growable</text><text x="247" y="92" text-anchor="middle" class="e3-t e3-mn">[1, 2, 3]</text><rect x="315" y="50" width="135" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="382" y="74" text-anchor="middle" class="e3-t e3-hdr">fixed-length</text><text x="382" y="92" text-anchor="middle" class="e3-t e3-mn">List.filled(...)</text><rect x="450" y="50" width="135" height="55" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="517" y="74" text-anchor="middle" class="e3-t e3-hdr">unmodifiable</text><text x="517" y="92" text-anchor="middle" class="e3-t e3-mn">List.unmodif...</text><rect x="585" y="50" width="115" height="55" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="642" y="74" text-anchor="middle" class="e3-t e3-hdr">const</text><text x="642" y="92" text-anchor="middle" class="e3-t e3-mn">const [1,2,3]</text><rect x="20" y="105" width="160" height="50" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="135" text-anchor="middle" class="e3-t e3-prop">Can add / remove?</text><rect x="180" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="247" y="138" text-anchor="middle" class="e3-t e3-yes">✓</text><rect x="315" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="382" y="138" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="450" y="105" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="517" y="138" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="585" y="105" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="642" y="138" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="20" y="155" width="160" height="50" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="185" text-anchor="middle" class="e3-t e3-prop">Can replace at [i]?</text><rect x="180" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="247" y="188" text-anchor="middle" class="e3-t e3-yes">✓</text><rect x="315" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="382" y="188" text-anchor="middle" class="e3-t e3-yes">✓</text><rect x="450" y="155" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="517" y="188" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="585" y="155" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="642" y="188" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="20" y="205" width="160" height="50" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="235" text-anchor="middle" class="e3-t e3-prop">Built at compile time?</text><rect x="180" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="247" y="238" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="315" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="382" y="238" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="450" y="205" width="135" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="517" y="238" text-anchor="middle" class="e3-t e3-no">✗</text><rect x="585" y="205" width="115" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="642" y="238" text-anchor="middle" class="e3-t e3-yes">✓</text><rect x="20" y="255" width="160" height="60" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="290" text-anchor="middle" class="e3-t e3-prop">Best for…</text><rect x="180" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1"/><text x="247" y="280" text-anchor="middle" class="e3-t e3-cell">most everyday</text><text x="247" y="296" text-anchor="middle" class="e3-t e3-cell">use cases</text><rect x="315" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1"/><text x="382" y="280" text-anchor="middle" class="e3-t e3-cell">known size,</text><text x="382" y="296" text-anchor="middle" class="e3-t e3-cell">tight memory</text><rect x="450" y="255" width="135" height="60" fill="#f8fafc" stroke="#cbd5e1"/><text x="517" y="280" text-anchor="middle" class="e3-t e3-cell">defensive copies,</text><text x="517" y="296" text-anchor="middle" class="e3-t e3-cell">public API safety</text><rect x="585" y="255" width="115" height="60" fill="#f8fafc" stroke="#cbd5e1"/><text x="642" y="280" text-anchor="middle" class="e3-t e3-cell">truly static data</text><text x="642" y="296" text-anchor="middle" class="e3-t e3-cell">(canonicalised)</text></svg>
+      <br><br>
+      <strong>How adding to a growable list actually works.</strong> When we write <code>list.add(x)</code>, Dart appends to a backing array. But what happens when that array runs out of room?
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Growable list capacity doubling" style="max-width: 100%; height: auto;"><style>.e4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e4-title{font-size:16px;font-weight:600}.e4-sub{font-size:13px;fill:#475569;font-weight:500}.e4-label{font-size:12px;fill:#64748b}.e4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:600}.e4-action{font-size:13px;fill:#b45309;font-style:italic;font-weight:600}.e4-note{font-size:13px;font-weight:600;fill:#059669}</style><text x="360" y="26" text-anchor="middle" class="e4-t e4-title">How a growable List actually grows</text><text x="40" y="60" class="e4-t e4-sub">1. Start: length 5, capacity 8</text><g transform="translate(40, 75)"><rect x="0" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="20" y="25" text-anchor="middle" class="e4-t e4-mn">A</text><rect x="40" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="60" y="25" text-anchor="middle" class="e4-t e4-mn">B</text><rect x="80" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="100" y="25" text-anchor="middle" class="e4-t e4-mn">C</text><rect x="120" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="140" y="25" text-anchor="middle" class="e4-t e4-mn">D</text><rect x="160" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="180" y="25" text-anchor="middle" class="e4-t e4-mn">E</text><rect x="200" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="240" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="280" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/></g><text x="140" y="135" text-anchor="middle" class="e4-t e4-label">filled</text><text x="260" y="135" text-anchor="middle" class="e4-t e4-label">spare capacity</text><text x="40" y="165" class="e4-t e4-sub">2. After 3 more adds: length 8, capacity 8 — now full</text><g transform="translate(40, 180)"><rect x="0" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="20" y="25" text-anchor="middle" class="e4-t e4-mn">A</text><rect x="40" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="60" y="25" text-anchor="middle" class="e4-t e4-mn">B</text><rect x="80" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="100" y="25" text-anchor="middle" class="e4-t e4-mn">C</text><rect x="120" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="140" y="25" text-anchor="middle" class="e4-t e4-mn">D</text><rect x="160" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="180" y="25" text-anchor="middle" class="e4-t e4-mn">E</text><rect x="200" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="220" y="25" text-anchor="middle" class="e4-t e4-mn">F</text><rect x="240" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="260" y="25" text-anchor="middle" class="e4-t e4-mn">G</text><rect x="280" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="300" y="25" text-anchor="middle" class="e4-t e4-mn">H</text></g><text x="455" y="205" class="e4-t e4-action">add('I') →</text><text x="455" y="222" class="e4-t e4-action">allocate 2× array,</text><text x="455" y="239" class="e4-t e4-action">copy contents</text><text x="40" y="280" class="e4-t e4-sub">3. After add: length 9, capacity 16 — doubled</text><g transform="translate(40, 295)"><rect x="0" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="16" y="21" text-anchor="middle" class="e4-t e4-mn">A</text><rect x="32" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="48" y="21" text-anchor="middle" class="e4-t e4-mn">B</text><rect x="64" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="80" y="21" text-anchor="middle" class="e4-t e4-mn">C</text><rect x="96" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="112" y="21" text-anchor="middle" class="e4-t e4-mn">D</text><rect x="128" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="144" y="21" text-anchor="middle" class="e4-t e4-mn">E</text><rect x="160" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="176" y="21" text-anchor="middle" class="e4-t e4-mn">F</text><rect x="192" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="208" y="21" text-anchor="middle" class="e4-t e4-mn">G</text><rect x="224" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="240" y="21" text-anchor="middle" class="e4-t e4-mn">H</text><rect x="256" y="0" width="32" height="32" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="272" y="21" text-anchor="middle" class="e4-t e4-mn">I</text><rect x="288" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="320" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="352" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="384" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="416" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="448" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/><rect x="480" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/></g><text x="360" y="360" text-anchor="middle" class="e4-t e4-note">Amortized O(1) — most adds are cheap, occasional doubling pays the rare cost.</text></svg>
+      <br><br>
+      Most calls to <code>add</code> are cheap — they just write to an empty slot. Once in a while, the backing array fills up and Dart has to allocate a new array twice the size and copy everything over. That copy is expensive, but it happens rarely enough that the average cost stays constant. This is what "amortized O(1)" means.
+
+  - id: sets
+    title: "Sets — when uniqueness matters"
+    summary: |
+      Lists happily store the same number twice. That's a feature for sequences (a chat log can repeat itself), but for a phonebook it's a bug. We want to drop the duplicate entry.
+      <br><br>
+      That's what a Set does. It keeps every distinct element exactly once.
+      <br><br>
+      <pre><code>void main() {
+        var phoneNumbers = [
+          '987654321', '123456789', '9876102345', '7876413232', '123456789',
+        ];
+
+        Set uniqueNumbers = {...phoneNumbers};   // spread into a Set
+        print(uniqueNumbers);          // {987654321, 123456789, 9876102345, 7876413232}
+        print(uniqueNumbers.length);   // 4 — the duplicate is gone
+      }</code></pre>
+      <strong>A surprise about Dart's default Set.</strong> When we write <code>{...}</code> or call <code>Set()</code>, we get a <code>LinkedHashSet</code> under the hood. The "linked" part means Dart secretly tracks insertion order, so iterating over the set produces elements in the order we put them in. Most other languages don't promise this; Dart does.
+      <br><br>
+      <strong>Set operations.</strong> The classic three from set theory — union, intersection, difference — are built into Dart's Set, and a Venn diagram is the fastest way to see what each one does.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Set operations as Venn diagrams" style="max-width: 100%; height: auto;"><defs><clipPath id="vc-midA-mdx"><circle cx="340" cy="150" r="55"/></clipPath><clipPath id="vc-rightA-mdx"><circle cx="580" cy="150" r="55"/></clipPath></defs><style>.e5-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e5-title{font-size:16px;font-weight:600}.e5-op{font-size:15px;font-weight:700}.e5-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:600}.e5-result{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:700;fill:#1e293b}.e5-label{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="e5-t e5-title">Set operations — A = {1,2,3,4}, B = {3,4,5,6}</text><text x="130" y="60" text-anchor="middle" class="e5-t e5-op" fill="#0175C2">union</text><text x="130" y="78" text-anchor="middle" class="e5-t e5-mn" fill="#475569">a.union(b)</text><circle cx="100" cy="150" r="55" fill="#dbeafe" stroke="#0175C2" stroke-width="2" fill-opacity="0.9"/><circle cx="160" cy="150" r="55" fill="#dbeafe" stroke="#0175C2" stroke-width="2" fill-opacity="0.9"/><text x="78" y="135" class="e5-t e5-mn">A</text><text x="178" y="135" class="e5-t e5-mn">B</text><text x="75" y="158" class="e5-t e5-mn">1</text><text x="88" y="172" class="e5-t e5-mn">2</text><text x="125" y="158" class="e5-t e5-mn">3</text><text x="125" y="172" class="e5-t e5-mn">4</text><text x="170" y="158" class="e5-t e5-mn">5</text><text x="180" y="172" class="e5-t e5-mn">6</text><text x="130" y="245" text-anchor="middle" class="e5-t e5-result">{1, 2, 3, 4, 5, 6}</text><text x="130" y="262" text-anchor="middle" class="e5-t e5-label">all elements from either</text><text x="370" y="60" text-anchor="middle" class="e5-t e5-op" fill="#10b981">intersection</text><text x="370" y="78" text-anchor="middle" class="e5-t e5-mn" fill="#475569">a.intersection(b)</text><circle cx="340" cy="150" r="55" fill="none" stroke="#10b981" stroke-width="2"/><circle cx="400" cy="150" r="55" fill="none" stroke="#10b981" stroke-width="2"/><g clip-path="url(#vc-midA-mdx)"><circle cx="400" cy="150" r="55" fill="#d1fae5" fill-opacity="0.95"/></g><circle cx="340" cy="150" r="55" fill="none" stroke="#10b981" stroke-width="2"/><circle cx="400" cy="150" r="55" fill="none" stroke="#10b981" stroke-width="2"/><text x="318" y="135" class="e5-t e5-mn">A</text><text x="418" y="135" class="e5-t e5-mn">B</text><text x="315" y="158" class="e5-t e5-mn" fill="#94a3b8">1</text><text x="328" y="172" class="e5-t e5-mn" fill="#94a3b8">2</text><text x="365" y="158" class="e5-t e5-mn">3</text><text x="365" y="172" class="e5-t e5-mn">4</text><text x="410" y="158" class="e5-t e5-mn" fill="#94a3b8">5</text><text x="420" y="172" class="e5-t e5-mn" fill="#94a3b8">6</text><text x="370" y="245" text-anchor="middle" class="e5-t e5-result">{3, 4}</text><text x="370" y="262" text-anchor="middle" class="e5-t e5-label">elements in both</text><text x="610" y="60" text-anchor="middle" class="e5-t e5-op" fill="#dc2626">difference</text><text x="610" y="78" text-anchor="middle" class="e5-t e5-mn" fill="#475569">a.difference(b)</text><g clip-path="url(#vc-rightA-mdx)"><rect x="500" y="80" width="200" height="160" fill="#fee2e2" fill-opacity="0.95"/><circle cx="640" cy="150" r="55" fill="#ffffff"/></g><circle cx="580" cy="150" r="55" fill="none" stroke="#dc2626" stroke-width="2"/><circle cx="640" cy="150" r="55" fill="none" stroke="#dc2626" stroke-width="2"/><text x="558" y="135" class="e5-t e5-mn">A</text><text x="658" y="135" class="e5-t e5-mn">B</text><text x="555" y="158" class="e5-t e5-mn">1</text><text x="568" y="172" class="e5-t e5-mn">2</text><text x="605" y="158" class="e5-t e5-mn" fill="#94a3b8">3</text><text x="605" y="172" class="e5-t e5-mn" fill="#94a3b8">4</text><text x="650" y="158" class="e5-t e5-mn" fill="#94a3b8">5</text><text x="660" y="172" class="e5-t e5-mn" fill="#94a3b8">6</text><text x="610" y="245" text-anchor="middle" class="e5-t e5-result">{1, 2}</text><text x="610" y="262" text-anchor="middle" class="e5-t e5-label">in A but not in B</text><text x="360" y="310" text-anchor="middle" class="e5-t" font-size="12" fill="#475569" font-style="italic">Dart's Set provides .union(), .intersection(), and .difference() out of the box.</text></svg>
+      <br><br>
+      <pre><code>var a = {1, 2, 3, 4};
+      var b = {3, 4, 5, 6};
+
+      print(a.union(b));         // {1, 2, 3, 4, 5, 6}
+      print(a.intersection(b));  // {3, 4}
+      print(a.difference(b));    // {1, 2}</code></pre>
+      <strong>The performance jewel — Set's <code>contains</code> is fast.</strong> Checking whether a List contains a value means scanning every element until we find it, which is O(n). Checking whether a Set contains a value uses hashing and runs in O(1) on average. For large collections, this is a thousand-times-faster kind of difference. We'll see exactly how Set pulls that off in the next topic, because Map uses the same trick.
+
+  - id: maps
+    title: "Maps — the phonebook completed"
+    summary: |
+      A Set deduplicates phone numbers, but we've still lost the name. To go from "9876…" back to "Mom" we need the key→value relationship that a Map provides.
+      <br><br>
+      <pre><code>void main() {
+        Map phoneNumbers = {
+          'Ankit':   '987654321',
+          'Mom':     '123456789',
+          'Dad':     '9876102345',
+          'Brother': '7876413232',
+          'Sister':  '123456789',
+        };
+        print(phoneNumbers);
+        print(phoneNumbers['Mom']);   // '123456789'
+      }</code></pre>
+      Notice that Sister and Mom can share the same number — values don't have to be unique, only keys do. That matches real life: two people can have the same phone, but they have different names.
+      <br><br>
+      <strong>The empty-literal gotcha.</strong> Dart's collection literal syntax has one trap that catches almost everyone the first time.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Empty literal ambiguity" style="max-width: 100%; height: auto;"><style>.e6-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e6-title{font-size:16px;font-weight:600}.e6-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:17px;font-weight:700}.e6-arrow{font-size:18px;font-weight:700;fill:#475569}.e6-type{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:700}.e6-note{font-size:10px;font-style:italic;fill:#64748b}.e6-warn{font-size:13px;font-weight:600;fill:#b45309}</style><text x="360" y="26" text-anchor="middle" class="e6-t e6-title">What does {} mean? It depends on the context.</text><rect x="20" y="55" width="160" height="210" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="100" y="115" text-anchor="middle" class="e6-t e6-code">{}</text><text x="100" y="155" text-anchor="middle" class="e6-t e6-arrow">↓</text><text x="100" y="190" text-anchor="middle" class="e6-t e6-type" fill="#9333ea">Map</text><text x="100" y="208" text-anchor="middle" class="e6-t e6-type" fill="#9333ea">&lt;dynamic, dynamic&gt;</text><text x="100" y="235" text-anchor="middle" class="e6-t e6-note">empty Map,</text><text x="100" y="250" text-anchor="middle" class="e6-t e6-note">NOT empty Set</text><rect x="200" y="55" width="160" height="210" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="280" y="115" text-anchor="middle" class="e6-t e6-code">&lt;int&gt;{}</text><text x="280" y="155" text-anchor="middle" class="e6-t e6-arrow">↓</text><text x="280" y="200" text-anchor="middle" class="e6-t e6-type" fill="#10b981">Set&lt;int&gt;</text><text x="280" y="235" text-anchor="middle" class="e6-t e6-note">explicit type tells</text><text x="280" y="250" text-anchor="middle" class="e6-t e6-note">Dart it is a Set</text><rect x="380" y="55" width="160" height="210" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="460" y="115" text-anchor="middle" class="e6-t e6-code">{1, 2, 3}</text><text x="460" y="155" text-anchor="middle" class="e6-t e6-arrow">↓</text><text x="460" y="200" text-anchor="middle" class="e6-t e6-type" fill="#10b981">Set&lt;int&gt;</text><text x="460" y="235" text-anchor="middle" class="e6-t e6-note">commas → Set</text><text x="460" y="250" text-anchor="middle" class="e6-t e6-note">(no colons)</text><rect x="560" y="55" width="140" height="210" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="630" y="115" text-anchor="middle" class="e6-t e6-code">{1: 'a'}</text><text x="630" y="155" text-anchor="middle" class="e6-t e6-arrow">↓</text><text x="630" y="190" text-anchor="middle" class="e6-t e6-type" fill="#9333ea">Map</text><text x="630" y="208" text-anchor="middle" class="e6-t e6-type" fill="#9333ea">&lt;int, String&gt;</text><text x="630" y="235" text-anchor="middle" class="e6-t e6-note">key:value pairs</text><text x="630" y="250" text-anchor="middle" class="e6-t e6-note">→ Map</text><text x="360" y="295" text-anchor="middle" class="e6-t e6-warn">Rule: bare {} defaults to Map. For an empty Set, write &lt;Type&gt;{} or Set&lt;Type&gt;().</text></svg>
+      <br><br>
+      The bare <code>{}</code> looks like an empty set, but it's actually an empty Map. To get an empty Set, we need to give Dart a type hint or use the explicit constructor.
+      <br><br>
+      <strong>How Map (and Set) achieve O(1) lookup.</strong> When we write <code>phoneNumbers['Mom']</code>, Dart doesn't scan the whole map. It runs the key through a hash function, which gives it an integer. That integer, modulo the bucket count, tells Dart exactly which bucket to look in. Inside the bucket, it compares keys to find the match.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Hash bucket mechanics" style="max-width: 100%; height: auto;"><defs><marker id="m-hash-mdx" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.e7-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e7-title{font-size:16px;font-weight:600}.e7-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:600}.e7-mn-small{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.e7-idx{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#94a3b8;font-weight:700}.e7-label{font-size:12px;fill:#475569}.e7-step{font-size:12px;fill:#b45309;font-style:italic;font-weight:600}.e7-good{font-size:13px;font-weight:600;fill:#059669}</style><text x="360" y="26" text-anchor="middle" class="e7-t e7-title">How Set and Map look up in O(1) — hash buckets</text><text x="40" y="60" class="e7-t e7-step">step 1: the key</text><rect x="40" y="75" width="110" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="95" y="100" text-anchor="middle" class="e7-t e7-mn">"Mom"</text><line x1="150" y1="95" x2="190" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#m-hash-mdx)"/><text x="170" y="85" text-anchor="middle" class="e7-t" font-size="11" fill="#64748b">hash()</text><rect x="190" y="75" width="130" height="40" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/><text x="255" y="100" text-anchor="middle" class="e7-t e7-mn">3729183617</text><line x1="320" y1="95" x2="360" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#m-hash-mdx)"/><text x="340" y="85" text-anchor="middle" class="e7-t" font-size="11" fill="#64748b">% 8</text><rect x="360" y="75" width="60" height="40" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/><text x="390" y="100" text-anchor="middle" class="e7-t e7-mn">3</text><text x="450" y="100" class="e7-t e7-label">→ bucket index</text><text x="40" y="160" class="e7-t e7-step">step 2: the bucket array</text><g transform="translate(40, 175)"><rect x="0" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><text x="40" y="15" text-anchor="middle" class="e7-t e7-idx">[0]</text><text x="40" y="40" text-anchor="middle" class="e7-t e7-mn-small" fill="#cbd5e1">empty</text><rect x="80" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><text x="120" y="15" text-anchor="middle" class="e7-t e7-idx">[1]</text><text x="120" y="40" text-anchor="middle" class="e7-t e7-mn-small" fill="#cbd5e1">empty</text><rect x="160" y="0" width="80" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="200" y="15" text-anchor="middle" class="e7-t e7-idx">[2]</text><text x="200" y="35" text-anchor="middle" class="e7-t e7-mn-small">Ankit</text><text x="200" y="50" text-anchor="middle" class="e7-t e7-mn-small">→ 987...</text><rect x="240" y="0" width="160" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/><text x="320" y="15" text-anchor="middle" class="e7-t e7-idx">[3]</text><line x1="320" y1="20" x2="320" y2="60" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2 2"/><text x="280" y="35" text-anchor="middle" class="e7-t e7-mn-small">Mom</text><text x="280" y="50" text-anchor="middle" class="e7-t e7-mn-small">→ 123...</text><text x="360" y="35" text-anchor="middle" class="e7-t e7-mn-small">Dad</text><text x="360" y="50" text-anchor="middle" class="e7-t e7-mn-small">→ 987...</text><rect x="400" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><text x="440" y="15" text-anchor="middle" class="e7-t e7-idx">[4]</text><text x="440" y="40" text-anchor="middle" class="e7-t e7-mn-small" fill="#cbd5e1">empty</text><rect x="480" y="0" width="80" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="520" y="15" text-anchor="middle" class="e7-t e7-idx">[5]</text><text x="520" y="35" text-anchor="middle" class="e7-t e7-mn-small">Sister</text><text x="520" y="50" text-anchor="middle" class="e7-t e7-mn-small">→ 555...</text><rect x="560" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><text x="600" y="15" text-anchor="middle" class="e7-t e7-idx">[6]</text><text x="600" y="40" text-anchor="middle" class="e7-t e7-mn-small" fill="#cbd5e1">empty</text><rect x="640" y="0" width="40" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><text x="660" y="15" text-anchor="middle" class="e7-t e7-idx">[7]</text><text x="660" y="42" text-anchor="middle" class="e7-t e7-mn-small" fill="#cbd5e1">∅</text></g><text x="40" y="265" class="e7-t e7-step">step 3: scan the small bucket for matching key</text><text x="360" y="290" text-anchor="middle" class="e7-t e7-label">"Mom" and "Dad" both hashed to bucket [3] — a collision.</text><text x="360" y="310" text-anchor="middle" class="e7-t e7-label">The bucket stores both as a small list; we compare keys to find the right one.</text><text x="360" y="350" text-anchor="middle" class="e7-t e7-good">Buckets stay short → average lookup is O(1), regardless of total size.</text></svg>
+      <br><br>
+      The whole point of hashing is to skip the linear scan. We compute the bucket index once, then look only inside that single bucket. Sets work the same way — they're basically Maps where we only care about the keys.
+      <br><br>
+      <strong>Three Map flavours.</strong> Just like List, Map comes in a few shapes that pick different trade-offs.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Three Map flavors comparison" style="max-width: 100%; height: auto;"><style>.e8-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e8-title{font-size:16px;font-weight:600}.e8-hdr{font-size:13px;font-weight:700;fill:#1e293b}.e8-prop{font-size:13px;font-weight:600;fill:#475569}.e8-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.e8-cell{font-size:12px;fill:#1e293b}.e8-fast{font-size:12px;font-weight:700;fill:#059669}.e8-mid{font-size:12px;font-weight:700;fill:#b45309}</style><text x="360" y="26" text-anchor="middle" class="e8-t e8-title">Three Map flavors — same API, different rules</text><rect x="20" y="50" width="160" height="55" fill="#f1f5f9" stroke="#cbd5e1"/><text x="100" y="80" text-anchor="middle" class="e8-t e8-hdr">Property</text><rect x="180" y="50" width="180" height="55" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="270" y="74" text-anchor="middle" class="e8-t e8-hdr">LinkedHashMap</text><text x="270" y="92" text-anchor="middle" class="e8-t e8-mn">{} or Map()  —  the default</text><rect x="360" y="50" width="170" height="55" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="445" y="74" text-anchor="middle" class="e8-t e8-hdr">HashMap</text><text x="445" y="92" text-anchor="middle" class="e8-t e8-mn">HashMap()</text><rect x="530" y="50" width="170" height="55" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="615" y="74" text-anchor="middle" class="e8-t e8-hdr">SplayTreeMap</text><text x="615" y="92" text-anchor="middle" class="e8-t e8-mn">SplayTreeMap()</text><rect x="20" y="105" width="160" height="50" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="135" text-anchor="middle" class="e8-t e8-prop">Iteration order</text><rect x="180" y="105" width="180" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="270" y="135" text-anchor="middle" class="e8-t e8-cell">insertion order</text><rect x="360" y="105" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="135" text-anchor="middle" class="e8-t e8-cell">unspecified</text><rect x="530" y="105" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="135" text-anchor="middle" class="e8-t e8-cell">sorted by key</text><rect x="20" y="155" width="160" height="50" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="185" text-anchor="middle" class="e8-t e8-prop">Lookup speed</text><rect x="180" y="155" width="180" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="270" y="185" text-anchor="middle" class="e8-t e8-fast">O(1) average</text><rect x="360" y="155" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="185" text-anchor="middle" class="e8-t e8-fast">O(1) average</text><rect x="530" y="155" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="185" text-anchor="middle" class="e8-t e8-mid">O(log n)</text><rect x="20" y="205" width="160" height="70" fill="#ffffff" stroke="#cbd5e1"/><text x="100" y="245" text-anchor="middle" class="e8-t e8-prop">Use when…</text><rect x="180" y="205" width="180" height="70" fill="#f8fafc" stroke="#cbd5e1"/><text x="270" y="232" text-anchor="middle" class="e8-t e8-cell">most cases — fast</text><text x="270" y="250" text-anchor="middle" class="e8-t e8-cell">AND predictable</text><text x="270" y="266" text-anchor="middle" class="e8-t e8-cell">iteration</text><rect x="360" y="205" width="170" height="70" fill="#f8fafc" stroke="#cbd5e1"/><text x="445" y="232" text-anchor="middle" class="e8-t e8-cell">order truly doesn't</text><text x="445" y="250" text-anchor="middle" class="e8-t e8-cell">matter; slightly</text><text x="445" y="266" text-anchor="middle" class="e8-t e8-cell">lower overhead</text><rect x="530" y="205" width="170" height="70" fill="#f8fafc" stroke="#cbd5e1"/><text x="615" y="232" text-anchor="middle" class="e8-t e8-cell">need keys sorted</text><text x="615" y="250" text-anchor="middle" class="e8-t e8-cell">(e.g., range queries,</text><text x="615" y="266" text-anchor="middle" class="e8-t e8-cell">ordered traversal)</text></svg>
+      <br><br>
+      Common Map operations to know:
+      <br><br>
+      <pre><code>phoneNumbers['Cousin'] = '555000111';   // add or update
+      phoneNumbers.containsKey('Mom');         // true
+      phoneNumbers.containsValue('123456789'); // true (slower — O(n))
+      phoneNumbers.remove('Brother');
+      phoneNumbers.keys;       // Iterable of keys
+      phoneNumbers.values;     // Iterable of values
+      phoneNumbers.entries;    // Iterable of MapEntry(key, value)</code></pre>
+
+  - id: iteration
+    title: "Iteration and transformation"
+    summary: |
+      Once we have a collection, the next thing we want to do is walk through it. Dart has several ways, ranging from the imperative <code>for</code> loop to functional one-liners.
+      <br><br>
+      <strong>The basic loops.</strong>
+      <br><br>
+      <pre><code>// Classic for-in
+      for (var number in phoneNumbers) {
+        print(number);
+      }
+
+      // For a Map, iterate keys, values, or both
+      for (var name in phoneBook.keys) { ... }
+      for (var number in phoneBook.values) { ... }
+      for (var entry in phoneBook.entries) {
+        print('${entry.key} → ${entry.value}');
+      }
+
+      // forEach takes a function
+      phoneNumbers.forEach((n) => print(n));</code></pre>
+      <strong>The functional toolkit.</strong> Most real iteration code reaches for <code>map</code>, <code>where</code>, and <code>fold</code> instead of explicit loops. They're shorter, clearer, and chainable.
+      <br><br>
+      <pre><code>var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      // map — transform each element
+      var doubled = numbers.map((n) => n * 2);
+      // (2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+
+      // where — filter
+      var evens = numbers.where((n) => n.isEven);
+      // (2, 4, 6, 8, 10)
+
+      // fold — collapse to a single value
+      var sum = numbers.fold(0, (acc, n) => acc + n);
+      // 55
+
+      // chain them
+      var sumOfDoubledEvens = numbers
+        .where((n) => n.isEven)
+        .map((n) => n * 2)
+        .fold(0, (acc, n) => acc + n);
+      // 60</code></pre>
+      <strong>The Iterable hierarchy.</strong> List, Set, and the keys/values of a Map are all <code>Iterable</code>. So is the result of <code>where</code> or <code>map</code>. This is why we can chain operations across different collection types — they all speak the same iteration protocol.
+      <br><br>
+      <strong>The lazy evaluation gotcha.</strong> Here's the surprise that bites people. <code>where</code> and <code>map</code> return <strong>lazy</strong> Iterables. Nothing actually happens until we iterate. And every time we iterate, the work runs again.
+      <br><br>
+      <pre><code>var numbers = [1, 2, 3, 4, 5];
+      var bigOnes = numbers.where((n) {
+        print('checking $n');
+        return n > 3;
+      });
+
+      // Nothing has been printed yet!
+
+      print(bigOnes.first);   // prints "checking 1" through "checking 4", then 4
+      print(bigOnes.length);  // prints "checking 1" through "checking 5" AGAIN — re-runs the filter</code></pre>
+      For a lazy iterable used many times, the filter runs every time. The fix is to materialise with <code>.toList()</code> or <code>.toSet()</code> when we'll use the result more than once:
+      <br><br>
+      <pre><code>var bigOnes = numbers.where((n) => n > 3).toList();
+      // now bigOnes is a real List, work happens once</code></pre>
+      Reach for lazy iterables when chaining transformations (the laziness avoids building intermediate lists). Reach for <code>.toList()</code> when storing or reusing the result.
+
+  - id: performance
+    title: "Performance — picking the right collection"
+    summary: |
+      Now that we know what each collection can do, the real question is when to pick which. The answer almost always comes down to the access pattern.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 460" role="img" aria-label="Big-O cheat sheet" style="max-width: 100%; height: auto;"><style>.e9-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.e9-title{font-size:16px;font-weight:600}.e9-hdr{font-size:14px;font-weight:700;fill:#1e293b}.e9-op{font-size:12px;font-weight:600;fill:#475569}.e9-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;font-weight:600;fill:#1e293b}.e9-na{font-size:13px;font-weight:600;fill:#94a3b8}.e9-good{font-size:13px;font-weight:700;fill:#047857}.e9-bad{font-size:13px;font-weight:700;fill:#b91c1c}.e9-legend{font-size:11px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="e9-t e9-title">Big-O cheat sheet — pick by access pattern</text><rect x="20" y="50" width="240" height="50" fill="#f1f5f9" stroke="#cbd5e1"/><text x="140" y="80" text-anchor="middle" class="e9-t e9-hdr">Operation</text><rect x="260" y="50" width="153" height="50" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/><text x="336" y="80" text-anchor="middle" class="e9-t e9-hdr">List</text><rect x="413" y="50" width="153" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="490" y="80" text-anchor="middle" class="e9-t e9-hdr">Set</text><rect x="566" y="50" width="134" height="50" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="633" y="80" text-anchor="middle" class="e9-t e9-hdr">Map</text><rect x="20" y="100" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="120" class="e9-t e9-op">Access by index</text><text x="32" y="135" class="e9-t e9-mn">list[i]</text><rect x="260" y="100" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="336" y="127" text-anchor="middle" class="e9-t e9-good">O(1)</text><rect x="413" y="100" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="490" y="127" text-anchor="middle" class="e9-t e9-na">— not applicable</text><rect x="566" y="100" width="134" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="633" y="127" text-anchor="middle" class="e9-t e9-na">— n/a</text><rect x="20" y="142" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="162" class="e9-t e9-op">Add at end</text><text x="32" y="177" class="e9-t e9-mn">add(x)</text><rect x="260" y="142" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="336" y="169" text-anchor="middle" class="e9-t e9-good">O(1) amortized</text><rect x="413" y="142" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="490" y="169" text-anchor="middle" class="e9-t e9-good">O(1) average</text><rect x="566" y="142" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="633" y="163" text-anchor="middle" class="e9-t e9-good">O(1) avg</text><text x="633" y="178" text-anchor="middle" class="e9-t e9-mn">m[k] = v</text><rect x="20" y="184" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="204" class="e9-t e9-op">Insert at start / middle</text><text x="32" y="219" class="e9-t e9-mn">insert(i, x)</text><rect x="260" y="184" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1"/><text x="336" y="211" text-anchor="middle" class="e9-t e9-bad">O(n)</text><rect x="413" y="184" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="490" y="211" text-anchor="middle" class="e9-t e9-na">— unordered</text><rect x="566" y="184" width="134" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="633" y="211" text-anchor="middle" class="e9-t e9-na">— n/a</text><rect x="20" y="226" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="246" class="e9-t e9-op">Remove by value</text><text x="32" y="261" class="e9-t e9-mn">remove(x)</text><rect x="260" y="226" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1"/><text x="336" y="253" text-anchor="middle" class="e9-t e9-bad">O(n)</text><rect x="413" y="226" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="490" y="253" text-anchor="middle" class="e9-t e9-good">O(1) average</text><rect x="566" y="226" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="633" y="247" text-anchor="middle" class="e9-t e9-good">O(1) avg</text><text x="633" y="262" text-anchor="middle" class="e9-t e9-mn">remove(k)</text><rect x="20" y="268" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="288" class="e9-t e9-op">Check membership</text><text x="32" y="303" class="e9-t e9-mn">contains(x)</text><rect x="260" y="268" width="153" height="42" fill="#fee2e2" stroke="#cbd5e1"/><text x="336" y="295" text-anchor="middle" class="e9-t e9-bad">O(n)</text><rect x="413" y="268" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="490" y="295" text-anchor="middle" class="e9-t e9-good">O(1) average</text><rect x="566" y="268" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="633" y="290" text-anchor="middle" class="e9-t e9-good">O(1) avg</text><text x="633" y="305" text-anchor="middle" class="e9-t e9-mn">containsKey</text><rect x="20" y="310" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="330" class="e9-t e9-op">Lookup by key</text><text x="32" y="345" class="e9-t e9-mn">m[k]</text><rect x="260" y="310" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="336" y="337" text-anchor="middle" class="e9-t e9-na">— no keys</text><rect x="413" y="310" width="153" height="42" fill="#f1f5f9" stroke="#cbd5e1"/><text x="490" y="337" text-anchor="middle" class="e9-t e9-na">— use contains</text><rect x="566" y="310" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="633" y="337" text-anchor="middle" class="e9-t e9-good">O(1) average</text><rect x="20" y="352" width="240" height="42" fill="#ffffff" stroke="#cbd5e1"/><text x="32" y="372" class="e9-t e9-op">Iterate every element</text><text x="32" y="387" class="e9-t e9-mn">for (var x in c)</text><rect x="260" y="352" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="336" y="379" text-anchor="middle" class="e9-t e9-good">O(n)</text><rect x="413" y="352" width="153" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="490" y="379" text-anchor="middle" class="e9-t e9-good">O(n)</text><rect x="566" y="352" width="134" height="42" fill="#dcfce7" stroke="#cbd5e1"/><text x="633" y="379" text-anchor="middle" class="e9-t e9-good">O(n)</text><rect x="20" y="410" width="14" height="14" fill="#dcfce7" stroke="#10b981"/><text x="40" y="421" class="e9-t e9-legend">fast (constant time)</text><rect x="180" y="410" width="14" height="14" fill="#fef3c7" stroke="#f59e0b"/><text x="200" y="421" class="e9-t e9-legend">O(log n) — acceptable</text><rect x="370" y="410" width="14" height="14" fill="#fee2e2" stroke="#dc2626"/><text x="390" y="421" class="e9-t e9-legend">O(n) — gets slow at scale</text><rect x="560" y="410" width="14" height="14" fill="#f1f5f9" stroke="#94a3b8"/><text x="580" y="421" class="e9-t e9-legend">not applicable</text><text x="360" y="448" text-anchor="middle" class="e9-t" font-size="12" fill="#475569" font-style="italic">Default Set/Map are LinkedHashSet/LinkedHashMap. Averages assume a healthy hash distribution.</text></svg>
+      <br><br>
+      The big lessons from the table:
+      <br><br>
+      • If we'll ever call <code>contains</code> on a big collection, use a <strong>Set</strong>. The List version is O(n) — a thousand-element scan for every check.
+      <br>
+      • If we want to look up by name, ID, or any other "key," use a <strong>Map</strong>. Don't simulate it with a List of records.
+      <br>
+      • If we need positional access (the third item, the last item, the items in order), use a <strong>List</strong>.
+      <br>
+      • <strong>Inserting at the start of a List is O(n)</strong> — every other element has to shift. If we're doing this a lot, our data structure is probably wrong.
+      <br><br>
+      <strong>The TypedData escape hatch for numeric data.</strong> Everything in this table is the cost for general-purpose collections that store any kind of object. For large numeric arrays, we have a different option — the typed lists from Episode 3 (<code>Uint8List</code>, <code>Int32List</code>, <code>Float64List</code>) store unboxed values contiguously and skip the per-element pointer overhead. For image, audio, or sensor data, that's the right choice. The boxing story we covered in Episodes 3 and 4.5 applies in full here: a <code>List&lt;int&gt;</code> of byte-range values can use roughly 8 times the memory of the equivalent <code>Uint8List</code>. When numbers are the data, <code>TypedData</code> wins.
+
+  - id: power-features
+    title: "Power features — spread, collection-if, collection-for"
+    summary: |
+      Dart has a few syntax features that make working with collections genuinely enjoyable. They blur the line between defining a collection and computing one.
+      <br><br>
+      <strong>The spread operator.</strong> Three dots flatten a collection into another collection literal.
+      <br><br>
+      <pre><code>void main() {
+        List&lt;int&gt; list1 = [1, 2, 3];
+        List&lt;int&gt; list2 = [4, 5, 6];
+
+        // Combine two lists
+        var combined = [...list1, ...list2];   // [1, 2, 3, 4, 5, 6]
+
+        // Copy and extend
+        var extended = [...list1, 7, 8, 9];    // [1, 2, 3, 7, 8, 9]
+
+        // Works for Set and Map literals too
+        var uniqueNumbers = {...phoneList};
+        var merged = {...mapA, ...mapB};
+      }</code></pre>
+      Spread also has a null-aware version <code>...?</code> that's a no-op when the source is null — handy when building collections from optional inputs.
+      <br><br>
+      <strong>Collection-if.</strong> Inline conditionals inside collection literals. The first time we see this, it feels like magic.
+      <br><br>
+      <pre><code>bool isLoggedIn = true;
+      bool hasNotifications = false;
+
+      var menuItems = [
+        'Home',
+        'About',
+        if (isLoggedIn) 'Profile',
+        if (isLoggedIn) 'Settings',
+        if (hasNotifications) 'Inbox',
+        'Logout',
+      ];
+      // ['Home', 'About', 'Profile', 'Settings', 'Logout']</code></pre>
+      Compare that to the imperative alternative — three separate <code>if</code> blocks each calling <code>add</code> — and the collection-if version is harder to get wrong.
+      <br><br>
+      <strong>Collection-for.</strong> The same idea, but with a loop.
+      <br><br>
+      <pre><code>var numbers = [1, 2, 3, 4, 5];
+
+      var doubled = [for (var n in numbers) n * 2];
+      // [2, 4, 6, 8, 10]
+
+      var phoneTags = [
+        for (var entry in phoneBook.entries)
+          '${entry.key}: ${entry.value}',
+      ];
+
+      // Combine collection-if and collection-for
+      var bigNumbers = [
+        for (var n in numbers) if (n > 2) n * 10,
+      ];
+      // [30, 40, 50]</code></pre>
+      <strong>Const collections.</strong> When a collection's contents are known at compile time and never change, prefix it with <code>const</code>. Dart will allocate it exactly once and reuse the same canonical instance — much like the canonical booleans from Episode 2 and string literals from Episode 5.
+      <br><br>
+      <pre><code>const validRoles = {'admin', 'editor', 'viewer'};
+      const httpCodes = {200: 'OK', 404: 'Not Found', 500: 'Error'};</code></pre>
+      <strong>Unmodifiable views.</strong> Wrap a collection to expose it without letting callers mutate it. Great for public API surfaces where we want to share data but keep ownership.
+      <br><br>
+      <pre><code>final _internalList = [1, 2, 3];
+      List&lt;int&gt; get items =&gt; List.unmodifiable(_internalList);
+
+      var view = items;
+      view.add(4);   // throws — UnsupportedError</code></pre>
+      <br><br>
+      That completes the data-foundation arc of this series. Booleans for transistor states. Integers and doubles for counting and measuring. Strings for text. Collections for the bulk data of every real program. Maps especially are the workhorse of app development — we'll see them everywhere when we move on to Flutter, from widget configuration to API responses to state management. Now we have the right mental model for picking the right one.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering the three core collections, their performance characteristics, and Dart's collection literals."
+  questions:
+    - question: "We need to store user IDs and check whether a given ID has been seen before. The collection has thousands of IDs and we check often. Which collection is the right fit?"
+      options:
+        - "List — Lists are the most general-purpose"
+        - "Set — O(1) contains is what we want here"
+        - "Map — we should map every ID to a boolean"
+        - "Two parallel Lists — one for IDs, one for seen-status"
+      correctIndex: 1
+      explanation: "Frequent membership checks on a large collection is exactly what Set is for. Set.contains is O(1) on average because hashing skips the linear scan. List.contains is O(n) — for thousands of items checked thousands of times, that's millions of comparisons. A Map of ID → bool would also work but is wasteful when we don't need a value alongside the key."
+
+    - question: "Adding to the end of a growable List with `list.add(x)` has average time complexity:"
+      options:
+        - "O(n) — every add copies the whole list"
+        - "O(1) amortized — usually constant, occasionally a copy when the backing array doubles"
+        - "O(log n) — Lists use balanced trees internally"
+        - "O(1) always — no copies ever happen"
+      correctIndex: 1
+      explanation: "Growable Lists are backed by an array with extra capacity. Most add calls just write to an empty slot — pure O(1). When the array fills up, Dart allocates a new array twice the size and copies everything over, which is O(n) for that single call. Because doublings happen rarely (n adds trigger only log(n) doublings), the average cost per add stays constant. We say this is 'O(1) amortized.'"
+
+    - question: "What does `var x = {};` create in Dart?"
+      options:
+        - "An empty Set"
+        - "An empty Map<dynamic, dynamic>"
+        - "A compile error — the type is ambiguous"
+        - "A null value"
+      correctIndex: 1
+      explanation: "Bare {} defaults to an empty Map<dynamic, dynamic>, not an empty Set. This is a famous Dart gotcha. To get an empty Set, write <int>{} (or whatever element type) or Set<int>(). The rule of thumb: if there are no colons inside the braces and the type isn't given, Dart picks Map. Once you have items with colons like {1: 'a'}, it's clearly a Map; with bare values like {1, 2, 3}, it's a Set."
+
+    - question: "How does a Map achieve O(1) average-case lookup?"
+      options:
+        - "It uses a balanced binary tree of keys"
+        - "It runs the key through a hash function to compute a bucket index, then searches a small bucket"
+        - "It keeps keys sorted and uses binary search"
+        - "It scans linearly but caches recent lookups"
+      correctIndex: 1
+      explanation: "When we write map[key], Dart calls hashCode on the key, mods it by the bucket count, and jumps directly to that bucket. The bucket usually contains just one or two entries (more if there's a collision), so the final comparison is essentially constant time. The whole magic depends on having a good hash function — if keys cluster into the same bucket, performance degrades toward O(n). SplayTreeMap uses sorted keys and O(log n) instead, in exchange for sorted iteration."
+
+    - question: "What's the issue with this code? `var bigNumbers = numbers.where((n) => n > 100); print(bigNumbers.length); print(bigNumbers.first);`"
+      options:
+        - "Nothing — the code works perfectly"
+        - "where returns a lazy Iterable, so the filter runs twice — once per call"
+        - "where should be whereType"
+        - "You can't call length and first on the result of where"
+      correctIndex: 1
+      explanation: "where returns a lazy Iterable. The filter doesn't actually execute when we call where — it executes every time we iterate the result. So length and first each trigger a full re-evaluation of the filter. For small collections used briefly, that's fine. For large data or expensive predicates, materialise the result with .toList() first so the work runs exactly once."
+
+    - question: "We're storing 1 million 8-bit pixel values from a grayscale image. Compared to `List<int>`, using `Uint8List` saves roughly:"
+      options:
+        - "Nothing — same memory either way"
+        - "About 8× memory, by storing raw bytes contiguously instead of pointer-sized slots"
+        - "About 2× memory"
+        - "About 50× memory due to better cache locality"
+      correctIndex: 1
+      explanation: "A List<int> stores each element in a pointer-sized slot (8 bytes on a 64-bit system), even for small values that could fit in a single byte. A Uint8List stores each value as exactly 1 byte. So 1 million 8-bit pixels in List<int> is around 8 MB; in Uint8List it's 1 MB. Beyond the memory savings, the contiguous layout is also dramatically friendlier to the CPU cache during iteration — which is why image processing always uses TypedData."
+
+    - question: "Which Map flavour iterates its keys in sorted order?"
+      options:
+        - "LinkedHashMap"
+        - "HashMap"
+        - "SplayTreeMap"
+        - "Map (the default)"
+      correctIndex: 2
+      explanation: "SplayTreeMap stores keys in sorted order, with O(log n) lookup and ordered iteration. The default (LinkedHashMap, created by {} or Map()) preserves insertion order. HashMap doesn't promise any order — slightly faster for use cases where iteration order genuinely doesn't matter. Reach for SplayTreeMap when you need range queries or want keys to come out sorted."
+---
+
+{/* All content lives in frontmatter `topics` and `quiz`. Six inline SVG
+    diagrams plus three comparison-table SVGs cover the three collections,
+    decision flow, list growth, set operations, hash mechanics, empty-literal
+    gotcha, list flavors, map flavors, and Big-O cheat sheet. */}

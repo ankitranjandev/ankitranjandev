@@ -1,0 +1,114 @@
+---
+title: "Understanding State Management in Flutter"
+description: "An exploration of state management approaches in Flutter, from setState to more sophisticated solutions, and how to choose the right one for your app."
+publishedAt: 2024-03-20
+tags:
+  - flutter
+  - state-management
+  - architecture
+---
+
+State management is one of the most discussed topics in Flutter. Let's cut through the noise and understand what actually matters.
+
+## What is State?
+
+State is data that can change over time and affects what your UI displays. In Flutter, there are two types:
+
+- **Ephemeral state** — Local to a widget (selected tab, form input)
+- **App state** — Shared across the app (user auth, shopping cart)
+
+## The Simplest Approach: setState
+
+For ephemeral state, `setState()` is often all you need:
+
+```dart
+class Counter extends StatefulWidget {
+  @override
+  State<Counter> createState() => _CounterState();
+}
+
+class _CounterState extends State<Counter> {
+  int _count = 0;
+
+  void _increment() {
+    setState(() {
+      _count++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text('Count: $_count');
+  }
+}
+```
+
+Don't reach for complex solutions when `setState` works.
+
+## Lifting State Up
+
+When multiple widgets need the same state, lift it to their common ancestor:
+
+```dart
+class Parent extends StatefulWidget {
+  @override
+  State<Parent> createState() => _ParentState();
+}
+
+class _ParentState extends State<Parent> {
+  int _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Display(count: _count),
+        Incrementer(onIncrement: () => setState(() => _count++)),
+      ],
+    );
+  }
+}
+```
+
+## InheritedWidget for Deep Trees
+
+When state needs to travel through many widget layers, use `InheritedWidget`:
+
+```dart
+class CountProvider extends InheritedWidget {
+  final int count;
+
+  const CountProvider({
+    required this.count,
+    required super.child,
+  });
+
+  static int of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<CountProvider>()!.count;
+  }
+
+  @override
+  bool updateShouldNotify(CountProvider oldWidget) {
+    return count != oldWidget.count;
+  }
+}
+```
+
+## When to Use External Solutions
+
+Consider packages like Provider, Riverpod, or Bloc when:
+
+- You have complex state logic (business rules, async operations)
+- Multiple parts of your app need to react to state changes
+- You want better testability and separation of concerns
+
+## My Recommendation
+
+Start simple:
+
+1. **Single widget** → `setState()`
+2. **Few widgets** → Lift state up
+3. **Deep tree** → InheritedWidget or Provider
+4. **Complex logic** → Riverpod or Bloc
+
+Don't over-engineer. The best state management solution is the simplest one that meets your needs.

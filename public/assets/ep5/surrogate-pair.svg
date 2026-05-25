@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="UTF-16 surrogate pair for emoji">
+  <style>
+    .s2-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .s2-title { font-size: 16px; font-weight: 600; }
+    .s2-emoji { font-size: 56px; }
+    .s2-label { font-size: 13px; fill: #475569; }
+    .s2-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; font-weight: 600; }
+    .s2-unit-label { font-size: 12px; fill: #64748b; font-family: "SF Mono", Menlo, monospace; }
+    .s2-result { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; font-weight: 700; }
+    .s2-good { fill: #059669; }
+    .s2-bad { fill: #dc2626; }
+    .s2-cap { font-size: 13px; fill: #475569; font-style: italic; }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="s2-t s2-title">Why an emoji has length 2 in Dart</text>
+
+  <!-- The emoji -->
+  <text x="360" y="100" text-anchor="middle" class="s2-t s2-emoji">😀</text>
+  <text x="360" y="125" text-anchor="middle" class="s2-t s2-label">one Unicode code point (U+1F600) — but it doesn't fit in 16 bits</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="140" x2="360" y2="170" stroke="#475569" stroke-width="2"/>
+  <polygon points="355,168 365,168 360,178" fill="#475569"/>
+
+  <!-- Two UTF-16 code units -->
+  <text x="360" y="195" text-anchor="middle" class="s2-t s2-label">stored as a UTF-16 surrogate pair — two 16-bit code units:</text>
+
+  <rect x="200" y="215" width="160" height="60" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/>
+  <text x="280" y="243" text-anchor="middle" class="s2-t s2-mn">0xD83D</text>
+  <text x="280" y="263" text-anchor="middle" class="s2-t s2-unit-label">high surrogate</text>
+
+  <rect x="360" y="215" width="160" height="60" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/>
+  <text x="440" y="243" text-anchor="middle" class="s2-t s2-mn">0xDE00</text>
+  <text x="440" y="263" text-anchor="middle" class="s2-t s2-unit-label">low surrogate</text>
+
+  <!-- What the APIs return -->
+  <text x="40" y="310" class="s2-t s2-mn">'😀'.length</text>
+  <text x="190" y="310" class="s2-t s2-result s2-bad">== 2</text>
+  <text x="250" y="310" class="s2-t s2-cap">  ← counts code units</text>
+
+  <text x="40" y="335" class="s2-t s2-mn">'😀'.runes.length</text>
+  <text x="220" y="335" class="s2-t s2-result s2-good">== 1</text>
+  <text x="280" y="335" class="s2-t s2-cap">  ← counts code points (what we want)</text>
+</svg>

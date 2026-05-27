@@ -300,6 +300,23 @@ topics:
       <br><br>
       <strong>4. You're adding too many.</strong> Twenty extension methods on String is a code smell. Consider whether a dedicated class would be clearer.
 
+  - id: ai-prompts-extensions
+    title: "AI prompts — designing extensions effectively"
+    summary: |
+      Use these prompts with AI assistants to help you design extensions effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Extension or method:</strong>
+      <pre><code>I want to add this functionality to [type].&#10;Should I use an extension method, a mixin,&#10;or a standalone function? Consider: Do I&#10;control the type? Need polymorphism? State?</code></pre>
+      <br>
+      <strong>Prompt 2 — Generic extension design:</strong>
+      <pre><code>Create an extension on List&lt;T&gt; or Iterable&lt;T&gt;&#10;that [describe operation]. Use appropriate&#10;type bounds if the operation requires&#10;Comparable or other interfaces.</code></pre>
+      <br>
+      <strong>Prompt 3 — Nullable type extensions:</strong>
+      <pre><code>Create an extension on [Type]? (nullable)&#10;with methods like isNullOrEmpty, orDefault().&#10;These should handle null safely without&#10;requiring the caller to check first.</code></pre>
+      <br>
+      <strong>Prompt 4 — Fluent API extensions:</strong>
+      <pre><code>Create extensions on int or num that return&#10;Duration, like 5.seconds or 100.milliseconds.&#10;Follow the pattern: getter returns a wrapper&#10;type for fluent chaining.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering extension methods, resolution, and when to use them."

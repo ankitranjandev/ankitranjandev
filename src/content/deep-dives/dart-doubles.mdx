@@ -79,6 +79,20 @@ topics:
     title: "num, conversion, parsing, and practical tips"
     summary: "A few last things worth knowing.<br><br><strong>The num type.</strong> Dart has a parent type <code>num</code> that is the supertype of both <code>int</code> and <code>double</code>. Use it when a function should accept either:<br><br><pre><code>num average(num a, num b) =&gt; (a + b) / 2;\n\naverage(3, 4.5);     // works for both</code></pre><strong>Conversion is explicit.</strong> Dart will not silently convert between <code>int</code> and <code>double</code>.<br><br><pre><code>int i = 42;\ndouble d = i;            // error\ndouble d = i.toDouble(); // ok\nint back = d.toInt();    // ok (truncates toward zero)</code></pre><strong>Parsing from strings.</strong><br><br><pre><code>double x = double.parse(\"3.14\");\ndouble? y = double.tryParse(\"hello\");  // null</code></pre><strong>Comparing doubles for equality.</strong> Always use a tolerance.<br><br><pre><code>bool nearlyEqual(double a, double b, [double eps = 1e-9]) =&gt;\n  (a - b).abs() &lt; eps;</code></pre><strong>When to use what:</strong><br><br>• Everyday numerical work, sensor readings, graphics, science → <code>double</code><br>• Money, currency, exact decimal totals → integers (store cents) or the <code>decimal</code> package<br>• Large collections of floats → <code>Float64List</code> (or <code>Float32List</code> for graphics/ML)<br>• Either-int-or-double parameters → <code>num</code><br><br>That is the full tour of <code>double</code> in Dart. We have seen how it stores fractions, why some values are inexact, and how to navigate the quirks safely. In the next episode we will get to strings — and discover that <code>\"Hello\"</code> isn't quite as simple as it looks either."
 
+  - id: ai-prompts-doubles
+    title: "AI prompts — working with doubles effectively"
+    summary: |
+      Use these prompts with AI assistants to help you work with floating-point numbers more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Precision issues:</strong>
+      <pre><code>I'm getting unexpected results with floating-point arithmetic in Dart:&#10;[paste your code and unexpected output]&#10;&#10;Help me understand:&#10;- Why this precision error occurs&#10;- How to fix or work around it&#10;- Whether I should use a different approach (integers, decimal package)</code></pre>
+      <strong>Prompt 2 — Comparing doubles:</strong>
+      <pre><code>I need to compare floating-point values in Dart for [describe use case].&#10;&#10;Help me implement a robust comparison that:&#10;- Uses appropriate epsilon/tolerance&#10;- Handles edge cases (NaN, Infinity, very small values)&#10;- Works correctly for my specific precision requirements</code></pre>
+      <strong>Prompt 3 — Financial calculations:</strong>
+      <pre><code>I'm building [describe financial feature] in Dart.&#10;Currently using doubles for money calculations.&#10;&#10;Help me:&#10;- Identify potential precision problems&#10;- Convert to integer-based (cents) or decimal package&#10;- Handle rounding correctly for display and calculations</code></pre>
+      <strong>Prompt 4 — Scientific/graphics computation:</strong>
+      <pre><code>I'm implementing [describe numerical algorithm] in Dart.&#10;Performance is important.&#10;&#10;Help me:&#10;- Choose between Float32List and Float64List&#10;- Optimise for numerical stability&#10;- Handle special values (NaN, Infinity) appropriately&#10;- Avoid common floating-point pitfalls</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering floating-point representation, IEEE 754, precision pitfalls, and Dart's special double values."

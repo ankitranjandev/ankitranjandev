@@ -211,6 +211,19 @@ topics:
       // but with automatic serialisation handling</code></pre>
       The isolate model is more restrictive than threads, but that restriction is the point. We trade raw flexibility for safety and simplicity. For most app development, this is the right trade.
 
+  - id: ai-prompts-vm
+    title: "AI prompts — exploring the Dart VM further"
+    summary: |
+      Use these prompts with AI coding assistants to deepen your understanding of Dart's runtime, compilation, and memory management.
+      <br><br>
+      <pre><code>Explain the JIT deoptimisation process in Dart. What causes the VM to throw away optimised code? Show me an example where deoptimisation might occur and how to write code that avoids it.</code></pre>
+      <br>
+      <pre><code>What is tree shaking in Dart AOT compilation? Why does using dynamic types or dart:mirrors prevent effective tree shaking? How can I structure my code to maximise dead code elimination?</code></pre>
+      <br>
+      <pre><code>Explain Dart's generational garbage collector. What is the young generation vs old generation? Why are most GC pauses in Flutter apps so short (1-2ms)?</code></pre>
+      <br>
+      <pre><code>Compare JIT and AOT compilation in Dart. Why does Flutter use JIT for debug builds and AOT for release? What features work in JIT that do not work in AOT, and why?</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering Dart's execution modes, compilation, tree shaking, garbage collection, and isolates."

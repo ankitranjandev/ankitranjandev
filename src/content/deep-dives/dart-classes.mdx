@@ -376,6 +376,23 @@ topics:
       }</code></pre>
       The caller doesn't know (or care) whether <code>area</code> is a stored field or a computed getter. That's encapsulation — we can change the implementation without changing the interface.
 
+  - id: ai-prompts-classes
+    title: "AI prompts — designing classes effectively"
+    summary: |
+      Use these prompts with AI assistants to help you design classes effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Choose the right constructor:</strong>
+      <pre><code>I have a class [describe class]. Should I use&#10;a generative constructor, factory constructor,&#10;or const constructor? Consider: Do I need&#10;caching? Singletons? Compile-time constants?</code></pre>
+      <br>
+      <strong>Prompt 2 — Implement equality correctly:</strong>
+      <pre><code>Generate == operator and hashCode for this&#10;Dart class. Use Object.hash() for hashCode.&#10;Include an identical() check for performance.&#10;Explain the hashCode contract.</code></pre>
+      <br>
+      <strong>Prompt 3 — Inheritance vs composition:</strong>
+      <pre><code>I want class A to use functionality from class B.&#10;Should I use extends, implements, or composition&#10;(holding B as a field)? Here are my requirements:&#10;[describe shared behaviour and differences].</code></pre>
+      <br>
+      <strong>Prompt 4 — Encapsulation review:</strong>
+      <pre><code>Review this Dart class for encapsulation issues.&#10;Which fields should be private (underscore)?&#10;Which should have getters/setters with validation?&#10;Which final fields could become computed getters?</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering classes, constructors, inheritance, and object equality in Dart."

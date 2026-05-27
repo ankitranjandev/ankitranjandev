@@ -47,6 +47,23 @@ topics:
     title: "StringBuffer for efficient concatenation"
     summary: "Because strings are immutable, repeated concatenation creates many temporary objects.<br><br><pre><code>String result = '';\nfor (var i = 0; i < 1000; i++) {\n  result += 'item $i, ';  // Creates 1000 intermediate strings\n}</code></pre>For building strings in a loop, use <code>StringBuffer</code>.<br><br><pre><code>StringBuffer buffer = StringBuffer();\nfor (var i = 0; i < 1000; i++) {\n  buffer.write('item $i, ');\n}\nString result = buffer.toString();  // One allocation at the end</code></pre><code>StringBuffer</code> grows an internal buffer efficiently, then produces the final string in one allocation.<br><br>For simple cases (a few concatenations), <code>+</code> or string interpolation is fine. The VM optimizes many common patterns. But for loops or large builds, <code>StringBuffer</code> is the right tool.<br><br>That wraps up strings. The key takeaway — <strong>Dart gives us three views of text (code units, code points, and grapheme clusters) and we need to pick the right one for the job.</strong> For most user-facing work, grapheme clusters (via the <code>characters</code> package) are what we actually want."
 
+  - id: ai-prompts-strings
+    title: "AI prompts — working with strings effectively"
+    summary: |
+      Use these prompts with AI assistants to help you work with strings more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Fixing emoji and Unicode issues:</strong>
+      <pre><code>My Dart string handling is breaking with emoji or special characters:&#10;[paste your code and the problematic input]&#10;&#10;Am I hitting a surrogate pair issue? Should I use .runes or the characters package?&#10;Show me the correct approach for my use case.</code></pre>
+      <br>
+      <strong>Prompt 2 — String manipulation best practices:</strong>
+      <pre><code>I need to [truncate / count / split / search] user-facing text in Dart.&#10;The text may contain emoji, accented characters, or non-Latin scripts.&#10;&#10;Write a robust solution that handles grapheme clusters correctly.&#10;Explain which approach (code units, runes, or characters) fits my need.</code></pre>
+      <br>
+      <strong>Prompt 3 — Debugging encoding problems:</strong>
+      <pre><code>I'm getting garbled text or unexpected characters in my Dart app:&#10;[describe the symptom and paste relevant code]&#10;&#10;Is this a UTF-8 vs UTF-16 issue? A normalisation problem?&#10;Help me diagnose and fix the encoding mismatch.</code></pre>
+      <br>
+      <strong>Prompt 4 — Optimising string-heavy code:</strong>
+      <pre><code>This Dart code builds or processes many strings:&#10;[paste your code]&#10;&#10;Identify any performance issues — unnecessary allocations, missed StringBuffer opportunities, or inefficient patterns. Suggest improvements.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering UTF-16, surrogate pairs, runes, grapheme clusters, and string memory layout in Dart."

@@ -338,6 +338,19 @@ topics:
         void _onData(data) => setState(() => _data = data);
       }</code></pre>
 
+  - id: ai-prompts-streams
+    title: "AI prompts — exploring Streams further"
+    summary: |
+      Use these prompts with AI coding assistants to deepen your understanding of Streams and reactive patterns in Dart.
+      <br><br>
+      <pre><code>Explain the difference between single-subscription and broadcast streams in Dart. When should I use each? What happens if I listen to a single-subscription stream twice?</code></pre>
+      <br>
+      <pre><code>I need to debounce user input in a Flutter search field. Show me how to implement debounce using StreamController, then show the rxdart equivalent.</code></pre>
+      <br>
+      <pre><code>Convert this polling-based code to use an async* generator:&#10;Timer.periodic(Duration(seconds: 5), (timer) {&#10;  fetchData().then((data) => updateUI(data));&#10;});</code></pre>
+      <br>
+      <pre><code>My Flutter widget is leaking memory because I forgot to cancel a StreamSubscription. Show me the correct pattern for subscribing in initState and cleaning up in dispose.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering Streams, StreamControllers, and async generators."

@@ -288,6 +288,23 @@ topics:
       <br><br>
       That completes the data-foundation arc of this series. Booleans for transistor states. Integers and doubles for counting and measuring. Strings for text. Collections for the bulk data of every real program. Maps especially are the workhorse of app development — we'll see them everywhere when we move on to Flutter, from widget configuration to API responses to state management. Now we have the right mental model for picking the right one.
 
+  - id: ai-prompts-collections
+    title: "AI prompts — choosing and optimising collections"
+    summary: |
+      Use these prompts with AI assistants to help you work with collections more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Choosing the right collection:</strong>
+      <pre><code>I need to store [describe your data] in Dart.&#10;My access patterns are: [describe how you read/write/search the data]&#10;&#10;Should I use List, Set, or Map? Which flavour (LinkedHashMap, SplayTreeMap, etc.)?&#10;Explain the trade-offs for my specific use case.</code></pre>
+      <br>
+      <strong>Prompt 2 — Diagnosing collection performance:</strong>
+      <pre><code>This Dart code using collections is slow:&#10;[paste your code]&#10;&#10;Identify the Big-O bottleneck. Am I using contains() on a List when I should use a Set?&#10;Am I iterating a lazy Iterable multiple times? Suggest the fix.</code></pre>
+      <br>
+      <strong>Prompt 3 — Functional collection transformations:</strong>
+      <pre><code>I want to transform this data in Dart:&#10;[describe input and desired output]&#10;&#10;Write it using map/where/fold in a clean, chainable style.&#10;Explain when to materialise with .toList() vs keeping it lazy.</code></pre>
+      <br>
+      <strong>Prompt 4 — Collection literals and spread:</strong>
+      <pre><code>I'm building a [List/Set/Map] conditionally in Dart:&#10;[describe the conditions and data sources]&#10;&#10;Show me how to use spread (...), collection-if, and collection-for&#10;to build it cleanly in a single literal instead of imperative code.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering the three core collections, their performance characteristics, and Dart's collection literals."

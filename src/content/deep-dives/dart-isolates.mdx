@@ -302,6 +302,19 @@ topics:
       }</code></pre>
       The widget doesn't know or care that an isolate was used. That's the right separation of concerns.
 
+  - id: ai-prompts-isolates
+    title: "AI prompts — exploring isolates further"
+    summary: |
+      Use these prompts with AI coding assistants to deepen your understanding of isolates and parallel computation in Dart.
+      <br><br>
+      <pre><code>My Flutter app stutters when parsing a large JSON response. Show me how to move the JSON parsing to an isolate using compute(). Explain why the parsing function must be top-level or static.</code></pre>
+      <br>
+      <pre><code>Explain the difference between Isolate.run() and Isolate.spawn(). When would I use each? Show an example of bidirectional communication with SendPort and ReceivePort.</code></pre>
+      <br>
+      <pre><code>I need to process 100 images in parallel without freezing the UI. Show me how to create an isolate pool pattern that reuses isolates instead of spawning a new one for each image.</code></pre>
+      <br>
+      <pre><code>What types of objects can be sent between isolates in Dart? What happens if I try to send a closure that captures local state? How can I work around this limitation?</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering isolates, message passing, and when to use them."

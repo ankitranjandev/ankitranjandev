@@ -122,6 +122,20 @@ topics:
       <br>
       <strong>Are all subtypes known?</strong> If yes, use <code>sealed</code>.
 
+  - id: ai-prompts-class-modifiers
+    title: "AI prompts — choosing class modifiers"
+    summary: |
+      Use these prompts with AI assistants to help you choose the right class modifiers in Dart 3.
+      <br><br>
+      <strong>Prompt 1 — Choosing modifiers for a library class:</strong>
+      <pre><code>I'm designing a public API class in Dart 3:&#10;[describe your class and its purpose]&#10;&#10;Help me choose the right modifier(s):&#10;- Should it be abstract, base, interface, final, or sealed?&#10;- Should users be able to extend/implement/instantiate it?&#10;- What are the API stability implications of each choice?</code></pre>
+      <strong>Prompt 2 — Migrating existing code to use modifiers:</strong>
+      <pre><code>I have existing Dart code without class modifiers:&#10;[paste your class hierarchy]&#10;&#10;Help me add appropriate Dart 3 modifiers to:&#10;- Prevent unintended extension/implementation&#10;- Make the API contract explicit&#10;- Maintain backward compatibility where needed</code></pre>
+      <strong>Prompt 3 — Sealed vs other modifiers:</strong>
+      <pre><code>I have a class hierarchy representing [describe domain]:&#10;[paste your classes]&#10;&#10;Should I use sealed, or another approach?&#10;Consider:&#10;- Are all subtypes known at compile time?&#10;- Do I need exhaustive switch statements?&#10;- What's the trade-off vs base/final?</code></pre>
+      <strong>Prompt 4 — Combining modifiers correctly:</strong>
+      <pre><code>I'm trying to use these modifiers together:&#10;[list modifiers you want to combine]&#10;&#10;Help me understand:&#10;- Which combinations are valid in Dart 3?&#10;- What does this combination actually enforce?&#10;- Is there a better way to achieve my goal?</code></pre>
+
 quiz:
   title: "Class Modifiers Quiz"
   description: "Test your understanding of Dart 3 class modifiers"

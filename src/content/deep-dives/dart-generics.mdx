@@ -315,6 +315,23 @@ topics:
       print(items.runtimeType);   // List&lt;String&gt;</code></pre>
       <strong>Why does this matter?</strong> Frameworks can inspect types at runtime for serialisation, dependency injection, and reflection. Flutter's widget system relies on reified generics for type-safe builders. JSON decoders can check target types. This runtime knowledge is a genuine advantage Dart has over languages with type erasure.
 
+  - id: ai-prompts-generics
+    title: "AI prompts — designing generics effectively"
+    summary: |
+      Use these prompts with AI assistants to help you design generics effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Add type bounds:</strong>
+      <pre><code>This generic function/class needs to call&#10;[method] on type T. What bound should I add?&#10;Show me T extends [Interface] syntax and&#10;explain what operations the bound enables.</code></pre>
+      <br>
+      <strong>Prompt 2 — Generic class design:</strong>
+      <pre><code>Design a generic class for [use case, e.g.,&#10;Result&lt;T, E&gt; for success/error, Cache&lt;K, V&gt;].&#10;Include appropriate type parameters and&#10;explain when each type is used.</code></pre>
+      <br>
+      <strong>Prompt 3 — Fix type inference:</strong>
+      <pre><code>The compiler is inferring dynamic or the wrong&#10;type here. Where should I add explicit type&#10;arguments to help inference? Show the minimal&#10;changes needed for correct types.</code></pre>
+      <br>
+      <strong>Prompt 4 — Covariance safety:</strong>
+      <pre><code>This function accepts List&lt;Animal&gt; but I'm&#10;passing List&lt;Dog&gt;. Is this safe? Review&#10;whether the function reads only, writes,&#10;or both. Warn about potential runtime errors.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering generics, bounds, covariance, inference, and reification."

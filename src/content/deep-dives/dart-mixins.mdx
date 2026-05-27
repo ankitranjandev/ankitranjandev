@@ -302,6 +302,19 @@ topics:
       var doc = Document('Report');
       print(doc.id);   // unique ID per instance</code></pre>
 
+  - id: ai-prompts-mixins
+    title: "AI prompts — mixin design and refactoring"
+    summary: |
+      Use these prompts to get AI assistance with mixin design decisions and refactoring.
+      <br><br>
+      <pre><code>I have several classes that share logging behaviour (debug output,&#10;timestamps, log levels). Should I use a mixin, extension methods,&#10;or a helper class? Show me the trade-offs and recommend an approach.</code></pre>
+      <br>
+      <pre><code>Review this mixin and suggest improvements:&#10;[paste mixin code]&#10;Check for: appropriate use of 'on' constraints, linearisation&#10;issues if combined with other mixins, and whether this should&#10;be a mixin at all vs a class or extension.</code></pre>
+      <br>
+      <pre><code>I need to add validation behaviour to multiple unrelated model&#10;classes (User, Product, Order). Design a Validatable mixin that&#10;provides isValid, validate(), and assertValid() methods. The&#10;concrete classes should define their own validation rules.</code></pre>
+      <br>
+      <pre><code>Refactor this class hierarchy to use mixins instead of deep&#10;inheritance:&#10;[paste code with Animal -> Mammal -> Dog inheritance]&#10;Extract behaviours like Swimmable, Trainable, and Domesticated&#10;into mixins that can be composed.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering mixins, linearisation, and when to use mixins vs other patterns."

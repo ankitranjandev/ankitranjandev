@@ -280,6 +280,19 @@ topics:
       }</code></pre>
       Flow analysis is what makes null safety feel lightweight. We write natural null checks, and the compiler does the bookkeeping.
 
+  - id: ai-prompts-null-safety
+    title: "AI prompts — null safety migration and patterns"
+    summary: |
+      Use these prompts to get AI assistance with null safety patterns and migration.
+      <br><br>
+      <pre><code>Review this code for null safety issues:&#10;[paste code]&#10;Identify: unnecessary bang operators (!), places where flow&#10;analysis could replace explicit casts, and late variables&#10;that might cause runtime errors.</code></pre>
+      <br>
+      <pre><code>I have a class with several fields that are set in initState()&#10;rather than the constructor. Should I use late, nullable types,&#10;or restructure the class? Here's the code:&#10;[paste widget code]</code></pre>
+      <br>
+      <pre><code>Convert this pre-null-safety function to use proper null safety:&#10;[paste function with dynamic types and null checks]&#10;Use nullable types where appropriate, required parameters,&#10;and flow analysis instead of manual null checks.</code></pre>
+      <br>
+      <pre><code>This function has too many bang operators. Refactor it to use&#10;safer patterns like null-aware operators, early returns, or&#10;local variable promotion:&#10;[paste code with multiple ! operators]</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering null safety fundamentals, operators, late variables, and flow analysis."

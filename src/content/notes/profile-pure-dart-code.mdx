@@ -1,0 +1,38 @@
+---
+title: "How to profile pure Dart code"
+publishedAt: 2026-05-27
+tags:
+  - dart
+  - performance
+  - debugging
+---
+
+Need to profile a Dart script without Flutter? Use the `--observe` flag to connect to DevTools.
+
+```bash
+dart run --observe --pause-isolates-on-start <filename>.dart
+```
+
+This will:
+
+1. Start the Dart VM Observatory (a web-based debugger)
+2. Pause execution before your code runs
+3. Print a URL like `http://127.0.0.1:8181/`
+
+Open that URL in Chrome, then click "Open DevTools" to access:
+
+- **CPU Profiler** — see which functions consume the most time
+- **Memory** — track allocations and find leaks
+- **Timeline** — visualise async operations and isolate activity
+
+The `--pause-isolates-on-start` flag ensures you don't miss profiling the startup phase. Without it, your code might finish before you connect.
+
+For production profiling, also consider:
+
+```bash
+# Profile with AOT compilation (closer to real-world performance)
+dart compile exe <filename>.dart -o app
+./app
+```
+
+This won't have the Observatory, but gives accurate timings for AOT-compiled code.

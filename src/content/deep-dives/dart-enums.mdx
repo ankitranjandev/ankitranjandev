@@ -403,6 +403,23 @@ topics:
       <br><br>
       <strong>The heuristic:</strong> If every variant looks the same (same fields, just different values), use an enum. If variants have different shapes, use a sealed class.
 
+  - id: ai-prompts-enums
+    title: "AI prompts — designing enums effectively"
+    summary: |
+      Use these prompts with AI assistants to help you design enums effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Convert to enhanced enum:</strong>
+      <pre><code>Convert this basic enum into an enhanced enum&#10;with fields and methods. Each value currently&#10;maps to [describe data like codes, labels].&#10;Add appropriate getters and helper methods.</code></pre>
+      <br>
+      <strong>Prompt 2 — Enum or sealed class:</strong>
+      <pre><code>I have these variants: [list variants with their&#10;data]. Should I use an enhanced enum or a&#10;sealed class? Consider: Do variants have&#10;different fields? Do I need runtime instances?</code></pre>
+      <br>
+      <strong>Prompt 3 — Exhaustive switch coverage:</strong>
+      <pre><code>Write a switch expression that handles all&#10;values of this enum. Use pattern matching&#10;with destructuring where it adds clarity.&#10;Do not use a default case.</code></pre>
+      <br>
+      <strong>Prompt 4 — Enum serialisation:</strong>
+      <pre><code>Add toJson() and fromJson() methods to this&#10;enhanced enum. Handle unknown values gracefully&#10;for forward compatibility. Use the enum's&#10;.name or a custom field for the JSON key.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering basic enums, enhanced enums, methods, interfaces, generics, and exhaustive switching."

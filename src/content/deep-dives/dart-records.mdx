@@ -271,6 +271,19 @@ topics:
       print(points.length);   // 1</code></pre>
       Records bring the convenience of tuples from other languages, with full type safety and the structural equality semantics that make them usable anywhere we need value-based comparison.
 
+  - id: ai-prompts-records
+    title: "AI prompts — record design and refactoring"
+    summary: |
+      Use these prompts to get AI assistance with records and when to use them.
+      <br><br>
+      <pre><code>I have a function that returns a Map with 'success', 'data',&#10;and 'error' keys. Refactor it to return a record instead,&#10;with proper types and named fields. Show the function&#10;signature and how callers would destructure the result.</code></pre>
+      <br>
+      <pre><code>Should I use a record or a class for this data:&#10;[describe the data structure]&#10;Consider: how widely it's used, whether it needs methods,&#10;identity vs structural equality, and mutability requirements.</code></pre>
+      <br>
+      <pre><code>Convert this class to a record if appropriate, or explain&#10;why it should remain a class:&#10;[paste simple data class with only final fields]&#10;Show the record syntax and how existing code would change.</code></pre>
+      <br>
+      <pre><code>I need to return three values from a function: a parsed result,&#10;a list of warnings, and a boolean indicating completeness.&#10;Design the record type, show the function signature, and&#10;demonstrate destructuring at the call site.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions on Dart records — syntax, destructuring, equality, and when to use them."

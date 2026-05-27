@@ -281,6 +281,23 @@ topics:
       print(flatten(nested).toList());   // [1, 2, 3, 4, 5]</code></pre>
       Generators connect directly to the Streams episode coming up. Asynchronous generators (<code>async*</code>) work the same way but yield values over time — perfect for event streams, WebSocket messages, or sensor data. For now, <code>sync*</code> gives us lazy iteration, and that's already powerful.
 
+  - id: ai-prompts-functions
+    title: "AI prompts — working with functions effectively"
+    summary: |
+      Use these prompts with AI assistants to help you work with functions more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Identify closure bugs:</strong>
+      <pre><code>Review this Dart code for closure-related bugs.&#10;Check if any closures capture loop variables&#10;incorrectly, or if captured variables might&#10;change unexpectedly. Suggest fixes.</code></pre>
+      <br>
+      <strong>Prompt 2 — Convert to tear-offs:</strong>
+      <pre><code>Refactor this Dart code to use tear-offs&#10;where appropriate. Replace anonymous lambdas&#10;like (x) => print(x) with tear-offs like print&#10;when the signature matches exactly.</code></pre>
+      <br>
+      <strong>Prompt 3 — Design function types:</strong>
+      <pre><code>I need a callback system for [describe use case].&#10;Design appropriate typedef declarations for&#10;the function types, using named parameters&#10;where clarity matters.</code></pre>
+      <br>
+      <strong>Prompt 4 — Generator implementation:</strong>
+      <pre><code>Convert this function that returns a List&#10;into a sync* generator that yields values&#10;lazily. Explain when the lazy approach&#10;would save memory or improve performance.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering first-class functions, closures, parameters, tear-offs, and generators."

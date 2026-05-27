@@ -48,6 +48,20 @@ topics:
     title: "Strict truthiness and utility methods"
     summary: "One last thing, and this trips up newcomers from JavaScript, Python, or C constantly.<br><br><strong>Dart requires real booleans.</strong> In Dart, the condition of an <code>if</code> (or a <code>while</code>, or any boolean context) <strong>must</strong> be a real <code>bool</code>. Dart will not auto-convert numbers, strings, or other objects.<br><br><pre><code>if (1) { ... }            // compile error\nif (\"hello\") { ... }      // compile error\nif (someList) { ... }     // compile error\n\nif (someList.isNotEmpty) { ... }  // ok — that's a real bool\nif (count &gt; 0) { ... }            // ok</code></pre>This strictness eliminates a whole class of subtle bugs. If we are coming from somewhere else, the rule is simple. Be explicit. Compare what we mean.<br><br><strong>Two utility methods worth knowing.</strong><br><br><pre><code>// Parse a bool from a string (useful for CLI args, JSON, etc.)\nbool b = bool.parse(\"true\");        // true\nbool? b2 = bool.tryParse(\"nope\");   // null (didn't parse)\n\n// Read a compile-time flag passed via --define\nconst bool inDebugMode = bool.fromEnvironment(\"debug\", defaultValue: false);</code></pre>We won't need these on day one, but it is good to know they exist.<br><br>That's the full tour of <code>bool</code> in Dart: what it is, how Dart stores it, where it comes from, what we can do with it, and the small print that catches newcomers. Master this and we have a solid foundation for everything that follows — because every <code>if</code>, every <code>while</code>, every conditional decision in our program ultimately comes down to a single boolean."
 
+  - id: ai-prompts-booleans
+    title: "AI prompts — working with booleans effectively"
+    summary: |
+      Use these prompts with AI assistants to help you work with booleans more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Simplifying complex boolean logic:</strong>
+      <pre><code>I have this complex boolean expression in Dart:&#10;[paste your expression]&#10;&#10;Help me:&#10;1. Simplify it using De Morgan's laws or other boolean algebra&#10;2. Make it more readable with intermediate variables&#10;3. Identify any short-circuit opportunities&#10;4. Check if the logic can be expressed more clearly</code></pre>
+      <strong>Prompt 2 — Null safety with booleans:</strong>
+      <pre><code>I'm working with nullable booleans (bool?) in Dart.&#10;Here's my code:&#10;[paste your code]&#10;&#10;Help me handle the null case properly:&#10;- Should I use ?? false, ?? true, or explicit null checks?&#10;- Are there any edge cases I'm missing?&#10;- Is bool? the right choice, or should I restructure?</code></pre>
+      <strong>Prompt 3 — Converting from other languages:</strong>
+      <pre><code>I'm porting code from [JavaScript/Python/C] to Dart.&#10;The original code uses truthy/falsy values:&#10;[paste original code]&#10;&#10;Help me convert this to Dart's strict boolean model.&#10;What explicit comparisons do I need to add?</code></pre>
+      <strong>Prompt 4 — Boolean method design:</strong>
+      <pre><code>I'm designing an API that returns boolean values.&#10;Context: [describe your use case]&#10;&#10;Should I:&#10;- Return bool (always known)?&#10;- Return bool? (tri-state: true/false/unknown)?&#10;- Use an enum instead (e.g., Yes/No/Pending)?&#10;- Return a Result type with error information?&#10;&#10;What are the tradeoffs for my specific case?</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering singletons, null safety, comparisons, short-circuit, and Dart's strict truthiness."

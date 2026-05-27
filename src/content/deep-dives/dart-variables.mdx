@@ -111,6 +111,23 @@ topics:
 
       As a rule of thumb: default to <code>final</code>, reach for <code>const</code> when possible, use <code>var</code> only when reassignment is genuinely needed.
 
+  - id: ai-prompts-variables
+    title: "AI prompts — variable declarations and mutability"
+    summary: |
+      Use these prompts with AI assistants to help you make better variable declaration choices in Dart.
+      <br><br>
+      <strong>Prompt 1 — Reviewing variable declarations:</strong>
+      <pre><code>Review the variable declarations in this Dart code:&#10;[paste your code]&#10;&#10;Which vars should be final? Which finals could be const?&#10;Are there any late declarations that could cause runtime errors?</code></pre>
+      <br>
+      <strong>Prompt 2 — Fixing late initialisation issues:</strong>
+      <pre><code>I'm getting LateInitializationError in my Dart code:&#10;[paste your code and the error]&#10;&#10;Help me understand which late variable is being accessed before assignment.&#10;Should I restructure the code, add null safety, or use a different pattern?</code></pre>
+      <br>
+      <strong>Prompt 3 — const vs final for Flutter widgets:</strong>
+      <pre><code>I have these Flutter widget declarations:&#10;[paste your widget code]&#10;&#10;Where can I use const constructors for better performance?&#10;Explain when const helps and when it doesn't matter.</code></pre>
+      <br>
+      <strong>Prompt 4 — Escaping dynamic safely:</strong>
+      <pre><code>I'm working with dynamic data from [JSON / reflection / JS interop]:&#10;[paste your code]&#10;&#10;Help me add proper type checking and casting to make this type-safe.&#10;Should I use Object, dynamic, or a custom type? Show the safest approach.</code></pre>
+
 quiz:
   title: "Variables and Keywords Quiz"
   description: "Test your understanding of Dart's variable declaration keywords."

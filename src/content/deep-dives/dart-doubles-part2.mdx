@@ -141,6 +141,23 @@ topics:
       <br><br>
       That wraps up the floating-point story. In the next main episode we move on to strings, and we will see that text is somehow even messier than numbers.
 
+  - id: ai-prompts-doubles-edge-cases
+    title: "AI prompts — debugging double edge cases"
+    summary: |
+      Use these prompts with AI assistants to help you debug and understand double edge cases in Dart.
+      <br><br>
+      <strong>Prompt 1 — Diagnosing precision issues:</strong>
+      <pre><code>I'm seeing unexpected results with floating-point arithmetic in Dart:&#10;[paste your code and output]&#10;&#10;Is this a precision issue, catastrophic cancellation, or something else?&#10;Explain what's happening at the bit level and suggest a fix.</code></pre>
+      <br>
+      <strong>Prompt 2 — Optimising double-heavy code:</strong>
+      <pre><code>I have this Dart code that processes many double values:&#10;[paste your code]&#10;&#10;Identify any boxing overhead or performance traps. Should I use Float64List?&#10;Are there any subnormal or edge-case concerns?</code></pre>
+      <br>
+      <strong>Prompt 3 — Safe integer-to-double conversion:</strong>
+      <pre><code>I need to convert large integers to doubles in Dart for [your use case].&#10;Some values may exceed 2^53. How do I detect precision loss before it happens?&#10;What's the safest approach for my situation?</code></pre>
+      <br>
+      <strong>Prompt 4 — Implementing custom rounding:</strong>
+      <pre><code>I need [banker's rounding / round toward zero / other rounding mode] in Dart.&#10;The built-in .round() uses round-half-away-from-zero which doesn't work for my case.&#10;Write a function that implements the rounding mode I need, handling edge cases.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering double memory layout, escape hatches, and the IEEE 754 edge cases — subnormals, rounding, cancellation, and the 53-bit cliff."

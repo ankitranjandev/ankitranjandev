@@ -341,6 +341,20 @@ topics:
       // Memory: exactly 1 MB</code></pre>
       That's an 8× memory saving, plus much faster iteration because the bytes are contiguous and the CPU's cache loves them. For a real image processing pipeline, the difference between these two choices is the difference between snappy and sluggish.
 
+  - id: ai-prompts-integers
+    title: "AI prompts — working with integers effectively"
+    summary: |
+      Use these prompts with AI assistants to help you work with integers more effectively in Dart.
+      <br><br>
+      <strong>Prompt 1 — Choosing the right integer type:</strong>
+      <pre><code>I'm building a Dart application that needs to store [describe your data].&#10;Expected value range: [min] to [max]&#10;Number of items: [count]&#10;&#10;Should I use:&#10;- int (standard Dart integer)?&#10;- BigInt (arbitrary precision)?&#10;- Typed list (Uint8List, Int32List, etc.)?&#10;&#10;What are the memory and performance tradeoffs?</code></pre>
+      <strong>Prompt 2 — Performance optimisation:</strong>
+      <pre><code>Here is my Dart code that performs integer operations:&#10;[paste your code]&#10;&#10;I'm experiencing [performance issue].&#10;Help me identify:&#10;- Operations that might cause Smi → Mint boxing&#10;- Opportunities to use typed lists&#10;- Unnecessary allocations or conversions</code></pre>
+      <strong>Prompt 3 — Bit manipulation:</strong>
+      <pre><code>I need to implement [describe bit operation] in Dart.&#10;Example: packing multiple values into one int, flags, masks.&#10;&#10;Help me write correct bitwise code, considering:&#10;- Dart's 64-bit integers on VM vs 32-bit on web&#10;- Signed vs unsigned interpretation&#10;- Overflow behaviour</code></pre>
+      <strong>Prompt 4 — BigInt usage:</strong>
+      <pre><code>I'm working with very large integers in Dart:&#10;[describe use case: cryptography, IDs, calculations]&#10;&#10;Help me:&#10;- Convert between int, BigInt, and String&#10;- Perform arithmetic efficiently&#10;- Handle edge cases (negative, overflow)&#10;- Determine if BigInt is actually necessary</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering Smi, Mint, BigInt, boxing, typed lists, and byte buffers. Pick the best answer for each."

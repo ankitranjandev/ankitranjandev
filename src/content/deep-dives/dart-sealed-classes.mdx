@@ -417,6 +417,19 @@ topics:
       <br><br>
       The pattern is always the same: a fixed set of possibilities, and a switch that handles each one. The compiler enforces completeness.
 
+  - id: ai-prompts-sealed-classes
+    title: "AI prompts — sealed class design"
+    summary: |
+      Use these prompts to get AI assistance with sealed class hierarchies and ADTs.
+      <br><br>
+      <pre><code>Design a sealed class hierarchy for [describe your domain]:&#10;e.g., payment states (pending, processing, completed, failed,&#10;refunded). Include appropriate fields for each variant and&#10;show a switch expression that handles all cases.</code></pre>
+      <br>
+      <pre><code>Convert this enum with associated data stored separately into&#10;a sealed class hierarchy:&#10;[paste enum and related state variables]&#10;Each variant should carry its own data. Show before and after.</code></pre>
+      <br>
+      <pre><code>Review this sealed class hierarchy for design issues:&#10;[paste sealed class code]&#10;Check for: missing variants, fields that should be shared&#10;in the base class, appropriate use of final vs class for&#10;subtypes, and whether sealed is the right choice here.</code></pre>
+      <br>
+      <pre><code>I have an abstract class with subtypes spread across multiple&#10;files. Refactor it to use sealed classes with exhaustive&#10;switching. What needs to move to the same library, and how&#10;do I update the existing switch statements?</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering sealed classes, exhaustive switching, and algebraic data types in Dart 3."

@@ -379,6 +379,19 @@ topics:
       }
       // Total size: 5 bytes (not 8 with default alignment)</code></pre>
 
+  - id: ai-prompts-ffi
+    title: "AI prompts — exploring FFI further"
+    summary: |
+      Use these prompts with AI coding assistants to deepen your understanding of Dart FFI and native interop.
+      <br><br>
+      <pre><code>I want to call a C function from Dart: int process_data(const char* input, int* output_length). Show me how to define the native and Dart signatures, allocate memory for the output, and properly free everything.</code></pre>
+      <br>
+      <pre><code>Explain the difference between calloc and malloc in Dart FFI. When should I use each? What is the Arena pattern and how does it help prevent memory leaks?</code></pre>
+      <br>
+      <pre><code>I need to pass a Dart callback to a C library that will call it repeatedly with progress updates. Show me how to use NativeCallable to create a callback pointer and handle cleanup properly.</code></pre>
+      <br>
+      <pre><code>How do I define a Dart FFI struct that matches this C struct?&#10;typedef struct {&#10;  char name[64];&#10;  int32_t age;&#10;  double scores[10];&#10;} Person;</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering Dart FFI — from loading libraries to calling native code and managing memory."

@@ -352,6 +352,19 @@ topics:
       <br><br>
       Guards let patterns do the structural matching while conditions handle the value logic. This separation keeps each part simple and readable.
 
+  - id: ai-prompts-patterns
+    title: "AI prompts — pattern matching refactoring"
+    summary: |
+      Use these prompts to get AI assistance with Dart 3 pattern matching.
+      <br><br>
+      <pre><code>Refactor this if-else chain to use switch expressions with&#10;patterns:&#10;[paste if-else chain checking types or values]&#10;Use appropriate patterns (type, list, map, object) and&#10;guard clauses where needed.</code></pre>
+      <br>
+      <pre><code>I'm parsing JSON with nested optional fields. Show me how to&#10;use map patterns and if-case to safely extract values:&#10;[paste JSON structure or example]&#10;Handle missing keys gracefully without null checks everywhere.</code></pre>
+      <br>
+      <pre><code>Convert this type-checking code to use object patterns:&#10;[paste code with 'is' checks and casts]&#10;Use destructuring to extract fields directly in the pattern&#10;instead of separate variable assignments.</code></pre>
+      <br>
+      <pre><code>This switch statement handles a list of different lengths.&#10;Optimise it using list patterns with rest (...) syntax:&#10;[paste switch with list length checks]&#10;Show patterns for empty, single element, pair, and many elements.</code></pre>
+
 quiz:
   title: "Test your understanding"
   description: "Seven questions covering Dart 3 patterns — destructuring, matching, switch expressions, and guards."

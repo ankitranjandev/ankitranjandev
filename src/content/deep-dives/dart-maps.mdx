@@ -1,0 +1,182 @@
+---
+title: "Maps in Dart — Key-Value Mastery, Performance, and Patterns"
+description: "A deep dive into Dart Maps: how key-value lookup works, the different Map implementations, common patterns, and AI prompts to help you choose the right data structure."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Collections"
+order: 3
+publishedAt: 2026-05-27
+topics:
+  - id: why-maps-exist
+    title: "Why Maps exist — associating data by identity"
+    summary: |
+      Lists let you access items by position (<code>list[0]</code>), but what if you need to access by identity — a user ID, a product SKU, a configuration key? You could search through a List, but that's O(n). Maps solve this elegantly.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Map key-value structure" style="max-width: 100%; height: auto;"><style>.m1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.m1-title{font-size:16px;font-weight:600}.m1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.m1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.m1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="m1-t m1-title">Map — Key-Value Association with O(1) Access</text><rect x="40" y="60" width="100" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="90" y="85" text-anchor="middle" class="m1-t m1-mn">'user_123'</text><text x="90" y="100" text-anchor="middle" class="m1-t m1-desc">key</text><line x1="140" y1="85" x2="180" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#m1-arrow)"/><rect x="180" y="55" width="90" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/><text x="225" y="80" text-anchor="middle" class="m1-t m1-mn">hashCode</text><text x="225" y="95" text-anchor="middle" class="m1-t m1-desc">→ bucket 5</text><line x1="270" y1="85" x2="310" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#m1-arrow)"/><text x="450" y="45" text-anchor="middle" class="m1-t m1-label" font-weight="600">Hash Table Buckets</text><rect x="320" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="350" y="82" text-anchor="middle" class="m1-t m1-desc">[0] null</text><rect x="380" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="410" y="82" text-anchor="middle" class="m1-t m1-desc">[1] null</text><rect x="440" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="470" y="82" text-anchor="middle" class="m1-t m1-desc">[2] null</text><rect x="500" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="530" y="82" text-anchor="middle" class="m1-t m1-desc">[3] null</text><rect x="320" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="350" y="117" text-anchor="middle" class="m1-t m1-desc">[4] null</text><rect x="380" y="95" width="60" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><text x="410" y="117" text-anchor="middle" class="m1-t m1-mn" fill="var(--svg-green-dark, #059669)">[5]</text><rect x="560" y="60" width="120" height="90" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/><text x="620" y="85" text-anchor="middle" class="m1-t m1-mn" font-weight="600">Entry</text><text x="620" y="105" text-anchor="middle" class="m1-t m1-desc">key: 'user_123'</text><text x="620" y="120" text-anchor="middle" class="m1-t m1-desc">value: User(...)</text><text x="620" y="140" text-anchor="middle" class="m1-t m1-desc">next: null</text><line x1="440" y1="112" x2="555" y2="105" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#m1-arrow-green)"/><rect x="440" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="470" y="117" text-anchor="middle" class="m1-t m1-desc">[6] null</text><rect x="500" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="530" y="117" text-anchor="middle" class="m1-t m1-desc">[7] null</text><rect x="40" y="170" width="300" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/><text x="190" y="195" text-anchor="middle" class="m1-t m1-label" font-weight="600">List Approach (index-based)</text><text x="60" y="215" class="m1-t m1-mn">users[0], users[1], users[2]</text><text x="60" y="235" class="m1-t m1-desc">Must remember index, no semantic meaning</text><rect x="380" y="170" width="300" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/><text x="530" y="195" text-anchor="middle" class="m1-t m1-label" font-weight="600">Map Approach (key-based)</text><text x="400" y="215" class="m1-t m1-mn">users['user_123']</text><text x="400" y="235" class="m1-t m1-desc">Meaningful keys, O(1) lookup by identity</text><rect x="120" y="275" width="480" height="50" rx="8" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1"/><text x="360" y="297" text-anchor="middle" class="m1-t m1-label" font-weight="600">Map = Set of key-value pairs where keys are unique</text><text x="360" y="315" text-anchor="middle" class="m1-t m1-desc">Same O(1) hash table performance, but associates each key with a value</text><defs><marker id="m1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/></marker><marker id="m1-arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-green, #10b981)"/></marker></defs></svg>
+      <br><br>
+      A Map is essentially a Set of key-value pairs, where each key is unique. The hash table gives you O(1) lookup, insertion, and deletion — by key.
+      <br><br>
+      <pre><code>// List — must search to find user&#10;var users = [user1, user2, user3];&#10;var found = users.firstWhere((u) => u.id == 'user_123');  // O(n)&#10;&#10;// Map — direct lookup by key&#10;var users = {'user_123': user1, 'user_456': user2};&#10;var found = users['user_123'];  // O(1)</code></pre>
+
+  - id: map-types
+    title: "Map implementations — LinkedHashMap, HashMap, SplayTreeMap"
+    summary: |
+      Like Set, Dart offers multiple Map implementations. And like Set, the default might surprise you.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Map types comparison in Dart" style="max-width: 100%; height: auto;"><style>.m2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.m2-title{font-size:16px;font-weight:600}.m2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.m2-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.m2-head{font-size:12px;font-weight:600}.m2-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="m2-t m2-title">Dart Map Types — Choosing the Right Implementation</text><rect x="40" y="50" width="140" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><rect x="180" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="310" y="50" width="100" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="410" y="50" width="150" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="560" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><text x="110" y="75" text-anchor="middle" class="m2-t m2-head">Type</text><text x="245" y="75" text-anchor="middle" class="m2-t m2-head">Order</text><text x="360" y="75" text-anchor="middle" class="m2-t m2-head">Lookup</text><text x="485" y="75" text-anchor="middle" class="m2-t m2-head">Best For</text><text x="620" y="75" text-anchor="middle" class="m2-t m2-head">Create</text><rect x="40" y="90" width="140" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><rect x="180" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="90" width="100" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="410" y="90" width="150" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="560" y="90" width="120" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="112" text-anchor="middle" class="m2-t m2-mn" font-weight="600">LinkedHashMap</text><text x="110" y="130" text-anchor="middle" class="m2-t m2-desc" fill="var(--svg-green, #10b981)">(default)</text><text x="245" y="118" text-anchor="middle" class="m2-t m2-mn">Insertion order</text><text x="360" y="118" text-anchor="middle" class="m2-t m2-mn" fill="var(--svg-green, #10b981)">O(1)</text><text x="485" y="112" text-anchor="middle" class="m2-t m2-desc">General purpose,</text><text x="485" y="128" text-anchor="middle" class="m2-t m2-desc">JSON, configs</text><text x="620" y="118" text-anchor="middle" class="m2-t m2-mn">{k: v}</text><rect x="40" y="145" width="140" height="55" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><rect x="180" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="145" width="100" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="410" y="145" width="150" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="560" y="145" width="120" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="167" text-anchor="middle" class="m2-t m2-mn" font-weight="600">HashMap</text><text x="110" y="185" text-anchor="middle" class="m2-t m2-desc">(dart:collection)</text><text x="245" y="173" text-anchor="middle" class="m2-t m2-mn">Unordered</text><text x="360" y="173" text-anchor="middle" class="m2-t m2-mn" fill="var(--svg-green, #10b981)">O(1)</text><text x="485" y="167" text-anchor="middle" class="m2-t m2-desc">Slightly less memory</text><text x="485" y="183" text-anchor="middle" class="m2-t m2-desc">when order irrelevant</text><text x="620" y="173" text-anchor="middle" class="m2-t m2-mn">HashMap()</text><rect x="40" y="200" width="140" height="55" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2"/><rect x="180" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="200" width="100" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="410" y="200" width="150" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="560" y="200" width="120" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="222" text-anchor="middle" class="m2-t m2-mn" font-weight="600">SplayTreeMap</text><text x="110" y="240" text-anchor="middle" class="m2-t m2-desc">(dart:collection)</text><text x="245" y="228" text-anchor="middle" class="m2-t m2-mn">Sorted by key</text><text x="360" y="228" text-anchor="middle" class="m2-t m2-mn" fill="var(--svg-amber, #f59e0b)">O(log n)</text><text x="485" y="222" text-anchor="middle" class="m2-t m2-desc">Sorted iteration,</text><text x="485" y="238" text-anchor="middle" class="m2-t m2-desc">range queries</text><text x="620" y="228" text-anchor="middle" class="m2-t m2-mn">SplayTreeMap()</text><rect x="40" y="255" width="140" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/><rect x="180" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="255" width="100" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="410" y="255" width="150" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="560" y="255" width="120" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="277" text-anchor="middle" class="m2-t m2-mn" font-weight="600">Unmodifiable</text><text x="110" y="295" text-anchor="middle" class="m2-t m2-desc">(wrapper)</text><text x="245" y="283" text-anchor="middle" class="m2-t m2-mn">Preserves base</text><text x="360" y="283" text-anchor="middle" class="m2-t m2-mn">Same as base</text><text x="485" y="277" text-anchor="middle" class="m2-t m2-desc">Safe API returns,</text><text x="485" y="293" text-anchor="middle" class="m2-t m2-desc">defensive copies</text><text x="620" y="277" text-anchor="middle" class="m2-t m2-mn" font-size="10">Map.unmodifiable</text><text x="620" y="293" text-anchor="middle" class="m2-t m2-mn" font-size="10">(map)</text><rect x="120" y="325" width="480" height="25" rx="6" fill="none" stroke="var(--svg-border, #cbd5e1)" stroke-dasharray="4,2"/><text x="360" y="342" text-anchor="middle" class="m2-t m2-label">Like Set, Dart's default Map is LinkedHashMap — it maintains insertion order!</text></svg>
+      <br><br>
+      <pre><code>import 'dart:collection';&#10;&#10;// Default — preserves insertion order&#10;var linked = {'c': 1, 'a': 2, 'b': 3};&#10;print(linked.keys);  // (c, a, b)&#10;&#10;// Pure hash — no order guarantee&#10;var hash = HashMap&lt;String, int&gt;()..addAll({'c': 1, 'a': 2, 'b': 3});&#10;&#10;// Sorted by key&#10;var sorted = SplayTreeMap&lt;String, int&gt;()..addAll({'c': 1, 'a': 2, 'b': 3});&#10;print(sorted.keys);  // (a, b, c)</code></pre>
+
+  - id: common-patterns
+    title: "Common Map patterns — lookup tables, caching, counting"
+    summary: |
+      Maps are incredibly versatile. Here are the patterns you'll use most often.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-label="Common Map patterns" style="max-width: 100%; height: auto;"><style>.m3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.m3-title{font-size:16px;font-weight:600}.m3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.m3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.m3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="m3-t m3-title">Common Map Patterns in Dart</text><rect x="40" y="50" width="200" height="100" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/><text x="140" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Lookup Table</text><text x="60" y="95" class="m3-t m3-desc">const errors = {</text><text x="70" y="110" class="m3-t m3-desc">404: 'Not Found',</text><text x="70" y="125" class="m3-t m3-desc">500: 'Server Error',</text><text x="60" y="140" class="m3-t m3-desc">};</text><rect x="260" y="50" width="200" height="100" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/><text x="360" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Counting</text><text x="280" y="95" class="m3-t m3-desc">var counts = &lt;String, int&gt;{};</text><text x="280" y="115" class="m3-t m3-desc">for (var word in words) {</text><text x="290" y="130" class="m3-t m3-desc">counts[word] =</text><text x="300" y="145" class="m3-t m3-desc">(counts[word] ?? 0) + 1;</text><rect x="480" y="50" width="200" height="100" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/><text x="580" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Memoization</text><text x="500" y="95" class="m3-t m3-desc">final _cache = &lt;int, int&gt;{};</text><text x="500" y="115" class="m3-t m3-desc">int fib(int n) =></text><text x="510" y="130" class="m3-t m3-desc">_cache[n] ??=</text><text x="520" y="145" class="m3-t m3-desc">fib(n-1) + fib(n-2);</text><rect x="40" y="170" width="200" height="100" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/><text x="140" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Entity Store</text><text x="60" y="215" class="m3-t m3-desc">var users =</text><text x="70" y="230" class="m3-t m3-desc">&lt;String, User&gt;{};</text><text x="60" y="250" class="m3-t m3-desc">users[user.id] = user;</text><text x="60" y="265" class="m3-t m3-desc">// O(1) by ID lookup</text><rect x="260" y="170" width="200" height="100" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/><text x="360" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Nested Config</text><text x="280" y="215" class="m3-t m3-desc">Map&lt;String, dynamic&gt;</text><text x="290" y="230" class="m3-t m3-desc">config = jsonDecode(...);</text><text x="280" y="250" class="m3-t m3-desc">var host =</text><text x="290" y="265" class="m3-t m3-desc">config['server']['host'];</text><rect x="480" y="170" width="200" height="100" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/><text x="580" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Multi-key Index</text><text x="500" y="215" class="m3-t m3-desc">var byName =</text><text x="510" y="230" class="m3-t m3-desc">&lt;String, User&gt;{};</text><text x="500" y="250" class="m3-t m3-desc">var byEmail =</text><text x="510" y="265" class="m3-t m3-desc">&lt;String, User&gt;{};</text><rect x="40" y="290" width="640" height="95" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/><text x="360" y="315" text-anchor="middle" class="m3-t m3-label" font-weight="600">Useful Map Operations</text><text x="60" y="340" class="m3-t m3-mn">map[key]            </text><text x="200" y="340" class="m3-t m3-desc">// Get value (null if missing)</text><text x="60" y="358" class="m3-t m3-mn">map[key] = value    </text><text x="200" y="358" class="m3-t m3-desc">// Set value (overwrite if exists)</text><text x="400" y="340" class="m3-t m3-mn">map.putIfAbsent(k, () => v)</text><text x="610" y="340" class="m3-t m3-desc">// Set only if missing</text><text x="400" y="358" class="m3-t m3-mn">map.update(k, (v) => v+1)</text><text x="610" y="358" class="m3-t m3-desc">// Update existing</text><text x="60" y="376" class="m3-t m3-mn">map.entries, map.keys, map.values</text><text x="320" y="376" class="m3-t m3-desc">// Iterate over pairs, keys only, or values only</text></svg>
+      <br><br>
+      <strong>The null-aware assignment trick:</strong>
+      <pre><code>// Common pattern: compute expensive value only once&#10;var cache = &lt;String, Data&gt;{};&#10;&#10;Data getData(String key) {&#10;  return cache[key] ??= expensiveCompute(key);&#10;  // ??= means: if null, compute and assign&#10;}</code></pre>
+
+  - id: map-gotchas
+    title: "Map gotchas — null values, missing keys, and empty {}"
+    summary: |
+      Maps have a few surprises that catch developers off guard.
+      <br><br>
+      <strong>Gotcha 1: Empty <code>{}</code> creates a Map, not a Set</strong>
+      <pre><code>var oops = {};  // Map&lt;dynamic, dynamic&gt;, NOT Set!&#10;var set = &lt;String&gt;{};  // This is a Set&#10;var map = &lt;String, int&gt;{};  // This is a Map</code></pre>
+      <strong>Gotcha 2: <code>map[key]</code> returns null for missing keys</strong>
+      <pre><code>var map = {'a': 1};&#10;print(map['b']);  // null, not an error!&#10;&#10;// Use containsKey() to distinguish&#10;if (map.containsKey('b')) {&#10;  // Key exists (value might be null)&#10;} else {&#10;  // Key doesn't exist&#10;}</code></pre>
+      <strong>Gotcha 3: Null values are valid</strong>
+      <pre><code>var map = {'a': null};&#10;print(map['a']);  // null&#10;print(map['b']);  // also null!&#10;&#10;// These are different situations:&#10;print(map.containsKey('a'));  // true&#10;print(map.containsKey('b'));  // false</code></pre>
+      <strong>Gotcha 4: Modifying during iteration throws</strong>
+      <pre><code>var map = {'a': 1, 'b': 2, 'c': 3};&#10;&#10;// BAD — ConcurrentModificationError&#10;for (var key in map.keys) {&#10;  if (map[key] == 2) map.remove(key);  // throws!&#10;}&#10;&#10;// GOOD — collect keys first, then remove&#10;var toRemove = map.keys.where((k) => map[k] == 2).toList();&#10;toRemove.forEach(map.remove);</code></pre>
+
+  - id: map-transformations
+    title: "Transforming Maps — map, where, and conversion"
+    summary: |
+      Maps support functional transformations, but the syntax differs slightly from Lists.
+      <br><br>
+      <pre><code>var prices = {'apple': 1.20, 'banana': 0.80, 'cherry': 2.50};&#10;&#10;// Transform values&#10;var doubled = prices.map((k, v) => MapEntry(k, v * 2));&#10;// {'apple': 2.40, 'banana': 1.60, 'cherry': 5.00}&#10;&#10;// Filter entries&#10;var expensive = Map.fromEntries(&#10;  prices.entries.where((e) => e.value > 1.0)&#10;);&#10;// {'apple': 1.20, 'cherry': 2.50}&#10;&#10;// Swap keys and values&#10;var inverted = prices.map((k, v) => MapEntry(v, k));&#10;// {1.20: 'apple', 0.80: 'banana', 2.50: 'cherry'}&#10;&#10;// Convert to List of pairs&#10;var pairs = prices.entries.toList();&#10;// [MapEntry(apple: 1.20), MapEntry(banana: 0.80), ...]</code></pre>
+      <strong>Grouping data:</strong>
+      <pre><code>var words = ['apple', 'banana', 'apricot', 'blueberry'];&#10;&#10;// Group by first letter&#10;var grouped = &lt;String, List&lt;String&gt;&gt;{};&#10;for (var word in words) {&#10;  (grouped[word[0]] ??= []).add(word);&#10;}&#10;// {'a': ['apple', 'apricot'], 'b': ['banana', 'blueberry']}</code></pre>
+
+  - id: performance-considerations
+    title: "Performance considerations"
+    summary: |
+      Maps share the same hash table performance characteristics as Sets.
+      <br><br>
+      <strong>Operation complexity:</strong>
+      <br>
+      - <code>map[key]</code> — O(1) average<br>
+      - <code>map[key] = value</code> — O(1) amortised<br>
+      - <code>map.remove(key)</code> — O(1) average<br>
+      - <code>map.containsKey(key)</code> — O(1) average<br>
+      - <code>map.containsValue(value)</code> — O(n) (must scan all values!)<br>
+      - Iteration — O(n)
+      <br><br>
+      <strong>Key insight:</strong> <code>containsValue()</code> is O(n) — it can't use hashing because values aren't indexed. If you need fast value lookup, maintain a reverse Map.
+      <br><br>
+      <pre><code>// Slow: O(n) value lookup&#10;var userById = &lt;String, User&gt;{};&#10;var found = userById.values.firstWhere((u) => u.email == email);&#10;&#10;// Fast: O(1) with reverse index&#10;var userById = &lt;String, User&gt;{};&#10;var userByEmail = &lt;String, User&gt;{};&#10;&#10;void addUser(User u) {&#10;  userById[u.id] = u;&#10;  userByEmail[u.email] = u;  // reverse index&#10;}&#10;&#10;var found = userByEmail[email];  // O(1)</code></pre>
+
+  - id: parallel-maps
+    title: "Maps and parallel computation"
+    summary: |
+      Like other collections, Maps can be processed in Isolates for CPU-intensive operations.
+      <br><br>
+      <pre><code>import 'dart:isolate';&#10;&#10;// Process large Map in parallel&#10;Future&lt;Map&lt;String, int&gt;&gt; processInParallel(&#10;  Map&lt;String, String&gt; data,&#10;) async {&#10;  return await Isolate.run(() {&#10;    // Heavy computation in separate isolate&#10;    return data.map((k, v) => MapEntry(k, expensiveHash(v)));&#10;  });&#10;}&#10;&#10;// Merge results from multiple isolates&#10;Future&lt;Map&lt;String, int&gt;&gt; parallelCount(List&lt;String&gt; words) async {&#10;  // Split into chunks&#10;  var chunks = splitIntoChunks(words, 4);&#10;  &#10;  // Process chunks in parallel&#10;  var results = await Future.wait(&#10;    chunks.map((chunk) => Isolate.run(() => countWords(chunk)))&#10;  );&#10;  &#10;  // Merge results&#10;  return mergeCountMaps(results);&#10;}</code></pre>
+      <strong>When to parallelise Map operations:</strong>
+      <br>
+      - Large Maps (>10k entries)<br>
+      - Expensive per-entry computations<br>
+      - Bulk transformations
+      <br><br>
+      <strong>When NOT to parallelise:</strong>
+      <br>
+      - Simple lookups (already O(1))<br>
+      - Small Maps (overhead exceeds benefit)
+
+  - id: ai-prompts-maps
+    title: "AI prompts — choosing the right Map strategy"
+    summary: |
+      Use these prompts with AI assistants to help choose optimal Map strategies for your use case.
+      <br><br>
+      <strong>Prompt 1 — Data structure selection:</strong>
+      <pre><code>I need to store [describe your data] in Dart.&#10;Access patterns:&#10;- [how you access: by ID, by name, by multiple keys]&#10;- Frequency: [read-heavy, write-heavy, balanced]&#10;- Size: [approximate number of entries]&#10;&#10;Should I use Map, List, or multiple data structures?&#10;If Map, which implementation? Do I need reverse indexes?</code></pre>
+      <strong>Prompt 2 — JSON handling:</strong>
+      <pre><code>I'm working with this JSON structure in Dart:&#10;[paste your JSON or describe structure]&#10;&#10;Help me:&#10;1. Define proper Dart types (typed Maps vs classes)&#10;2. Handle nullable values safely&#10;3. Write type-safe accessors&#10;4. Consider using code generation (json_serializable)?</code></pre>
+      <strong>Prompt 3 — Caching strategy:</strong>
+      <pre><code>I need to cache [describe what you're caching] in Dart.&#10;&#10;Requirements:&#10;- Cache size: [bounded/unbounded]&#10;- Eviction policy: [LRU/TTL/none]&#10;- Thread safety: [single isolate/multiple]&#10;&#10;Design a Map-based caching solution with:&#10;- Proper key design&#10;- Memory management&#10;- Cache invalidation strategy</code></pre>
+      <strong>Prompt 4 — Migration from dynamic Map:</strong>
+      <pre><code>Here is my Dart code using Map&lt;String, dynamic&gt;:&#10;[paste your code]&#10;&#10;Refactor this to be more type-safe. Consider:&#10;- Creating model classes&#10;- Using proper generic types&#10;- Handling missing keys gracefully&#10;- Adding null safety</code></pre>
+
+quiz:
+  title: "Maps Deep Dive Quiz"
+  description: "Test your understanding of Dart Maps, hash tables, and patterns"
+  questions:
+    - question: "What does an empty {} literal create in Dart?"
+      options:
+        - "An empty Set"
+        - "An empty Map"
+        - "An error"
+        - "Depends on context"
+      correctIndex: 1
+      explanation: "Bare {} creates an empty Map<dynamic, dynamic>, not a Set. To create an empty Set, use <Type>{} with a type parameter."
+
+    - question: "What is the time complexity of map.containsValue(value)?"
+      options:
+        - "O(1)"
+        - "O(log n)"
+        - "O(n)"
+        - "O(n²)"
+      correctIndex: 2
+      explanation: "containsValue() must scan through all values because values aren't indexed by hash. Only keys get O(1) lookup. For fast value lookup, maintain a reverse Map."
+
+    - question: "What is Dart's default Map implementation when you use {k: v} syntax?"
+      options:
+        - "HashMap"
+        - "LinkedHashMap"
+        - "SplayTreeMap"
+        - "TreeMap"
+      correctIndex: 1
+      explanation: "Dart's default Map is LinkedHashMap, which maintains insertion order. This is consistent with Set's default being LinkedHashSet."
+
+    - question: "What does map['nonexistent'] return?"
+      options:
+        - "Throws KeyNotFoundException"
+        - "Returns an empty string"
+        - "Returns null"
+        - "Returns a default value"
+      correctIndex: 2
+      explanation: "Accessing a missing key returns null, not an error. Use containsKey() to distinguish between a missing key and a key with a null value."
+
+    - question: "What does the ??= operator do in: cache[key] ??= compute()?"
+      options:
+        - "Always calls compute() and assigns"
+        - "Calls compute() only if cache[key] is null, then assigns"
+        - "Checks if cache contains the key"
+        - "Throws if key is missing"
+      correctIndex: 1
+      explanation: "The ??= operator assigns only if the left side is null. It's perfect for lazy initialization and caching: compute only once, reuse thereafter."
+
+    - question: "When should you use SplayTreeMap instead of the default Map?"
+      options:
+        - "When you need O(1) lookup"
+        - "When you need sorted iteration by key"
+        - "When memory is critical"
+        - "When you have many collisions"
+      correctIndex: 1
+      explanation: "SplayTreeMap maintains keys in sorted order and supports efficient range queries. The tradeoff is O(log n) operations instead of O(1)."
+
+    - question: "What happens when you modify a Map while iterating over it?"
+      options:
+        - "The iteration skips the modified entries"
+        - "The iteration includes the new entries"
+        - "ConcurrentModificationError is thrown"
+        - "The Map becomes corrupted"
+      correctIndex: 2
+      explanation: "Modifying a Map during iteration throws ConcurrentModificationError. Collect keys/entries first, then modify after the iteration completes."
+---
+
+# Maps in Dart
+
+Maps are the key-value workhorses of Dart development. This episode explores how they achieve O(1) lookup, common patterns from caching to counting, and the gotchas that trip up developers.

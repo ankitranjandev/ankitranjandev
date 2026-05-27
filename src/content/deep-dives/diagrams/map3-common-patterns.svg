@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-label="Common Map patterns" style="max-width: 100%; height: auto;">
+  <style>
+    .m3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .m3-title{font-size:16px;font-weight:600}
+    .m3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .m3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .m3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="m3-t m3-title">Common Map Patterns in Dart</text>
+
+  <!-- Pattern 1: Lookup table -->
+  <rect x="40" y="50" width="200" height="100" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+  <text x="140" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Lookup Table</text>
+  <text x="60" y="95" class="m3-t m3-desc">const errors = {</text>
+  <text x="70" y="110" class="m3-t m3-desc">404: 'Not Found',</text>
+  <text x="70" y="125" class="m3-t m3-desc">500: 'Server Error',</text>
+  <text x="60" y="140" class="m3-t m3-desc">};</text>
+
+  <!-- Pattern 2: Counting/grouping -->
+  <rect x="260" y="50" width="200" height="100" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+  <text x="360" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Counting</text>
+  <text x="280" y="95" class="m3-t m3-desc">var counts = &lt;String, int&gt;{};</text>
+  <text x="280" y="115" class="m3-t m3-desc">for (var word in words) {</text>
+  <text x="290" y="130" class="m3-t m3-desc">counts[word] =</text>
+  <text x="300" y="145" class="m3-t m3-desc">(counts[word] ?? 0) + 1;</text>
+
+  <!-- Pattern 3: Caching -->
+  <rect x="480" y="50" width="200" height="100" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+  <text x="580" y="75" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Memoization</text>
+  <text x="500" y="95" class="m3-t m3-desc">final _cache = &lt;int, int&gt;{};</text>
+  <text x="500" y="115" class="m3-t m3-desc">int fib(int n) =></text>
+  <text x="510" y="130" class="m3-t m3-desc">_cache[n] ??=</text>
+  <text x="520" y="145" class="m3-t m3-desc">fib(n-1) + fib(n-2);</text>
+
+  <!-- Pattern 4: Entity store -->
+  <rect x="40" y="170" width="200" height="100" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+  <text x="140" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Entity Store</text>
+  <text x="60" y="215" class="m3-t m3-desc">var users =</text>
+  <text x="70" y="230" class="m3-t m3-desc">&lt;String, User&gt;{};</text>
+  <text x="60" y="250" class="m3-t m3-desc">users[user.id] = user;</text>
+  <text x="60" y="265" class="m3-t m3-desc">// O(1) by ID lookup</text>
+
+  <!-- Pattern 5: Configuration -->
+  <rect x="260" y="170" width="200" height="100" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
+  <text x="360" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Nested Config</text>
+  <text x="280" y="215" class="m3-t m3-desc">Map&lt;String, dynamic&gt;</text>
+  <text x="290" y="230" class="m3-t m3-desc">config = jsonDecode(...);</text>
+  <text x="280" y="250" class="m3-t m3-desc">var host =</text>
+  <text x="290" y="265" class="m3-t m3-desc">config['server']['host'];</text>
+
+  <!-- Pattern 6: Indexing -->
+  <rect x="480" y="170" width="200" height="100" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+  <text x="580" y="195" text-anchor="middle" class="m3-t m3-mn" font-weight="600">Multi-key Index</text>
+  <text x="500" y="215" class="m3-t m3-desc">var byName =</text>
+  <text x="510" y="230" class="m3-t m3-desc">&lt;String, User&gt;{};</text>
+  <text x="500" y="250" class="m3-t m3-desc">var byEmail =</text>
+  <text x="510" y="265" class="m3-t m3-desc">&lt;String, User&gt;{};</text>
+
+  <!-- Operators box -->
+  <rect x="40" y="290" width="640" height="95" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/>
+  <text x="360" y="315" text-anchor="middle" class="m3-t m3-label" font-weight="600">Useful Map Operations</text>
+  <text x="60" y="340" class="m3-t m3-mn">map[key]            </text>
+  <text x="200" y="340" class="m3-t m3-desc">// Get value (null if missing)</text>
+  <text x="60" y="358" class="m3-t m3-mn">map[key] = value    </text>
+  <text x="200" y="358" class="m3-t m3-desc">// Set value (overwrite if exists)</text>
+  <text x="400" y="340" class="m3-t m3-mn">map.putIfAbsent(k, () => v)</text>
+  <text x="610" y="340" class="m3-t m3-desc">// Set only if missing</text>
+  <text x="400" y="358" class="m3-t m3-mn">map.update(k, (v) => v+1)</text>
+  <text x="610" y="358" class="m3-t m3-desc">// Update existing</text>
+  <text x="60" y="376" class="m3-t m3-mn">map.entries, map.keys, map.values</text>
+  <text x="320" y="376" class="m3-t m3-desc">// Iterate over pairs, keys only, or values only</text>
+</svg>

@@ -1,0 +1,189 @@
+---
+title: "Sets in Dart — Hash Tables, Performance, and When to Use Them"
+description: "A deep dive into Dart Sets: how hash tables achieve O(1) lookup, when to choose Set over List, the different Set implementations, and AI prompts to help you pick the right collection."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Collections"
+order: 2
+publishedAt: 2026-05-27
+topics:
+  - id: why-sets-exist
+    title: "Why Sets exist — the uniqueness guarantee"
+    summary: |
+      Lists are great for ordered collections, but what if you need to ensure no duplicates? You could loop through a List checking for existing items before adding — but that's O(n) for every insertion. Sets solve this elegantly.
+      <br><br>
+      A Set is a collection of <strong>unique items</strong> with <strong>O(1) membership testing</strong>. The magic comes from hash tables — instead of scanning every element, Sets compute a hash code and jump directly to where an item would be stored.
+      <br><br>
+      <pre><code>// List approach — O(n) contains check&#10;var items = &lt;String&gt;[];&#10;if (!items.contains('apple')) {  // O(n)&#10;  items.add('apple');&#10;}&#10;&#10;// Set approach — O(1) automatic deduplication&#10;var items = &lt;String&gt;{};&#10;items.add('apple');  // O(1), duplicates ignored&#10;items.add('apple');  // No effect, still just one apple</code></pre>
+      <strong>When to use Set over List:</strong>
+      <br>
+      - You need uniqueness (tags, visited nodes, seen IDs)<br>
+      - You frequently check membership (<code>contains</code>)<br>
+      - You perform set operations (union, intersection, difference)<br>
+      - Order doesn't matter (or insertion order is fine)
+
+  - id: how-hashing-works
+    title: "How hash tables achieve O(1) lookup"
+    summary: |
+      The key to Set's performance is the hash table. Instead of searching through items sequentially, a hash table computes where an item <em>should</em> live and checks that location directly.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="How Set hashing works" style="max-width: 100%; height: auto;"><style>.s1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.s1-title{font-size:16px;font-weight:600}.s1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.s1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.s1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="s1-t s1-title">How Set Achieves O(1) Lookup — Hash Table Internals</text><rect x="40" y="60" width="120" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="100" y="85" text-anchor="middle" class="s1-t s1-mn">"apple"</text><text x="100" y="100" text-anchor="middle" class="s1-t s1-desc">item to add</text><line x1="160" y1="85" x2="200" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/><rect x="200" y="55" width="100" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/><text x="250" y="80" text-anchor="middle" class="s1-t s1-mn">hashCode</text><text x="250" y="95" text-anchor="middle" class="s1-t s1-desc">→ 785439</text><line x1="300" y1="85" x2="340" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/><rect x="340" y="55" width="100" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/><text x="390" y="80" text-anchor="middle" class="s1-t s1-mn">% 8</text><text x="390" y="95" text-anchor="middle" class="s1-t s1-desc">→ bucket 7</text><line x1="440" y1="85" x2="480" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/><text x="590" y="55" text-anchor="middle" class="s1-t s1-label" font-weight="600">Buckets Array</text><rect x="520" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="540" y="92" text-anchor="middle" class="s1-t s1-desc">[0]</text><rect x="560" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="580" y="92" text-anchor="middle" class="s1-t s1-desc">[1]</text><rect x="600" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="620" y="92" text-anchor="middle" class="s1-t s1-desc">[2]</text><rect x="640" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="660" y="92" text-anchor="middle" class="s1-t s1-desc">[3]</text><rect x="520" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="540" y="127" text-anchor="middle" class="s1-t s1-desc">[4]</text><rect x="560" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="580" y="127" text-anchor="middle" class="s1-t s1-desc">[5]</text><rect x="600" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="620" y="127" text-anchor="middle" class="s1-t s1-desc">[6]</text><rect x="640" y="105" width="40" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><text x="660" y="127" text-anchor="middle" class="s1-t s1-mn" fill="var(--svg-green-dark, #059669)">[7]</text><rect x="40" y="160" width="640" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/><text x="360" y="185" text-anchor="middle" class="s1-t s1-label" font-weight="600">Why O(1)?</text><text x="360" y="205" text-anchor="middle" class="s1-t s1-desc">Hash code computation: O(1) for fixed-size data</text><text x="360" y="220" text-anchor="middle" class="s1-t s1-desc">Array index access: O(1) — just pointer arithmetic</text><text x="360" y="235" text-anchor="middle" class="s1-t s1-desc">Total: O(1) average case (amortised for resizing)</text><text x="360" y="275" text-anchor="middle" class="s1-t s1-label" font-weight="600">Collision Handling (when two items hash to same bucket)</text><rect x="100" y="295" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="200" y="320" text-anchor="middle" class="s1-t s1-mn">Open Addressing</text><text x="200" y="340" text-anchor="middle" class="s1-t s1-desc">Dart's default: probe next slot</text><rect x="420" y="295" width="200" height="60" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/><text x="520" y="320" text-anchor="middle" class="s1-t s1-mn">LinkedHashSet</text><text x="520" y="340" text-anchor="middle" class="s1-t s1-desc">Maintains insertion order</text><defs><marker id="s1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/></marker></defs></svg>
+      <br><br>
+      <strong>The process:</strong>
+      <br>
+      1. Compute <code>hashCode</code> for the item<br>
+      2. Apply modulo to get a bucket index: <code>hashCode % bucketCount</code><br>
+      3. Check/store at that bucket (handle collisions if needed)
+      <br><br>
+      <strong>Collisions</strong> happen when two different items hash to the same bucket. Dart uses <strong>open addressing</strong> — it probes the next slot until it finds an empty one. This keeps operations O(1) on average.
+
+  - id: set-operations
+    title: "Set operations — union, intersection, difference"
+    summary: |
+      Sets aren't just about uniqueness — they support powerful mathematical operations that would be tedious to implement with Lists.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Set operations: union, intersection, difference" style="max-width: 100%; height: auto;"><style>.s2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.s2-title{font-size:16px;font-weight:600}.s2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.s2-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.s2-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="s2-t s2-title">Set Operations — Union, Intersection, Difference</text><text x="120" y="55" text-anchor="middle" class="s2-t s2-label" font-weight="600">Set A = {1, 2, 3}</text><text x="360" y="55" text-anchor="middle" class="s2-t s2-label" font-weight="600">Set B = {2, 3, 4}</text><text x="120" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.union(B)</text><ellipse cx="95" cy="145" rx="50" ry="35" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="145" cy="145" rx="50" ry="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><ellipse cx="95" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none" opacity="0.5"/><ellipse cx="145" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none" opacity="0.5"/><ellipse cx="95" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="145" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/><text x="70" y="145" text-anchor="middle" class="s2-t s2-mn">1</text><text x="120" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text><text x="170" y="145" text-anchor="middle" class="s2-t s2-mn">4</text><text x="120" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {1, 2, 3, 4}</text><text x="360" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.intersection(B)</text><ellipse cx="335" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="385" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><clipPath id="s2-clipA"><ellipse cx="335" cy="145" rx="50" ry="35"/></clipPath><ellipse cx="385" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" clip-path="url(#s2-clipA)"/><ellipse cx="335" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="385" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/><text x="310" y="145" text-anchor="middle" class="s2-t s2-mn">1</text><text x="360" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text><text x="410" y="145" text-anchor="middle" class="s2-t s2-mn">4</text><text x="360" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {2, 3}</text><text x="600" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.difference(B)</text><ellipse cx="575" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="625" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><clipPath id="s2-clipB"><ellipse cx="625" cy="145" rx="50" ry="35"/></clipPath><ellipse cx="575" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none"/><ellipse cx="625" cy="145" rx="48" ry="33" fill="var(--svg-bg, #f8fafc)" stroke="none"/><ellipse cx="575" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><ellipse cx="625" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/><text x="550" y="145" text-anchor="middle" class="s2-t s2-mn">1</text><text x="600" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text><text x="650" y="145" text-anchor="middle" class="s2-t s2-mn">4</text><text x="600" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {1}</text><rect x="40" y="230" width="640" height="130" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/><text x="60" y="255" class="s2-t s2-mn">var a = {1, 2, 3};</text><text x="60" y="275" class="s2-t s2-mn">var b = {2, 3, 4};</text><text x="60" y="300" class="s2-t s2-mn">a.union(b);        </text><text x="280" y="300" class="s2-t s2-desc">// {1, 2, 3, 4} — all unique items from both</text><text x="60" y="320" class="s2-t s2-mn">a.intersection(b); </text><text x="280" y="320" class="s2-t s2-desc">// {2, 3} — items in both A and B</text><text x="60" y="340" class="s2-t s2-mn">a.difference(b);   </text><text x="280" y="340" class="s2-t s2-desc">// {1} — items in A but not in B</text></svg>
+      <br><br>
+      <strong>Real-world uses:</strong>
+      <br>
+      - <code>union</code>: Combine permissions from multiple roles<br>
+      - <code>intersection</code>: Find common friends, shared tags<br>
+      - <code>difference</code>: Find items to add/remove when syncing
+
+  - id: set-types
+    title: "Set implementations — LinkedHashSet, HashSet, SplayTreeSet"
+    summary: |
+      Dart offers three Set implementations, each with different tradeoffs. The default might surprise you.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Set types comparison in Dart" style="max-width: 100%; height: auto;"><style>.s3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.s3-title{font-size:16px;font-weight:600}.s3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.s3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.s3-head{font-size:12px;font-weight:600}.s3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="s3-t s3-title">Dart Set Types — Choosing the Right Implementation</text><rect x="40" y="50" width="140" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><rect x="180" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="310" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="440" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="570" y="50" width="110" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><text x="110" y="75" text-anchor="middle" class="s3-t s3-head">Type</text><text x="245" y="75" text-anchor="middle" class="s3-t s3-head">Order</text><text x="375" y="75" text-anchor="middle" class="s3-t s3-head">Lookup</text><text x="505" y="75" text-anchor="middle" class="s3-t s3-head">Best For</text><text x="625" y="75" text-anchor="middle" class="s3-t s3-head">Create</text><rect x="40" y="90" width="140" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/><rect x="180" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="440" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="570" y="90" width="110" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="112" text-anchor="middle" class="s3-t s3-mn" font-weight="600">LinkedHashSet</text><text x="110" y="130" text-anchor="middle" class="s3-t s3-desc" fill="var(--svg-green, #10b981)">(default)</text><text x="245" y="118" text-anchor="middle" class="s3-t s3-mn">Insertion order</text><text x="375" y="118" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-green, #10b981)">O(1)</text><text x="505" y="112" text-anchor="middle" class="s3-t s3-desc">General purpose,</text><text x="505" y="128" text-anchor="middle" class="s3-t s3-desc">predictable iteration</text><text x="625" y="118" text-anchor="middle" class="s3-t s3-mn">{}</text><rect x="40" y="145" width="140" height="55" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/><rect x="180" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="440" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="570" y="145" width="110" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="167" text-anchor="middle" class="s3-t s3-mn" font-weight="600">HashSet</text><text x="110" y="185" text-anchor="middle" class="s3-t s3-desc">(dart:collection)</text><text x="245" y="173" text-anchor="middle" class="s3-t s3-mn">Unordered</text><text x="375" y="173" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-green, #10b981)">O(1)</text><text x="505" y="167" text-anchor="middle" class="s3-t s3-desc">Slightly less memory</text><text x="505" y="183" text-anchor="middle" class="s3-t s3-desc">when order irrelevant</text><text x="625" y="173" text-anchor="middle" class="s3-t s3-mn">HashSet()</text><rect x="40" y="200" width="140" height="55" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2"/><rect x="180" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="440" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="570" y="200" width="110" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="222" text-anchor="middle" class="s3-t s3-mn" font-weight="600">SplayTreeSet</text><text x="110" y="240" text-anchor="middle" class="s3-t s3-desc">(dart:collection)</text><text x="245" y="228" text-anchor="middle" class="s3-t s3-mn">Sorted order</text><text x="375" y="228" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-amber, #f59e0b)">O(log n)</text><text x="505" y="222" text-anchor="middle" class="s3-t s3-desc">Range queries,</text><text x="505" y="238" text-anchor="middle" class="s3-t s3-desc">min/max operations</text><text x="625" y="228" text-anchor="middle" class="s3-t s3-mn">SplayTreeSet()</text><rect x="40" y="255" width="140" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/><rect x="180" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="310" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="440" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="570" y="255" width="110" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="110" y="277" text-anchor="middle" class="s3-t s3-mn" font-weight="600">Unmodifiable</text><text x="110" y="295" text-anchor="middle" class="s3-t s3-desc">(wrapper)</text><text x="245" y="283" text-anchor="middle" class="s3-t s3-mn">Preserves base</text><text x="375" y="283" text-anchor="middle" class="s3-t s3-mn">Same as base</text><text x="505" y="277" text-anchor="middle" class="s3-t s3-desc">Safe API returns,</text><text x="505" y="293" text-anchor="middle" class="s3-t s3-desc">defensive copies</text><text x="625" y="277" text-anchor="middle" class="s3-t s3-mn" font-size="10">Set.unmodifiable</text><text x="625" y="293" text-anchor="middle" class="s3-t s3-mn" font-size="10">(set)</text><rect x="120" y="325" width="480" height="25" rx="6" fill="none" stroke="var(--svg-border, #cbd5e1)" stroke-dasharray="4,2"/><text x="360" y="342" text-anchor="middle" class="s3-t s3-label">Surprise: Dart's default Set is LinkedHashSet — it maintains insertion order!</text></svg>
+      <br><br>
+      <pre><code>import 'dart:collection';&#10;&#10;// Default — preserves insertion order&#10;var linked = {'c', 'a', 'b'};  // iterates: c, a, b&#10;&#10;// Pure hash — no order guarantee&#10;var hash = HashSet&lt;String&gt;()..addAll(['c', 'a', 'b']);&#10;&#10;// Sorted — always in sorted order&#10;var sorted = SplayTreeSet&lt;String&gt;()..addAll(['c', 'a', 'b']);&#10;print(sorted);  // {a, b, c}</code></pre>
+
+  - id: hashcode-equality
+    title: "Custom objects in Sets — hashCode and equality"
+    summary: |
+      For Sets to work correctly with custom objects, you must implement <code>hashCode</code> and <code>==</code> properly. The rule: <strong>equal objects must have equal hash codes</strong>.
+      <br><br>
+      <pre><code>class User {&#10;  final String id;&#10;  final String name;&#10;  &#10;  User(this.id, this.name);&#10;  &#10;  // Two users are equal if they have the same ID&#10;  @override&#10;  bool operator ==(Object other) =>&#10;      other is User && other.id == id;&#10;  &#10;  // Hash code must be consistent with equality&#10;  @override&#10;  int get hashCode => id.hashCode;&#10;}&#10;&#10;void main() {&#10;  var users = &lt;User&gt;{};&#10;  users.add(User('123', 'Alice'));&#10;  users.add(User('123', 'Alice Updated'));  // Same ID!&#10;  &#10;  print(users.length);  // 1 — deduplication works&#10;}</code></pre>
+      <strong>Common mistakes:</strong>
+      <br>
+      - Using mutable fields in <code>hashCode</code> (breaks Set when object changes)<br>
+      - Forgetting to override both <code>==</code> and <code>hashCode</code><br>
+      - Making <code>hashCode</code> return a constant (kills performance)
+      <br><br>
+      <strong>Best practice:</strong> Use <code>@immutable</code> classes or <code>package:equatable</code> to generate correct implementations automatically.
+
+  - id: performance-patterns
+    title: "Performance patterns — when Set beats List"
+    summary: |
+      Let's look at concrete scenarios where switching from List to Set makes a dramatic difference.
+      <br><br>
+      <strong>Pattern 1: Membership testing in loops</strong>
+      <pre><code>// BAD: O(n) per check = O(n²) total&#10;var visited = &lt;String&gt;[];&#10;for (var node in nodes) {&#10;  if (!visited.contains(node.id)) {  // O(n)&#10;    process(node);&#10;    visited.add(node.id);&#10;  }&#10;}&#10;&#10;// GOOD: O(1) per check = O(n) total&#10;var visited = &lt;String&gt;{};&#10;for (var node in nodes) {&#10;  if (visited.add(node.id)) {  // O(1), returns false if exists&#10;    process(node);&#10;  }&#10;}</code></pre>
+      <strong>Pattern 2: Removing duplicates</strong>
+      <pre><code>// Convert List to Set and back&#10;var withDupes = ['a', 'b', 'a', 'c', 'b'];&#10;var unique = withDupes.toSet().toList();&#10;// ['a', 'b', 'c'] — order preserved (LinkedHashSet)</code></pre>
+      <strong>Pattern 3: Fast lookup tables</strong>
+      <pre><code>// Checking valid options&#10;const validCodes = {'USD', 'EUR', 'GBP', 'JPY'};&#10;&#10;if (validCodes.contains(userInput)) {&#10;  // O(1) check&#10;}</code></pre>
+
+  - id: parallel-sets
+    title: "Sets and parallel computation"
+    summary: |
+      Like Lists, Sets can be processed in Isolates for CPU-intensive operations. The same rules apply: data is copied, not shared.
+      <br><br>
+      <pre><code>import 'dart:isolate';&#10;&#10;// Compute intersection of two large sets in parallel&#10;Future&lt;Set&lt;int&gt;&gt; parallelIntersection(&#10;  Set&lt;int&gt; a,&#10;  Set&lt;int&gt; b,&#10;) async {&#10;  return await Isolate.run(() => a.intersection(b));&#10;}&#10;&#10;void main() async {&#10;  var setA = Set.generate(100000, (i) => i);&#10;  var setB = Set.generate(100000, (i) => i * 2);&#10;  &#10;  var common = await parallelIntersection(setA, setB);&#10;  print('Found ${common.length} common items');&#10;}</code></pre>
+      <strong>When to parallelise Set operations:</strong>
+      <br>
+      - Large set operations (union/intersection/difference on 10k+ items)<br>
+      - Complex filtering with expensive predicates<br>
+      - Building Sets from large data sources
+      <br><br>
+      <strong>When NOT to parallelise:</strong>
+      <br>
+      - Small Sets (overhead exceeds benefit)<br>
+      - Simple add/remove/contains (already O(1))
+
+  - id: ai-prompts-sets
+    title: "AI prompts — choosing the right Set strategy"
+    summary: |
+      Use these prompts with AI assistants to help choose optimal Set strategies for your use case.
+      <br><br>
+      <strong>Prompt 1 — Set vs List decision:</strong>
+      <pre><code>I have a Dart collection that stores [describe your data].&#10;My operations:&#10;- [list operations: add, remove, contains, iterate]&#10;- Need duplicates? [yes/no]&#10;- Need order? [insertion/sorted/none]&#10;- Approximate size: [number of items]&#10;&#10;Should I use Set or List? Which Set implementation?&#10;Show me the performance implications of each choice.</code></pre>
+      <strong>Prompt 2 — hashCode and equality review:</strong>
+      <pre><code>Here is my Dart class that I want to use in a Set:&#10;[paste your class]&#10;&#10;Review my hashCode and == implementations for:&#10;- Correctness (equal objects have equal hash codes)&#10;- Performance (good hash distribution)&#10;- Safety (no mutable fields in hash)&#10;&#10;Suggest improvements or rewrite using best practices.</code></pre>
+      <strong>Prompt 3 — Set operation optimisation:</strong>
+      <pre><code>I need to perform these Set operations in Dart:&#10;[describe operations: union, intersection, difference]&#10;&#10;Set sizes: A = [size], B = [size]&#10;Frequency: [how often this runs]&#10;&#10;Analyze the complexity and suggest optimisations.&#10;Should I use SplayTreeSet? Parallel processing?</code></pre>
+      <strong>Prompt 4 — Migration from List to Set:</strong>
+      <pre><code>Here is my Dart code that uses List.contains() frequently:&#10;[paste your code]&#10;&#10;Refactor this to use Set for O(1) membership testing.&#10;Preserve the existing behaviour and handle any edge&#10;cases (ordering, duplicates that might be intentional).</code></pre>
+
+quiz:
+  title: "Sets Deep Dive Quiz"
+  description: "Test your understanding of Dart Sets, hash tables, and performance"
+  questions:
+    - question: "What is the average time complexity of Set.contains() in Dart?"
+      options:
+        - "O(n)"
+        - "O(log n)"
+        - "O(1)"
+        - "O(n²)"
+      correctIndex: 2
+      explanation: "Set uses a hash table, so contains() computes the hash code and checks the corresponding bucket directly, giving O(1) average-case performance."
+
+    - question: "What is Dart's default Set implementation when you use {} syntax?"
+      options:
+        - "HashSet"
+        - "LinkedHashSet"
+        - "SplayTreeSet"
+        - "TreeSet"
+      correctIndex: 1
+      explanation: "Dart's default Set is LinkedHashSet, which maintains insertion order. This surprises developers coming from languages where Sets are unordered by default."
+
+    - question: "When should you use SplayTreeSet instead of the default Set?"
+      options:
+        - "When you need O(1) lookup"
+        - "When you need sorted iteration and range queries"
+        - "When memory is critical"
+        - "When you need fast union operations"
+      correctIndex: 1
+      explanation: "SplayTreeSet maintains elements in sorted order and supports efficient range queries. The tradeoff is O(log n) operations instead of O(1)."
+
+    - question: "What happens if two objects have the same hashCode but are not equal?"
+      options:
+        - "The Set throws an error"
+        - "Both objects can be added (hash collision)"
+        - "The second object replaces the first"
+        - "The Set becomes corrupted"
+      correctIndex: 1
+      explanation: "Hash collisions are normal and handled by the hash table. Two unequal objects with the same hash will be stored and retrieved correctly, just with slightly degraded performance."
+
+    - question: "Which is the correct rule for hashCode and equality?"
+      options:
+        - "All objects should have unique hash codes"
+        - "hashCode should always return the same value"
+        - "Equal objects must have equal hash codes"
+        - "hashCode should be based on mutable fields"
+      correctIndex: 2
+      explanation: "The contract is: if a == b, then a.hashCode == b.hashCode. The reverse is not required — unequal objects can have the same hash code (collisions are allowed)."
+
+    - question: "What does set.add(item) return if the item already exists?"
+      options:
+        - "true"
+        - "false"
+        - "null"
+        - "It throws an exception"
+      correctIndex: 1
+      explanation: "Set.add() returns true if the item was added (didn't exist), false if it already existed. This is useful for checking membership and adding in one operation."
+
+    - question: "How do you create an empty Set in Dart (not a Map)?"
+      options:
+        - "{}"
+        - "<String>{}"
+        - "Set()"
+        - "Both B and C work"
+      correctIndex: 3
+      explanation: "Bare {} creates an empty Map, not a Set. To create an empty Set, use either <Type>{} with a type parameter or Set<Type>(). Both work correctly."
+---
+
+# Sets in Dart
+
+Sets are the unsung heroes of performance optimisation. This episode explores how hash tables achieve O(1) lookup, when to choose Set over List, and how to implement custom equality correctly.

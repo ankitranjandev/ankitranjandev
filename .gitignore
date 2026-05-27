@@ -34,3 +34,6 @@ Thumbs.db
 
 # Wrangler
 .wrangler/
+
+# Marketing content (private)
+marketing/

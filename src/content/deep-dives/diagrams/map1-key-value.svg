@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Map key-value structure" style="max-width: 100%; height: auto;">
+  <style>
+    .m1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .m1-title{font-size:16px;font-weight:600}
+    .m1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .m1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .m1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="m1-t m1-title">Map — Key-Value Association with O(1) Access</text>
+
+  <!-- Key input -->
+  <rect x="40" y="60" width="100" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="90" y="85" text-anchor="middle" class="m1-t m1-mn">'user_123'</text>
+  <text x="90" y="100" text-anchor="middle" class="m1-t m1-desc">key</text>
+
+  <!-- Arrow -->
+  <line x1="140" y1="85" x2="180" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#m1-arrow)"/>
+
+  <!-- Hash function -->
+  <rect x="180" y="55" width="90" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+  <text x="225" y="80" text-anchor="middle" class="m1-t m1-mn">hashCode</text>
+  <text x="225" y="95" text-anchor="middle" class="m1-t m1-desc">→ bucket 5</text>
+
+  <!-- Arrow -->
+  <line x1="270" y1="85" x2="310" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#m1-arrow)"/>
+
+  <!-- Hash table buckets -->
+  <text x="450" y="45" text-anchor="middle" class="m1-t m1-label" font-weight="600">Hash Table Buckets</text>
+
+  <!-- Bucket 0-3 -->
+  <rect x="320" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="350" y="82" text-anchor="middle" class="m1-t m1-desc">[0] null</text>
+
+  <rect x="380" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="410" y="82" text-anchor="middle" class="m1-t m1-desc">[1] null</text>
+
+  <rect x="440" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="470" y="82" text-anchor="middle" class="m1-t m1-desc">[2] null</text>
+
+  <rect x="500" y="60" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="530" y="82" text-anchor="middle" class="m1-t m1-desc">[3] null</text>
+
+  <!-- Bucket 4-7 -->
+  <rect x="320" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="350" y="117" text-anchor="middle" class="m1-t m1-desc">[4] null</text>
+
+  <!-- Bucket 5 - highlighted with entry -->
+  <rect x="380" y="95" width="60" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <text x="410" y="117" text-anchor="middle" class="m1-t m1-mn" fill="var(--svg-green-dark, #059669)">[5]</text>
+
+  <rect x="560" y="60" width="120" height="90" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+  <text x="620" y="85" text-anchor="middle" class="m1-t m1-mn" font-weight="600">Entry</text>
+  <text x="620" y="105" text-anchor="middle" class="m1-t m1-desc">key: 'user_123'</text>
+  <text x="620" y="120" text-anchor="middle" class="m1-t m1-desc">value: User(...)</text>
+  <text x="620" y="140" text-anchor="middle" class="m1-t m1-desc">next: null</text>
+
+  <line x1="440" y1="112" x2="555" y2="105" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#m1-arrow-green)"/>
+
+  <rect x="440" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="470" y="117" text-anchor="middle" class="m1-t m1-desc">[6] null</text>
+
+  <rect x="500" y="95" width="60" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="530" y="117" text-anchor="middle" class="m1-t m1-desc">[7] null</text>
+
+  <!-- Comparison -->
+  <rect x="40" y="170" width="300" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/>
+  <text x="190" y="195" text-anchor="middle" class="m1-t m1-label" font-weight="600">List Approach (index-based)</text>
+  <text x="60" y="215" class="m1-t m1-mn">users[0], users[1], users[2]</text>
+  <text x="60" y="235" class="m1-t m1-desc">Must remember index, no semantic meaning</text>
+
+  <rect x="380" y="170" width="300" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+  <text x="530" y="195" text-anchor="middle" class="m1-t m1-label" font-weight="600">Map Approach (key-based)</text>
+  <text x="400" y="215" class="m1-t m1-mn">users['user_123']</text>
+  <text x="400" y="235" class="m1-t m1-desc">Meaningful keys, O(1) lookup by identity</text>
+
+  <!-- Key insight -->
+  <rect x="120" y="275" width="480" height="50" rx="8" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1"/>
+  <text x="360" y="297" text-anchor="middle" class="m1-t m1-label" font-weight="600">Map = Set of key-value pairs where keys are unique</text>
+  <text x="360" y="315" text-anchor="middle" class="m1-t m1-desc">Same O(1) hash table performance, but associates each key with a value</text>
+
+  <defs>
+    <marker id="m1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/>
+    </marker>
+    <marker id="m1-arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+</svg>

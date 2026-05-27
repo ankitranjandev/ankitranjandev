@@ -1,0 +1,106 @@
+---
+interface Props {
+  href?: string;
+  dismissible?: boolean;
+}
+
+const { href = '/contact/', dismissible = true } = Astro.props;
+---
+
+<div
+  id="announcement-banner"
+  class="relative z-30 w-full border-b border-[var(--border)] bg-accent/5"
+>
+  <a
+    href={href}
+    class="group mx-auto flex max-w-5xl items-center justify-center gap-2 px-4 py-2.5 text-sm no-underline transition-colors md:px-6"
+  >
+    <span class="relative flex h-2 w-2">
+      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+      <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+    </span>
+    <span class="text-[var(--text-secondary)]">
+      <strong class="font-semibold text-[var(--text)]">Available for work</strong>
+      <span class="hidden sm:inline"> — Let's build something great together</span>
+    </span>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="text-[var(--text-tertiary)] transition-transform group-hover:translate-x-0.5"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14"></path>
+      <path d="m12 5 7 7-7 7"></path>
+    </svg>
+  </a>
+  {dismissible && (
+    <button
+      id="dismiss-banner"
+      type="button"
+      class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text)] md:right-4"
+      aria-label="Dismiss announcement"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M18 6 6 18"></path>
+        <path d="m6 6 12 12"></path>
+      </svg>
+    </button>
+  )}
+</div>
+
+<script>
+  const banner = document.getElementById('announcement-banner');
+  const dismissBtn = document.getElementById('dismiss-banner');
+  const STORAGE_KEY = 'banner-dismissed';
+  const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  // Check if banner was previously dismissed
+  function shouldShowBanner(): boolean {
+    const dismissed = localStorage.getItem(STORAGE_KEY);
+    if (!dismissed) return true;
+
+    const dismissedAt = parseInt(dismissed, 10);
+    const now = Date.now();
+
+    // Show again after DISMISS_DURATION
+    if (now - dismissedAt > DISMISS_DURATION) {
+      localStorage.removeItem(STORAGE_KEY);
+      return true;
+    }
+
+    return false;
+  }
+
+  // Hide banner if previously dismissed
+  if (banner && !shouldShowBanner()) {
+    banner.style.display = 'none';
+  }
+
+  // Handle dismiss click
+  if (dismissBtn && banner) {
+    dismissBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      localStorage.setItem(STORAGE_KEY, Date.now().toString());
+      banner.style.display = 'none';
+    });
+  }
+</script>

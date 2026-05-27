@@ -1,0 +1,181 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const contactMethods = [
+  {
+    icon: 'email',
+    label: 'Email',
+    value: 'ankitranjan.dev@gmail.com',
+    href: 'mailto:ankitranjan.dev@gmail.com',
+    description: 'Best for detailed inquiries',
+  },
+  {
+    icon: 'linkedin',
+    label: 'LinkedIn',
+    value: 'Connect with me',
+    href: 'https://www.linkedin.com/in/ankit-ranjan-a874b6101',
+    description: 'For professional networking',
+  },
+  {
+    icon: 'twitter',
+    label: 'X (Twitter)',
+    value: '@CubeRootX',
+    href: 'https://x.com/CubeRootX',
+    description: 'For quick conversations',
+  },
+];
+
+const expertise = [
+  'Flutter & Dart development',
+  'Android (Kotlin/Java)',
+  'iOS (Swift)',
+  'Cross-platform architecture',
+  'BLE/IoT integrations',
+  'CI/CD pipelines',
+  'Code reviews & mentoring',
+  'Technical writing',
+];
+---
+
+<BaseLayout
+  title="Contact"
+  description="Get in touch with Ankit Ranjan for mobile development opportunities, consulting, or collaboration."
+>
+  <div class="content-grid py-12 md:py-20">
+    <!-- Header -->
+    <section class="mb-12">
+      <div class="mb-4 flex items-center gap-3">
+        <span class="relative flex h-3 w-3">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex h-3 w-3 rounded-full bg-green-500"></span>
+        </span>
+        <span class="text-sm font-medium text-green-600 dark:text-green-400">Available for work</span>
+      </div>
+      <h1 class="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
+        Let's work together
+      </h1>
+      <p class="max-w-[60ch] text-lg text-[var(--text-secondary)]" style="line-height: 1.75;">
+        I'm currently open to new opportunities — full-time roles, contract work, or consulting engagements. If you're building something interesting in mobile, let's talk.
+      </p>
+    </section>
+
+    <!-- Contact Methods -->
+    <section class="mb-12">
+      <h2 class="mb-6 text-xl font-semibold">Get in touch</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {contactMethods.map(({ icon, label, value, href, description }) => (
+          <a
+            href={href}
+            target={href.startsWith('mailto:') ? undefined : '_blank'}
+            rel={href.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+            class="group flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 no-underline transition-all hover:border-accent hover:shadow-sm"
+          >
+            <div class="flex items-center gap-3">
+              {icon === 'email' && (
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                  </svg>
+                </div>
+              )}
+              {icon === 'linkedin' && (
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0A66C2]/10 text-[#0A66C2]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </div>
+              )}
+              {icon === 'twitter' && (
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--text)]/10 text-[var(--text)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </div>
+              )}
+              <div>
+                <p class="font-semibold text-[var(--text)]">{label}</p>
+                <p class="text-sm text-[var(--text-secondary)]">{description}</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-accent">{value}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-[var(--text-tertiary)] transition-transform group-hover:translate-x-1"
+              >
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- What I can help with -->
+    <section class="mb-12">
+      <h2 class="mb-6 text-xl font-semibold">What I can help with</h2>
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
+        <div class="grid gap-3 sm:grid-cols-2">
+          {expertise.map((item) => (
+            <div class="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-green-500"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span class="text-[var(--text-secondary)]">{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Response time -->
+    <section>
+      <div class="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-900/20">
+        <div class="flex items-start gap-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="mt-0.5 text-amber-600 dark:text-amber-400"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div>
+            <p class="font-semibold text-amber-900 dark:text-amber-100">Response time</p>
+            <p class="text-sm text-amber-800 dark:text-amber-200">
+              I typically respond within 24-48 hours. For urgent matters, please mention it in the subject line.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

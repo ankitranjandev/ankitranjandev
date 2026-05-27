@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Why 0.1 is not exact in binary">
   <style>
-    .d3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d3-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d3-title { font-size: 16px; font-weight: 600; }
-    .d3-sub { font-size: 14px; font-weight: 600; fill: #475569; }
+    .d3-sub { font-size: 14px; font-weight: 600; fill: var(--svg-text-secondary, #475569); }
     .d3-mono { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 15px; }
     .d3-mono-small { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; }
-    .d3-label { font-size: 12px; fill: #64748b; }
-    .d3-note { font-size: 13px; fill: #475569; font-style: italic; }
-    .d3-repeat { fill: #dc2626; font-weight: 700; }
-    .d3-cut { fill: #b45309; font-weight: 700; }
+    .d3-label { font-size: 12px; fill: var(--svg-text-muted, #64748b); }
+    .d3-note { font-size: 13px; fill: var(--svg-text-secondary, #475569); font-style: italic; }
+    .d3-repeat { fill: var(--svg-red, #dc2626); font-weight: 700; }
+    .d3-cut { fill: var(--svg-amber, #b45309); font-weight: 700; }
+    .d3-divider { stroke: var(--svg-border, #e2e8f0); }
   </style>
 
   <text x="360" y="28" text-anchor="middle" class="d3-t d3-title">Some clean fractions in one base are messy in another</text>
@@ -21,7 +22,7 @@
   <text x="60" y="135" class="d3-t d3-label">an infinite repeating decimal, never exactly representable with a fixed number of digits</text>
 
   <!-- Separator -->
-  <line x1="40" y1="170" x2="680" y2="170" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="40" y1="170" x2="680" y2="170" class="d3-divider" stroke-width="1" stroke-dasharray="4 4"/>
 
   <!-- Bottom half: the binary version -->
   <text x="40" y="200" class="d3-t d3-sub">In binary — what doubles actually see:</text>
@@ -33,7 +34,7 @@
 
   <!-- The cutoff -->
   <text x="60" y="305" class="d3-t d3-mono-small">a double has 52 mantissa bits, so the value gets</text>
-  <text x="60" y="305" class="d3-t d3-mono-small" dx="345"><tspan class="d3-cut">cut off here ↓</tspan></text>
+  <text x="405" y="305" class="d3-t d3-mono-small d3-cut">cut off here ↓</text>
 
   <text x="60" y="335" class="d3-t d3-mono-small">stored value ≈ 0.1000000000000000055511151231257827…</text>
 

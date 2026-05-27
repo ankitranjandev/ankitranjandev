@@ -25,6 +25,32 @@
     --border: #e7e5e4;
     --border-subtle: #f5f5f4;
     color-scheme: light;
+
+    /* SVG diagram colors - light mode */
+    --svg-text: #1e293b;
+    --svg-text-secondary: #475569;
+    --svg-text-muted: #64748b;
+    --svg-text-subtle: #94a3b8;
+    --svg-bg: #f8fafc;
+    --svg-bg-secondary: #f1f5f9;
+    --svg-border: #cbd5e1;
+    --svg-border-medium: #94a3b8;
+
+    /* Semantic colors for SVG diagrams */
+    --svg-dart-blue: #0175C2;
+    --svg-dart-blue-stroke: #0369a1;
+    --svg-dart-blue-fill: #dbeafe;
+    --svg-green: #10b981;
+    --svg-green-dark: #059669;
+    --svg-green-fill: #d1fae5;
+    --svg-red: #dc2626;
+    --svg-red-fill: #fee2e2;
+    --svg-amber: #f59e0b;
+    --svg-amber-fill: #fef3c7;
+    --svg-purple: #9333ea;
+    --svg-purple-dark: #7e22ce;
+    --svg-purple-fill: #f3e8ff;
+    --svg-purple-fill-light: #e9d5ff;
   }
 
   .dark {
@@ -37,6 +63,32 @@
     --border: #292524;
     --border-subtle: #1c1917;
     color-scheme: dark;
+
+    /* SVG diagram colors - dark mode */
+    --svg-text: #f1f5f9;
+    --svg-text-secondary: #cbd5e1;
+    --svg-text-muted: #94a3b8;
+    --svg-text-subtle: #64748b;
+    --svg-bg: #1e293b;
+    --svg-bg-secondary: #334155;
+    --svg-border: #475569;
+    --svg-border-medium: #64748b;
+
+    /* Semantic colors for SVG diagrams - dark mode adjusted */
+    --svg-dart-blue: #38bdf8;
+    --svg-dart-blue-stroke: #0ea5e9;
+    --svg-dart-blue-fill: #0c4a6e;
+    --svg-green: #34d399;
+    --svg-green-dark: #10b981;
+    --svg-green-fill: #064e3b;
+    --svg-red: #f87171;
+    --svg-red-fill: #450a0a;
+    --svg-amber: #fbbf24;
+    --svg-amber-fill: #451a03;
+    --svg-purple: #c084fc;
+    --svg-purple-dark: #a855f7;
+    --svg-purple-fill: #3b0764;
+    --svg-purple-fill-light: #581c87;
   }
 
   html {

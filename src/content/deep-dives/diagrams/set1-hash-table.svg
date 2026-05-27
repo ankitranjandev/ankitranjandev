@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="How Set hashing works" style="max-width: 100%; height: auto;">
+  <style>
+    .s1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .s1-title{font-size:16px;font-weight:600}
+    .s1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .s1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .s1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="s1-t s1-title">How Set Achieves O(1) Lookup — Hash Table Internals</text>
+
+  <!-- Input item -->
+  <rect x="40" y="60" width="120" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="100" y="85" text-anchor="middle" class="s1-t s1-mn">"apple"</text>
+  <text x="100" y="100" text-anchor="middle" class="s1-t s1-desc">item to add</text>
+
+  <!-- Arrow to hash -->
+  <line x1="160" y1="85" x2="200" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/>
+
+  <!-- Hash function -->
+  <rect x="200" y="55" width="100" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+  <text x="250" y="80" text-anchor="middle" class="s1-t s1-mn">hashCode</text>
+  <text x="250" y="95" text-anchor="middle" class="s1-t s1-desc">→ 785439</text>
+
+  <!-- Arrow to modulo -->
+  <line x1="300" y1="85" x2="340" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/>
+
+  <!-- Modulo -->
+  <rect x="340" y="55" width="100" height="60" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+  <text x="390" y="80" text-anchor="middle" class="s1-t s1-mn">% 8</text>
+  <text x="390" y="95" text-anchor="middle" class="s1-t s1-desc">→ bucket 7</text>
+
+  <!-- Arrow to buckets -->
+  <line x1="440" y1="85" x2="480" y2="85" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#s1-arrow)"/>
+
+  <!-- Buckets array -->
+  <text x="590" y="55" text-anchor="middle" class="s1-t s1-label" font-weight="600">Buckets Array</text>
+
+  <rect x="520" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="540" y="92" text-anchor="middle" class="s1-t s1-desc">[0]</text>
+
+  <rect x="560" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="580" y="92" text-anchor="middle" class="s1-t s1-desc">[1]</text>
+
+  <rect x="600" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="620" y="92" text-anchor="middle" class="s1-t s1-desc">[2]</text>
+
+  <rect x="640" y="70" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="660" y="92" text-anchor="middle" class="s1-t s1-desc">[3]</text>
+
+  <rect x="520" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="540" y="127" text-anchor="middle" class="s1-t s1-desc">[4]</text>
+
+  <rect x="560" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="580" y="127" text-anchor="middle" class="s1-t s1-desc">[5]</text>
+
+  <rect x="600" y="105" width="40" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <text x="620" y="127" text-anchor="middle" class="s1-t s1-desc">[6]</text>
+
+  <rect x="640" y="105" width="40" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <text x="660" y="127" text-anchor="middle" class="s1-t s1-mn" fill="var(--svg-green-dark, #059669)">[7]</text>
+
+  <!-- O(1) explanation -->
+  <rect x="40" y="160" width="640" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/>
+  <text x="360" y="185" text-anchor="middle" class="s1-t s1-label" font-weight="600">Why O(1)?</text>
+  <text x="360" y="205" text-anchor="middle" class="s1-t s1-desc">Hash code computation: O(1) for fixed-size data</text>
+  <text x="360" y="220" text-anchor="middle" class="s1-t s1-desc">Array index access: O(1) — just pointer arithmetic</text>
+  <text x="360" y="235" text-anchor="middle" class="s1-t s1-desc">Total: O(1) average case (amortised for resizing)</text>
+
+  <!-- Collision handling -->
+  <text x="360" y="275" text-anchor="middle" class="s1-t s1-label" font-weight="600">Collision Handling (when two items hash to same bucket)</text>
+
+  <rect x="100" y="295" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="200" y="320" text-anchor="middle" class="s1-t s1-mn">Open Addressing</text>
+  <text x="200" y="340" text-anchor="middle" class="s1-t s1-desc">Dart's default: probe next slot</text>
+
+  <rect x="420" y="295" width="200" height="60" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+  <text x="520" y="320" text-anchor="middle" class="s1-t s1-mn">LinkedHashSet</text>
+  <text x="520" y="340" text-anchor="middle" class="s1-t s1-desc">Maintains insertion order</text>
+
+  <defs>
+    <marker id="s1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/>
+    </marker>
+  </defs>
+</svg>

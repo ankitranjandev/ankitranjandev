@@ -1,0 +1,190 @@
+---
+title: "Lists in Dart — Performance, Alternatives, and When Not to Use Them"
+description: "A deep dive into Dart Lists: why they exist, their performance characteristics, when to use alternatives like Queue or typed data, and AI prompts to help you choose the right collection."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Collections"
+order: 1
+publishedAt: 2026-05-27
+topics:
+  - id: why-lists-exist
+    title: "Why Lists exist — the OOP perspective"
+    summary: |
+      Before collections existed, programmers managed multiple items with numbered variables: <code>item0</code>, <code>item1</code>, <code>item2</code>. This approach doesn't scale. What if you need 1000 items? How do you iterate? How do you pass them to a function?
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Why Lists exist - OOP principles" style="max-width: 100%; height: auto;"><style>.l1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.l1-title{font-size:16px;font-weight:600}.l1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.l1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.l1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="l1-t l1-title">Why Lists Exist — The OOP Perspective</text><rect x="40" y="50" width="300" height="140" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/><text x="190" y="75" text-anchor="middle" class="l1-t l1-label" font-weight="600">Without List — Managing Multiple Items</text><text x="60" y="100" class="l1-t l1-mn">var item0 = 'Apple';</text><text x="60" y="118" class="l1-t l1-mn">var item1 = 'Banana';</text><text x="60" y="136" class="l1-t l1-mn">var item2 = 'Cherry';</text><text x="60" y="154" class="l1-t l1-mn">// What if we need 1000 items?</text><text x="60" y="172" class="l1-t l1-mn">// How do we iterate?</text><line x1="350" y1="120" x2="390" y2="120" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#l1-arrow)"/><text x="370" y="110" text-anchor="middle" class="l1-t l1-desc">abstraction</text><rect x="400" y="50" width="280" height="140" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/><text x="540" y="75" text-anchor="middle" class="l1-t l1-label" font-weight="600">With List — Single Abstraction</text><text x="420" y="100" class="l1-t l1-mn">var items = ['Apple', 'Banana', ...];</text><text x="420" y="125" class="l1-t l1-mn">items.length;    // dynamic size</text><text x="420" y="150" class="l1-t l1-mn">items[i];        // uniform access</text><text x="420" y="175" class="l1-t l1-mn">for (var x in items) // iteration</text><text x="360" y="220" text-anchor="middle" class="l1-t l1-label" font-weight="600">OOP Principles Lists Embody</text><rect x="40" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="140" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Encapsulation</text><text x="140" y="285" text-anchor="middle" class="l1-t l1-desc">Hides capacity, resizing, memory</text><rect x="260" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="360" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Abstraction</text><text x="360" y="285" text-anchor="middle" class="l1-t l1-desc">add(), remove(), [i] — simple interface</text><rect x="480" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="580" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Polymorphism</text><text x="580" y="285" text-anchor="middle" class="l1-t l1-desc">List&lt;T&gt; works with any type T</text><rect x="150" y="315" width="200" height="50" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/><text x="250" y="340" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Interface Segregation</text><text x="250" y="355" text-anchor="middle" class="l1-t l1-desc">Iterable, EfficientLengthIterable</text><rect x="370" y="315" width="200" height="50" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/><text x="470" y="340" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Liskov Substitution</text><text x="470" y="355" text-anchor="middle" class="l1-t l1-desc">UnmodifiableList is still a List</text><defs><marker id="l1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/></marker></defs></svg>
+      <br><br>
+      Lists solve this by providing a <strong>single abstraction</strong> that encapsulates the complexity of managing multiple items. The backing array, capacity management, and memory allocation are all hidden behind a clean interface.
+      <br><br>
+      This is OOP at its best: <strong>encapsulation</strong> (hiding implementation details), <strong>abstraction</strong> (simple interface), <strong>polymorphism</strong> (<code>List&lt;T&gt;</code> works with any type), and <strong>interface segregation</strong> (Dart's List implements <code>Iterable</code>, <code>EfficientLengthIterable</code>, and more).
+
+  - id: list-complexity
+    title: "Operation complexity — where Lists shine and struggle"
+    summary: |
+      Not all operations on a List are equal. Some are blazing fast; others can be painfully slow. Understanding complexity helps you write performant code.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="List operation complexity comparison" style="max-width: 100%; height: auto;"><style>.l2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.l2-title{font-size:16px;font-weight:600}.l2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.l2-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.l2-head{font-size:12px;font-weight:600}.l2-fast{fill:var(--svg-green, #10b981)}.l2-slow{fill:var(--svg-red, #dc2626)}.l2-medium{fill:var(--svg-amber, #f59e0b)}</style><text x="360" y="26" text-anchor="middle" class="l2-t l2-title">List Operation Complexity — When Lists Shine (and Struggle)</text><rect x="40" y="50" width="180" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><rect x="220" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="340" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="460" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/><rect x="580" y="50" width="100" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/><text x="130" y="75" text-anchor="middle" class="l2-t l2-head">Operation</text><text x="280" y="75" text-anchor="middle" class="l2-t l2-head">List</text><text x="400" y="75" text-anchor="middle" class="l2-t l2-head">Set</text><text x="520" y="75" text-anchor="middle" class="l2-t l2-head">Map</text><text x="630" y="75" text-anchor="middle" class="l2-t l2-head">Winner</text><rect x="40" y="90" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="90" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="114" text-anchor="middle" class="l2-t l2-mn">list[index]</text><text x="280" y="114" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text><text x="400" y="114" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text><text x="520" y="114" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text><text x="630" y="114" text-anchor="middle" class="l2-t l2-mn l2-fast">List</text><rect x="40" y="128" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="128" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="152" text-anchor="middle" class="l2-t l2-mn">add(item)</text><text x="280" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text><text x="400" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text><text x="520" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text><text x="630" y="152" text-anchor="middle" class="l2-t l2-mn">All</text><rect x="40" y="166" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="166" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="190" text-anchor="middle" class="l2-t l2-mn">insert(0, item)</text><text x="280" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text><text x="400" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text><text x="520" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text><text x="630" y="190" text-anchor="middle" class="l2-t l2-mn l2-medium">Queue</text><rect x="40" y="204" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="204" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="228" text-anchor="middle" class="l2-t l2-mn">contains(item)</text><text x="280" y="228" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text><text x="400" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text><text x="520" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text><text x="630" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">Set/Map</text><rect x="40" y="242" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="242" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="266" text-anchor="middle" class="l2-t l2-mn">remove(item)</text><text x="280" y="266" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text><text x="400" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text><text x="520" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text><text x="630" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">Set/Map</text><rect x="40" y="280" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="220" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="340" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="460" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><rect x="580" y="280" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/><text x="130" y="304" text-anchor="middle" class="l2-t l2-mn">for (x in coll)</text><text x="280" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text><text x="400" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text><text x="520" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text><text x="630" y="304" text-anchor="middle" class="l2-t l2-mn">All</text><text x="360" y="345" text-anchor="middle" class="l2-t l2-label">* Amortized O(1) — occasional resizing makes rare operations O(n)</text><rect x="120" y="365" width="480" height="40" rx="6" fill="none" stroke="var(--svg-border, #cbd5e1)" stroke-dasharray="4,2"/><text x="360" y="390" text-anchor="middle" class="l2-t l2-label">Key insight: Lists excel at indexed access but struggle with membership testing.</text></svg>
+      <br><br>
+      <strong>Where Lists win:</strong> <code>list[i]</code> (O(1)), <code>add()</code> at end (amortized O(1)), iteration.<br>
+      <strong>Where Lists lose:</strong> <code>contains()</code> (O(n)), <code>remove(item)</code> (O(n)), <code>insert(0, x)</code> (O(n)).
+      <br><br>
+      If you're frequently checking membership, consider a Set. If you need fast insertion at both ends, consider a Queue.
+
+  - id: list-alternatives
+    title: "When NOT to use a List — better alternatives"
+    summary: |
+      Lists are versatile, but they're not always the best choice. Here's a decision tree to help you pick the right collection.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-label="List alternatives decision tree" style="max-width: 100%; height: auto;"><style>.l3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}.l3-title{font-size:16px;font-weight:600}.l3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.l3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}.l3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}</style><text x="360" y="26" text-anchor="middle" class="l3-t l3-title">When NOT to Use a Standard List — Alternatives Decision Tree</text><path d="M 360 55 L 450 95 L 360 135 L 270 95 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/><text x="360" y="90" text-anchor="middle" class="l3-t l3-label" font-weight="600">Need ordered</text><text x="360" y="105" text-anchor="middle" class="l3-t l3-label" font-weight="600">collection?</text><line x1="270" y1="95" x2="120" y2="95" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="195" y="85" text-anchor="middle" class="l3-t l3-desc">no</text><rect x="40" y="70" width="80" height="50" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/><text x="80" y="95" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Set</text><text x="80" y="110" text-anchor="middle" class="l3-t l3-desc">unique items</text><line x1="360" y1="135" x2="360" y2="165" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="375" y="155" class="l3-t l3-desc">yes</text><path d="M 360 170 L 470 210 L 360 250 L 250 210 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/><text x="360" y="200" text-anchor="middle" class="l3-t l3-label" font-weight="600">Frequent add/remove</text><text x="360" y="215" text-anchor="middle" class="l3-t l3-label" font-weight="600">at both ends?</text><text x="360" y="230" text-anchor="middle" class="l3-t l3-desc">(FIFO queue pattern)</text><line x1="470" y1="210" x2="600" y2="210" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="535" y="200" text-anchor="middle" class="l3-t l3-desc">yes</text><rect x="600" y="180" width="100" height="60" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/><text x="650" y="205" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Queue</text><text x="650" y="220" text-anchor="middle" class="l3-t l3-desc">ListQueue or</text><text x="650" y="232" text-anchor="middle" class="l3-t l3-desc">DoubleLinkedQueue</text><line x1="360" y1="250" x2="360" y2="280" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="375" y="270" class="l3-t l3-desc">no</text><path d="M 360 285 L 470 325 L 360 365 L 250 325 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/><text x="360" y="315" text-anchor="middle" class="l3-t l3-label" font-weight="600">Large numeric</text><text x="360" y="330" text-anchor="middle" class="l3-t l3-label" font-weight="600">data? (>10k items)</text><text x="360" y="345" text-anchor="middle" class="l3-t l3-desc">(performance critical)</text><line x1="470" y1="325" x2="600" y2="325" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="535" y="315" text-anchor="middle" class="l3-t l3-desc">yes</text><rect x="580" y="290" width="120" height="70" fill="var(--svg-purple-fill-light, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/><text x="640" y="315" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Typed Data</text><text x="640" y="332" text-anchor="middle" class="l3-t l3-desc">Float64List</text><text x="640" y="347" text-anchor="middle" class="l3-t l3-desc">Int32List, etc.</text><line x1="360" y1="365" x2="360" y2="395" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/><text x="375" y="385" class="l3-t l3-desc">no</text><rect x="280" y="400" width="160" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/><text x="360" y="425" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Standard List</text><text x="360" y="442" text-anchor="middle" class="l3-t l3-desc">Growable, flexible,</text><text x="360" y="455" text-anchor="middle" class="l3-t l3-desc">good for most cases</text><rect x="40" y="280" width="140" height="70" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="6" stroke-dasharray="4,2"/><text x="110" y="305" text-anchor="middle" class="l3-t l3-mn" font-weight="600">LinkedList</text><text x="110" y="322" text-anchor="middle" class="l3-t l3-desc">Rarely needed in Dart</text><text x="110" y="337" text-anchor="middle" class="l3-t l3-desc">O(1) splice, but</text><text x="110" y="352" text-anchor="middle" class="l3-t l3-desc">poor cache locality</text></svg>
+      <br><br>
+      <strong>Queue</strong> — use when you need efficient add/remove at both ends (FIFO/LIFO patterns).<br>
+      <strong>Typed Data Lists</strong> — use for large numeric arrays (<code>Float64List</code>, <code>Int32List</code>) for better memory efficiency and performance.<br>
+      <strong>Set</strong> — use when you need unique items and fast membership testing.<br>
+      <strong>LinkedList</strong> — rarely needed; only when you need O(1) splicing in the middle and can sacrifice random access.
+
+  - id: performance-optimizations
+    title: "Performance optimizations for Lists"
+    summary: |
+      When working with large Lists, small optimizations can make a big difference. Here are practical tips.
+      <br><br>
+      <strong>1. Pre-allocate capacity when you know the size:</strong>
+      <pre><code>// Slow: grows multiple times&#10;var list = &lt;int&gt;[];&#10;for (var i = 0; i &lt; 10000; i++) {&#10;  list.add(i);  // triggers resizing&#10;}&#10;&#10;// Fast: no resizing needed&#10;var list = List&lt;int&gt;.filled(10000, 0);&#10;for (var i = 0; i &lt; 10000; i++) {&#10;  list[i] = i;&#10;}</code></pre>
+      <strong>2. Use <code>addAll()</code> instead of repeated <code>add()</code>:</strong>
+      <pre><code>// Slower&#10;for (var item in otherList) {&#10;  myList.add(item);&#10;}&#10;&#10;// Faster — single operation&#10;myList.addAll(otherList);</code></pre>
+      <strong>3. Avoid <code>insert(0, x)</code> in loops — it's O(n²) total:</strong>
+      <pre><code>// Terrible: O(n²)&#10;for (var item in items) {&#10;  list.insert(0, item);&#10;}&#10;&#10;// Better: build normally, then reverse&#10;var list = items.toList();&#10;list = list.reversed.toList();</code></pre>
+      <strong>4. Use <code>List.generate()</code> for computed values:</strong>
+      <pre><code>// Creates a list of squares&#10;var squares = List.generate(100, (i) => i * i);</code></pre>
+
+  - id: parallel-computations
+    title: "Lists and parallel computations"
+    summary: |
+      Dart runs on a single-threaded event loop, but you can use Isolates for true parallel computation with Lists. The key challenge is that Isolates don't share memory.
+      <br><br>
+      <pre><code>import 'dart:isolate';&#10;&#10;// Heavy computation in a separate isolate&#10;Future&lt;List&lt;int&gt;&gt; processInParallel(List&lt;int&gt; data) async {&#10;  return await Isolate.run(() {&#10;    // This runs in a separate isolate&#10;    return data.map((x) => x * x).toList();&#10;  });&#10;}&#10;&#10;void main() async {&#10;  var data = List.generate(1000000, (i) => i);&#10;  var result = await processInParallel(data);&#10;  print('Processed ${result.length} items');&#10;}</code></pre>
+      <strong>When to parallelise:</strong>
+      <br>
+      - CPU-bound operations on large Lists (>10k items)<br>
+      - Complex transformations (encryption, compression, parsing)<br>
+      - When you can afford the overhead of copying data to the isolate
+      <br><br>
+      <strong>When NOT to parallelise:</strong>
+      <br>
+      - Small Lists (overhead exceeds benefit)<br>
+      - Simple operations (<code>map</code>, <code>filter</code> on primitives)<br>
+      - When you need to share state (isolates can't share mutable state)
+
+  - id: typed-data-lists
+    title: "Typed data Lists — when performance is critical"
+    summary: |
+      For numerical data, Dart's typed data lists offer significant performance benefits. They store values directly in memory without boxing overhead.
+      <br><br>
+      <pre><code>import 'dart:typed_data';&#10;&#10;// Standard List — each int is a boxed object&#10;var normalList = &lt;int&gt;[1, 2, 3, 4, 5];&#10;&#10;// Typed List — compact, contiguous memory&#10;var typedList = Int32List.fromList([1, 2, 3, 4, 5]);&#10;&#10;// Float64List for floating-point data&#10;var floats = Float64List(1000);&#10;for (var i = 0; i &lt; 1000; i++) {&#10;  floats[i] = i * 0.1;&#10;}</code></pre>
+      <strong>Available typed lists:</strong>
+      <br>
+      - <code>Int8List</code>, <code>Int16List</code>, <code>Int32List</code>, <code>Int64List</code><br>
+      - <code>Uint8List</code>, <code>Uint16List</code>, <code>Uint32List</code>, <code>Uint64List</code><br>
+      - <code>Float32List</code>, <code>Float64List</code>
+      <br><br>
+      <strong>Benefits:</strong> Lower memory usage (no boxing), better cache locality, faster iteration, interop with native code (FFI).
+      <br><br>
+      <strong>Tradeoffs:</strong> Fixed size, limited to numeric types, slightly less convenient API.
+
+  - id: list-flavours
+    title: "List flavours — growable, fixed, unmodifiable, const"
+    summary: |
+      Dart has four flavours of List, each with different mutability characteristics.
+      <br><br>
+      <pre><code>// 1. Growable (default) — can add/remove/modify&#10;var growable = [1, 2, 3];&#10;growable.add(4);        // OK&#10;growable[0] = 10;       // OK&#10;&#10;// 2. Fixed-length — can modify, cannot resize&#10;var fixed = List.filled(3, 0);&#10;fixed[0] = 10;          // OK&#10;// fixed.add(4);        // Error!&#10;&#10;// 3. Unmodifiable — cannot modify or resize&#10;var unmod = List.unmodifiable([1, 2, 3]);&#10;// unmod[0] = 10;       // Error!&#10;// unmod.add(4);        // Error!&#10;&#10;// 4. Const — compile-time constant, shared&#10;const constList = [1, 2, 3];&#10;// Identical to all other const [1, 2, 3] literals</code></pre>
+      <strong>When to use each:</strong>
+      <br>
+      - <strong>Growable</strong>: Default choice for most use cases<br>
+      - <strong>Fixed-length</strong>: When you know exact size and want to prevent accidental resizing<br>
+      - <strong>Unmodifiable</strong>: Defensive copies in APIs, returning internal state safely<br>
+      - <strong>Const</strong>: Static configuration data, truly immutable values
+
+  - id: ai-prompts-lists
+    title: "AI prompts — choosing the right List strategy"
+    summary: |
+      Use these prompts with AI assistants to help choose optimal List strategies for your use case.
+      <br><br>
+      <strong>Prompt 1 — Collection type selection:</strong>
+      <pre><code>I have a Dart application that needs to store [describe your data].&#10;Operations I frequently perform:&#10;- [list operations: add, remove, lookup, iterate, etc.]&#10;- Approximate size: [number of items]&#10;- Constraints: [memory, performance, thread-safety]&#10;&#10;Should I use List, Set, Map, Queue, or typed data?&#10;What are the tradeoffs for my specific use case?</code></pre>
+      <strong>Prompt 2 — Performance optimization:</strong>
+      <pre><code>Here is my Dart code that uses Lists:&#10;[paste your code]&#10;&#10;I'm experiencing [performance issue: slow, high memory, etc.].&#10;The List size is approximately [size].&#10;&#10;Analyze this code for List-related performance issues and&#10;suggest specific optimizations. Consider:&#10;- Pre-allocation strategies&#10;- Alternative data structures&#10;- Algorithm improvements&#10;- Typed data lists if applicable</code></pre>
+      <strong>Prompt 3 — Parallel processing decision:</strong>
+      <pre><code>I need to process a List of [size] items in Dart.&#10;Each item requires [describe computation].&#10;Current execution time: [time].&#10;&#10;Should I use Isolates for parallel processing?&#10;If yes, provide an implementation using Isolate.run().&#10;If no, explain why and suggest alternatives.</code></pre>
+      <strong>Prompt 4 — Memory optimization:</strong>
+      <pre><code>My Dart app stores [type of data] in Lists.&#10;Total items: [count]&#10;Current memory usage: [if known]&#10;&#10;Suggest ways to reduce memory footprint while&#10;maintaining acceptable performance. Consider typed data,&#10;lazy loading, chunking, or structural changes.</code></pre>
+
+quiz:
+  title: "Lists Deep Dive Quiz"
+  description: "Test your understanding of Dart Lists, performance, and alternatives"
+  questions:
+    - question: "What is the time complexity of List.contains() in Dart?"
+      options:
+        - "O(1)"
+        - "O(log n)"
+        - "O(n)"
+        - "O(n²)"
+      correctIndex: 2
+      explanation: "List.contains() must scan through the list element by element until it finds a match, making it O(n). For O(1) membership testing, use a Set instead."
+
+    - question: "When should you use List.filled() instead of a growable list?"
+      options:
+        - "When you don't know the final size"
+        - "When you know the exact size and want to prevent accidental resizing"
+        - "When you need to frequently add and remove items"
+        - "When working with typed data"
+      correctIndex: 1
+      explanation: "List.filled() creates a fixed-length list. Use it when you know the exact size upfront and want to prevent accidental add/remove operations, which also avoids resizing overhead."
+
+    - question: "Which alternative should you use for frequent add/remove operations at both ends?"
+      options:
+        - "LinkedList"
+        - "Set"
+        - "Queue (ListQueue or DoubleLinkedQueue)"
+        - "Typed List"
+      correctIndex: 2
+      explanation: "Queue implementations like ListQueue and DoubleLinkedQueue are optimised for FIFO operations with O(1) add/remove at both ends. List.insert(0, x) is O(n) because it shifts all elements."
+
+    - question: "What's the main advantage of typed data lists like Int32List?"
+      options:
+        - "They can store any type"
+        - "They automatically resize"
+        - "Lower memory usage and better cache locality"
+        - "They're always faster for all operations"
+      correctIndex: 2
+      explanation: "Typed data lists store values directly in contiguous memory without boxing overhead. This reduces memory usage and improves cache locality, making iteration and numerical operations faster."
+
+    - question: "Why can't Isolates share Lists directly?"
+      options:
+        - "Lists are too large to copy"
+        - "Isolates don't share memory — data must be copied"
+        - "Dart doesn't support multithreading"
+        - "Lists are immutable"
+      correctIndex: 1
+      explanation: "Dart Isolates have separate memory heaps and cannot share mutable state. When you pass a List to an Isolate, it's copied. This ensures thread safety but adds overhead."
+
+    - question: "What OOP principle does List.unmodifiable() demonstrate?"
+      options:
+        - "Encapsulation — hiding internal state"
+        - "Polymorphism — working with any type"
+        - "Liskov Substitution — UnmodifiableList is still a List"
+        - "Abstraction — simplifying the interface"
+      correctIndex: 2
+      explanation: "List.unmodifiable() returns a view that implements List but throws on modification. It demonstrates Liskov Substitution: you can use UnmodifiableList anywhere a List is expected, it just restricts certain operations."
+
+    - question: "When is a standard growable List the wrong choice?"
+      options:
+        - "When you need to iterate through items"
+        - "When you need indexed access"
+        - "When you need fast membership testing on large collections"
+        - "When you need to map or filter items"
+      correctIndex: 2
+      explanation: "List.contains() is O(n), which becomes problematic for large collections with frequent membership checks. Use a Set instead for O(1) contains() operations."
+---
+
+# Lists in Dart
+
+Lists are the workhorse of Dart collections. This episode explores when to use them, when to avoid them, and how to optimise them for performance-critical applications.

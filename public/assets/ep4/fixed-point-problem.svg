@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Fixed point representation wastes bits">
   <style>
-    .d1-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d1-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d1-title { font-size: 16px; font-weight: 600; }
-    .d1-label { font-size: 13px; fill: #64748b; }
+    .d1-label { font-size: 13px; fill: var(--svg-text-muted, #64748b); }
     .d1-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 14px; font-weight: 600; }
-    .d1-used { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 700; fill: #1e293b; }
-    .d1-unused { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; fill: #94a3b8; }
+    .d1-used { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 700; }
+    .d1-unused { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; fill: var(--svg-text-subtle, #94a3b8); }
     .d1-ovf { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 700; fill: #ffffff; }
-    .d1-good { font-size: 13px; font-weight: 600; fill: #059669; }
-    .d1-bad { font-size: 13px; font-weight: 600; fill: #b45309; }
-    .d1-caption { font-size: 13px; fill: #475569; font-style: italic; }
+    .d1-good { font-size: 13px; font-weight: 600; fill: var(--svg-green-dark, #059669); }
+    .d1-bad { font-size: 13px; font-weight: 600; fill: var(--svg-amber, #b45309); }
+    .d1-caption { font-size: 13px; fill: var(--svg-text-secondary, #475569); font-style: italic; }
+    .d1-unused-box { fill: var(--svg-bg-secondary, #f1f5f9); stroke: var(--svg-border, #cbd5e1); }
+    .d1-used-box { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); }
+    .d1-amber-box { fill: var(--svg-amber-fill, #fef3c7); stroke: var(--svg-amber, #f59e0b); }
+    .d1-overflow-box { fill: #fecaca; stroke: var(--svg-red, #dc2626); }
+    .d1-point { fill: var(--svg-red, #dc2626); }
   </style>
 
   <text x="360" y="26" text-anchor="middle" class="d1-t d1-title">Fixed point — decimal point locked in the middle</text>
@@ -19,25 +24,25 @@
   <text x="40" y="100" class="d1-t d1-mn">123.456</text>
 
   <g transform="translate(170, 80)">
-    <rect x="0" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="32" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="64" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="96" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="128" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="160" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">1</text>
-    <rect x="192" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">2</text>
-    <rect x="224" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">3</text>
+    <rect x="0" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="32" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="64" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="96" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="128" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="160" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">1</text>
+    <rect x="192" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">2</text>
+    <rect x="224" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">3</text>
 
-    <circle cx="266" cy="22" r="3" fill="#dc2626"/>
+    <circle cx="266" cy="22" r="3" class="d1-point"/>
 
-    <rect x="276" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-used">4</text>
-    <rect x="308" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-used">5</text>
-    <rect x="340" y="0" width="32" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-used">6</text>
-    <rect x="372" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="404" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="436" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="468" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="500" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="276" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-used">4</text>
+    <rect x="308" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-used">5</text>
+    <rect x="340" y="0" width="32" height="40" class="d1-used-box" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-used">6</text>
+    <rect x="372" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="404" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="436" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="468" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="500" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
   </g>
 
   <text x="40" y="150" class="d1-t d1-good">✓ fits, but 10 of 16 switches sit unused</text>
@@ -46,25 +51,25 @@
   <text x="40" y="220" class="d1-t d1-mn">99 999 999</text>
 
   <g transform="translate(170, 200)">
-    <rect x="0" y="0" width="32" height="40" fill="#fecaca" stroke="#dc2626" stroke-width="2" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-ovf">X</text>
-    <rect x="32" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="64" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="96" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="128" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="160" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="192" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">9</text>
-    <rect x="224" y="0" width="32" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="0" y="0" width="32" height="40" class="d1-overflow-box" stroke-width="2" rx="2"/><text x="16" y="26" text-anchor="middle" class="d1-ovf">X</text>
+    <rect x="32" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="48" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="64" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="80" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="96" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="112" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="128" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="144" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="160" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="176" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="192" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="208" y="26" text-anchor="middle" class="d1-used">9</text>
+    <rect x="224" y="0" width="32" height="40" class="d1-amber-box" stroke-width="1.5" rx="2"/><text x="240" y="26" text-anchor="middle" class="d1-used">9</text>
 
-    <circle cx="266" cy="22" r="3" fill="#dc2626"/>
+    <circle cx="266" cy="22" r="3" class="d1-point"/>
 
-    <rect x="276" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="308" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="340" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="372" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="404" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="436" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="468" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
-    <rect x="500" y="0" width="32" height="40" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="276" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="292" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="308" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="324" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="340" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="356" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="372" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="388" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="404" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="420" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="436" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="452" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="468" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="484" y="26" text-anchor="middle" class="d1-unused">_</text>
+    <rect x="500" y="0" width="32" height="40" class="d1-unused-box" stroke-width="1.5" rx="2"/><text x="516" y="26" text-anchor="middle" class="d1-unused">_</text>
   </g>
 
   <text x="40" y="270" class="d1-t d1-bad">✗ overflows the integral half, fractional half wasted</text>

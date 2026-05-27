@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width: 100%; height: auto;" role="img" aria-label="Transistor acting as a switch: low voltage keeps gate closed, high voltage opens gate allowing current flow">
   <defs>
     <marker id="b1-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="#0175C2"/>
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
     </marker>
   </defs>
   <style>
-    .b1-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
-    .b1-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }
-    .b1-small { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
+    .b1-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .b1-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-secondary, #475569); }
+    .b1-small { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
     .b1-code { font: 600 14px "SF Mono", Menlo, Monaco, monospace; }
-    .b1-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 8; }
-    .b1-off { fill: #fee2e2; stroke: #dc2626; stroke-width: 2; }
-    .b1-on { fill: #d1fae5; stroke: #10b981; stroke-width: 2; }
+    .b1-box { fill: var(--svg-bg, #f8fafc); stroke: var(--svg-border, #cbd5e1); stroke-width: 1.5; rx: 8; }
+    .b1-off { fill: var(--svg-red-fill, #fee2e2); stroke: var(--svg-red, #dc2626); stroke-width: 2; }
+    .b1-on { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); stroke-width: 2; }
   </style>
 
   <!-- Title -->
@@ -23,18 +23,18 @@
     <text x="140" y="28" text-anchor="middle" class="b1-label">LOW Voltage (0V)</text>
 
     <!-- Gate closed visualization -->
-    <rect x="100" y="50" width="80" height="100" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
+    <rect x="100" y="50" width="80" height="100" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-text-subtle, #94a3b8)" stroke-width="1.5" rx="4"/>
     <text x="140" y="90" text-anchor="middle" class="b1-small">GATE</text>
     <rect x="115" y="95" width="50" height="8" class="b1-off" rx="2"/>
     <text x="140" y="120" text-anchor="middle" class="b1-small">CLOSED</text>
 
     <!-- No current flow -->
-    <line x1="40" y1="100" x2="95" y2="100" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,3"/>
-    <line x1="185" y1="100" x2="240" y2="100" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,3"/>
+    <line x1="40" y1="100" x2="95" y2="100" stroke="var(--svg-text-subtle, #94a3b8)" stroke-width="2" stroke-dasharray="4,3"/>
+    <line x1="185" y1="100" x2="240" y2="100" stroke="var(--svg-text-subtle, #94a3b8)" stroke-width="2" stroke-dasharray="4,3"/>
 
     <!-- Result -->
-    <rect x="70" y="150" width="140" height="24" fill="#fee2e2" rx="4"/>
-    <text x="140" y="167" text-anchor="middle" class="b1-code" fill="#dc2626">Output: 0</text>
+    <rect x="70" y="150" width="140" height="24" fill="var(--svg-red-fill, #fee2e2)" rx="4"/>
+    <text x="140" y="167" text-anchor="middle" class="b1-code" fill="var(--svg-red, #dc2626)">Output: 0</text>
   </g>
 
   <!-- ON State (Right) -->
@@ -43,17 +43,17 @@
     <text x="140" y="28" text-anchor="middle" class="b1-label">HIGH Voltage (5V)</text>
 
     <!-- Gate open visualization -->
-    <rect x="100" y="50" width="80" height="100" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
+    <rect x="100" y="50" width="80" height="100" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-text-subtle, #94a3b8)" stroke-width="1.5" rx="4"/>
     <text x="140" y="90" text-anchor="middle" class="b1-small">GATE</text>
     <rect x="115" y="95" width="50" height="8" class="b1-on" rx="2"/>
     <text x="140" y="120" text-anchor="middle" class="b1-small">OPEN</text>
 
     <!-- Current flows -->
-    <line x1="40" y1="100" x2="95" y2="100" stroke="#0175C2" stroke-width="2" marker-end="url(#b1-arrow)"/>
-    <line x1="185" y1="100" x2="240" y2="100" stroke="#0175C2" stroke-width="2" marker-end="url(#b1-arrow)"/>
+    <line x1="40" y1="100" x2="95" y2="100" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#b1-arrow)"/>
+    <line x1="185" y1="100" x2="240" y2="100" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#b1-arrow)"/>
 
     <!-- Result -->
-    <rect x="70" y="150" width="140" height="24" fill="#d1fae5" rx="4"/>
-    <text x="140" y="167" text-anchor="middle" class="b1-code" fill="#10b981">Output: 1</text>
+    <rect x="70" y="150" width="140" height="24" fill="var(--svg-green-fill, #d1fae5)" rx="4"/>
+    <text x="140" y="167" text-anchor="middle" class="b1-code" fill="var(--svg-green, #10b981)">Output: 1</text>
   </g>
 </svg>

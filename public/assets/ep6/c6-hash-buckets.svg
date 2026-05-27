@@ -1,37 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Hash bucket mechanics for Set and Map">
   <defs>
-    <marker id="m-hash" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker>
+    <marker id="m-hash" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/></marker>
   </defs>
   <style>
-    .d-hash-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-hash-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d-hash-title { font-size: 16px; font-weight: 600; }
-    .d-hash-sub { font-size: 13px; fill: #475569; }
+    .d-hash-sub { font-size: 13px; fill: var(--svg-text-secondary, #475569); }
     .d-hash-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 13px; font-weight: 600; }
     .d-hash-mn-small { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; }
-    .d-hash-idx { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: #94a3b8; font-weight: 700; }
-    .d-hash-label { font-size: 12px; fill: #475569; }
-    .d-hash-step { font-size: 12px; fill: #b45309; font-style: italic; font-weight: 600; }
-    .d-hash-good { font-size: 13px; font-weight: 600; fill: #059669; }
+    .d-hash-idx { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: var(--svg-text-subtle, #94a3b8); font-weight: 700; }
+    .d-hash-label { font-size: 12px; fill: var(--svg-text-secondary, #475569); }
+    .d-hash-step { font-size: 12px; fill: var(--svg-amber-dark, #b45309); font-style: italic; font-weight: 600; }
+    .d-hash-good { font-size: 13px; font-weight: 600; fill: var(--svg-green-dark, #059669); }
+    .d-hash-muted { fill: var(--svg-border, #cbd5e1); }
+    .d-hash-muted-text { fill: var(--svg-text-muted, #64748b); }
+    .d-hash-key-box { fill: var(--svg-amber-fill, #fef3c7); stroke: var(--svg-amber, #f59e0b); }
+    .d-hash-hash-box { fill: var(--svg-purple-fill, #e9d5ff); stroke: var(--svg-purple, #9333ea); }
+    .d-hash-idx-box { fill: var(--svg-dart-blue-fill, #dbeafe); stroke: var(--svg-dart-blue, #0175C2); }
+    .d-hash-empty-bucket { fill: var(--svg-bg-secondary, #f8fafc); stroke: var(--svg-border, #cbd5e1); }
+    .d-hash-filled-bucket { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); }
+    .d-hash-active-bucket { fill: var(--svg-amber-fill, #fef3c7); stroke: var(--svg-amber, #f59e0b); }
+    .d-hash-arrow { stroke: var(--svg-text-secondary, #475569); }
+    .d-hash-divider { stroke: var(--svg-amber, #f59e0b); }
   </style>
 
   <text x="360" y="26" text-anchor="middle" class="d-hash-t d-hash-title">How Set and Map look up in O(1) — hash buckets</text>
 
   <!-- Step 1: Key -->
   <text x="40" y="60" class="d-hash-t d-hash-step">step 1: the key</text>
-  <rect x="40" y="75" width="110" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+  <rect x="40" y="75" width="110" height="40" class="d-hash-key-box" stroke-width="2" rx="4"/>
   <text x="95" y="100" text-anchor="middle" class="d-hash-t d-hash-mn">"Mom"</text>
 
   <!-- Step 2: Hash function -->
-  <line x1="150" y1="95" x2="190" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#m-hash)"/>
-  <text x="170" y="85" text-anchor="middle" class="d-hash-t" font-size="11" fill="#64748b">hash()</text>
+  <line x1="150" y1="95" x2="190" y2="95" class="d-hash-arrow" stroke-width="2" marker-end="url(#m-hash)"/>
+  <text x="170" y="85" text-anchor="middle" class="d-hash-t d-hash-muted-text" font-size="11">hash()</text>
 
-  <rect x="190" y="75" width="130" height="40" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="4"/>
+  <rect x="190" y="75" width="130" height="40" class="d-hash-hash-box" stroke-width="2" rx="4"/>
   <text x="255" y="100" text-anchor="middle" class="d-hash-t d-hash-mn">3729183617</text>
 
-  <line x1="320" y1="95" x2="360" y2="95" stroke="#475569" stroke-width="2" marker-end="url(#m-hash)"/>
-  <text x="340" y="85" text-anchor="middle" class="d-hash-t" font-size="11" fill="#64748b">% 8</text>
+  <line x1="320" y1="95" x2="360" y2="95" class="d-hash-arrow" stroke-width="2" marker-end="url(#m-hash)"/>
+  <text x="340" y="85" text-anchor="middle" class="d-hash-t d-hash-muted-text" font-size="11">% 8</text>
 
-  <rect x="360" y="75" width="60" height="40" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="4"/>
+  <rect x="360" y="75" width="60" height="40" class="d-hash-idx-box" stroke-width="2" rx="4"/>
   <text x="390" y="100" text-anchor="middle" class="d-hash-t d-hash-mn">3</text>
 
   <text x="450" y="100" class="d-hash-t d-hash-label">→ bucket index</text>
@@ -41,43 +51,43 @@
 
   <!-- Bucket array - 8 buckets -->
   <g transform="translate(40, 175)">
-    <rect x="0" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="0" y="0" width="80" height="60" class="d-hash-empty-bucket" stroke-width="1.5"/>
     <text x="40" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[0]</text>
-    <text x="40" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small" fill="#cbd5e1">empty</text>
+    <text x="40" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small d-hash-muted">empty</text>
 
-    <rect x="80" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="80" y="0" width="80" height="60" class="d-hash-empty-bucket" stroke-width="1.5"/>
     <text x="120" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[1]</text>
-    <text x="120" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small" fill="#cbd5e1">empty</text>
+    <text x="120" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small d-hash-muted">empty</text>
 
-    <rect x="160" y="0" width="80" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="160" y="0" width="80" height="60" class="d-hash-filled-bucket" stroke-width="1.5"/>
     <text x="200" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[2]</text>
     <text x="200" y="35" text-anchor="middle" class="d-hash-t d-hash-mn-small">Ankit</text>
     <text x="200" y="50" text-anchor="middle" class="d-hash-t d-hash-mn-small">→ 987...</text>
 
-    <rect x="240" y="0" width="160" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+    <rect x="240" y="0" width="160" height="60" class="d-hash-active-bucket" stroke-width="2.5"/>
     <text x="320" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[3]</text>
-    <line x1="320" y1="20" x2="320" y2="60" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2 2"/>
+    <line x1="320" y1="20" x2="320" y2="60" class="d-hash-divider" stroke-width="1" stroke-dasharray="2 2"/>
     <text x="280" y="35" text-anchor="middle" class="d-hash-t d-hash-mn-small">Mom</text>
     <text x="280" y="50" text-anchor="middle" class="d-hash-t d-hash-mn-small">→ 123...</text>
     <text x="360" y="35" text-anchor="middle" class="d-hash-t d-hash-mn-small">Dad</text>
     <text x="360" y="50" text-anchor="middle" class="d-hash-t d-hash-mn-small">→ 987...</text>
 
-    <rect x="400" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="400" y="0" width="80" height="60" class="d-hash-empty-bucket" stroke-width="1.5"/>
     <text x="440" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[4]</text>
-    <text x="440" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small" fill="#cbd5e1">empty</text>
+    <text x="440" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small d-hash-muted">empty</text>
 
-    <rect x="480" y="0" width="80" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="480" y="0" width="80" height="60" class="d-hash-filled-bucket" stroke-width="1.5"/>
     <text x="520" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[5]</text>
     <text x="520" y="35" text-anchor="middle" class="d-hash-t d-hash-mn-small">Sister</text>
     <text x="520" y="50" text-anchor="middle" class="d-hash-t d-hash-mn-small">→ 555...</text>
 
-    <rect x="560" y="0" width="80" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="560" y="0" width="80" height="60" class="d-hash-empty-bucket" stroke-width="1.5"/>
     <text x="600" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[6]</text>
-    <text x="600" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small" fill="#cbd5e1">empty</text>
+    <text x="600" y="40" text-anchor="middle" class="d-hash-t d-hash-mn-small d-hash-muted">empty</text>
 
-    <rect x="640" y="0" width="40" height="60" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="640" y="0" width="40" height="60" class="d-hash-empty-bucket" stroke-width="1.5"/>
     <text x="660" y="15" text-anchor="middle" class="d-hash-t d-hash-idx">[7]</text>
-    <text x="660" y="42" text-anchor="middle" class="d-hash-t d-hash-mn-small" fill="#cbd5e1">∅</text>
+    <text x="660" y="42" text-anchor="middle" class="d-hash-t d-hash-mn-small d-hash-muted">∅</text>
   </g>
 
   <!-- Arrow from bucket [3] result down -->

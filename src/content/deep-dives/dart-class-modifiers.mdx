@@ -1,0 +1,195 @@
+---
+title: "Class Modifiers in Dart — abstract, base, final, interface, sealed, and mixin"
+description: "Dart 3 introduced powerful class modifiers that control how your classes can be extended, implemented, and instantiated. Learn when to use each one."
+category: "Dart"
+color: "#0175C2"
+subject: "Dart: Type System"
+order: 7
+publishedAt: 2026-05-27
+topics:
+  - id: why-class-modifiers
+    title: "Why class modifiers exist"
+    summary: |
+      Before Dart 3, every class was wide open. Anyone could extend it, implement it, or instantiate it. That sounds flexible, but it creates problems.
+      <br><br>
+      Consider a library author who writes a <code>DatabaseConnection</code> class. Internally, this class relies on certain methods being called in a specific order. If someone extends it and overrides those methods incorrectly, the whole thing breaks. The library author has no way to prevent this.
+      <br><br>
+      <pre><code>// Your library&#10;class DatabaseConnection {&#10;  void connect() { /* sets up state */ }&#10;  void query(String sql) { /* uses that state */ }&#10;}&#10;&#10;// Someone else's code&#10;class MyConnection extends DatabaseConnection {&#10;  @override&#10;  void connect() {&#10;    // Oops, forgot to call super.connect()&#10;    // Now query() will crash&#10;  }&#10;}</code></pre>
+      Class modifiers give you control. They let you say: "This class is for implementing, not extending." Or: "This class must stay within my library." Or: "This class cannot be subtyped at all."
+      <br><br>
+      Think of modifiers as <strong>API contracts</strong>. They communicate intent and the compiler enforces it.
+
+  - id: modifier-overview
+    title: "The modifier cheat sheet"
+    summary: |
+      Dart 3 has six class modifiers. Each one controls different aspects of what code outside your library can do with your class.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="Dart 3 class modifiers overview" style="max-width: 100%; height: auto;"><style>.cm1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.cm1-title{font-size:16px;font-weight:600}.cm1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.cm1-label{font-size:11px;fill:#64748b}.cm1-desc{font-size:10px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="cm1-t cm1-title">Dart 3 Class Modifiers — What Each One Controls</text><text x="120" y="60" text-anchor="middle" class="cm1-t cm1-label" font-weight="600">Modifier</text><text x="320" y="60" text-anchor="middle" class="cm1-t cm1-label" font-weight="600">Can Extend?</text><text x="480" y="60" text-anchor="middle" class="cm1-t cm1-label" font-weight="600">Can Implement?</text><text x="640" y="60" text-anchor="middle" class="cm1-t cm1-label" font-weight="600">Can Construct?</text><line x1="40" y1="75" x2="680" y2="75" stroke="#cbd5e1" stroke-width="1"/><rect x="40" y="85" width="160" height="40" fill="#f1f5f9" stroke="#cbd5e1" rx="4"/><text x="120" y="110" text-anchor="middle" class="cm1-t cm1-mn">(no modifier)</text><text x="320" y="110" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="480" y="110" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="640" y="110" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><rect x="40" y="135" width="160" height="40" fill="#dbeafe" stroke="#0175C2" rx="4"/><text x="120" y="160" text-anchor="middle" class="cm1-t cm1-mn" fill="#0175C2">abstract</text><text x="320" y="160" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="480" y="160" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="640" y="160" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No</text><rect x="40" y="185" width="160" height="40" fill="#fef3c7" stroke="#f59e0b" rx="4"/><text x="120" y="210" text-anchor="middle" class="cm1-t cm1-mn" fill="#d97706">base</text><text x="320" y="210" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="480" y="210" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No*</text><text x="640" y="210" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><rect x="40" y="235" width="160" height="40" fill="#d1fae5" stroke="#10b981" rx="4"/><text x="120" y="260" text-anchor="middle" class="cm1-t cm1-mn" fill="#059669">interface</text><text x="320" y="260" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No*</text><text x="480" y="260" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><text x="640" y="260" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><rect x="40" y="285" width="160" height="40" fill="#fee2e2" stroke="#dc2626" rx="4"/><text x="120" y="310" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">final</text><text x="320" y="310" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No*</text><text x="480" y="310" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No*</text><text x="640" y="310" text-anchor="middle" class="cm1-t cm1-mn" fill="#10b981">Yes</text><rect x="40" y="335" width="160" height="40" fill="#e9d5ff" stroke="#9333ea" rx="4"/><text x="120" y="360" text-anchor="middle" class="cm1-t cm1-mn" fill="#7c3aed">sealed</text><text x="320" y="360" text-anchor="middle" class="cm1-t cm1-mn" fill="#f59e0b">Same file</text><text x="480" y="360" text-anchor="middle" class="cm1-t cm1-mn" fill="#f59e0b">Same file</text><text x="640" y="360" text-anchor="middle" class="cm1-t cm1-mn" fill="#dc2626">No</text><text x="360" y="400" text-anchor="middle" class="cm1-t cm1-desc">* Restrictions apply outside the library where the class is defined</text></svg>
+      <br><br>
+      The key insight: these restrictions only apply <strong>outside the library</strong> where the class is defined. Within your own library, you have full access. The modifiers protect your API from external misuse.
+
+  - id: abstract-modifier
+    title: "abstract — cannot instantiate"
+    summary: |
+      The <code>abstract</code> modifier prevents direct instantiation. You cannot call the constructor from outside the class hierarchy.
+      <br><br>
+      <pre><code>abstract class Shape {&#10;  double get area;   // No implementation&#10;  void draw();       // Must be overridden&#10;}&#10;&#10;class Circle extends Shape {&#10;  final double radius;&#10;  Circle(this.radius);&#10;&#10;  @override&#10;  double get area => 3.14159 * radius * radius;&#10;&#10;  @override&#10;  void draw() => print('Drawing circle');&#10;}&#10;&#10;// var s = Shape();     // Error: abstract class&#10;var c = Circle(5);      // OK</code></pre>
+      Abstract classes can have both abstract members (no implementation) and concrete members (with implementation). Subclasses must implement all abstract members.
+      <br><br>
+      Use <code>abstract</code> when you want to define a template. The class describes <em>what</em> something should do, but subclasses decide <em>how</em>.
+
+  - id: base-modifier
+    title: "base — extend only, no implementing"
+    summary: |
+      The <code>base</code> modifier allows extending but blocks implementing. This forces subclasses to inherit your implementation, not just your interface.
+      <br><br>
+      <pre><code>// In your library&#10;base class Vehicle {&#10;  void startEngine() {&#10;    _checkFuel();      // Private method&#10;    _initSystems();    // Must run in order&#10;    print('Engine started');&#10;  }&#10;&#10;  void _checkFuel() { /* ... */ }&#10;  void _initSystems() { /* ... */ }&#10;}&#10;&#10;// Outside your library&#10;class Car extends Vehicle {    // OK&#10;  @override&#10;  void startEngine() {&#10;    super.startEngine();       // Gets the full sequence&#10;    print('Car ready');&#10;  }&#10;}&#10;&#10;// class FakeVehicle implements Vehicle { }  // Error!</code></pre>
+      Why block <code>implements</code>? Because implementing creates a completely new class that just happens to have the same method signatures. It doesn't get your actual code. If your class relies on internal state or method call sequences, an implementing class will break those assumptions.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Base class inheritance chain" style="max-width: 100%; height: auto;"><style>.cm2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.cm2-title{font-size:15px;font-weight:600}.cm2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.cm2-label{font-size:10px;fill:#64748b}.cm2-note{font-size:10px;fill:#475569}</style><text x="360" y="24" text-anchor="middle" class="cm2-t cm2-title">base forces the entire inheritance chain to stay in your library</text><rect x="40" y="45" width="300" height="200" fill="#f0fdf4" stroke="#10b981" stroke-width="2" rx="8" stroke-dasharray="6,3"/><text x="190" y="70" text-anchor="middle" class="cm2-t cm2-label" font-weight="600">your_library.dart</text><rect x="70" y="90" width="120" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="130" y="118" text-anchor="middle" class="cm2-t cm2-mn">base class A</text><rect x="200" y="90" width="120" height="45" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="6"/><text x="260" y="112" text-anchor="middle" class="cm2-t cm2-mn">base class B</text><text x="260" y="126" text-anchor="middle" class="cm2-t cm2-mn" font-size="10">extends A</text><line x1="190" y1="112" x2="200" y2="112" stroke="#475569" stroke-width="2" marker-end="url(#cm2-arrow)"/><rect x="380" y="45" width="300" height="200" fill="#fef2f2" stroke="#dc2626" stroke-width="2" rx="8" stroke-dasharray="6,3"/><text x="530" y="70" text-anchor="middle" class="cm2-t cm2-label" font-weight="600">external_package.dart</text><rect x="420" y="90" width="120" height="45" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="6" opacity="0.6"/><text x="480" y="112" text-anchor="middle" class="cm2-t cm2-mn" fill="#dc2626">class C</text><text x="480" y="126" text-anchor="middle" class="cm2-t cm2-mn" fill="#dc2626" font-size="10">extends B</text><line x1="400" y1="85" x2="560" y2="140" stroke="#dc2626" stroke-width="2"/><line x1="400" y1="140" x2="560" y2="85" stroke="#dc2626" stroke-width="2"/><rect x="550" y="90" width="120" height="45" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="6" opacity="0.6"/><text x="610" y="112" text-anchor="middle" class="cm2-t cm2-mn" fill="#dc2626">class D</text><text x="610" y="126" text-anchor="middle" class="cm2-t cm2-mn" fill="#dc2626" font-size="10">implements A</text><line x1="530" y1="85" x2="690" y2="140" stroke="#dc2626" stroke-width="2"/><line x1="530" y1="140" x2="690" y2="85" stroke="#dc2626" stroke-width="2"/><rect x="420" y="165" width="220" height="55" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="187" text-anchor="middle" class="cm2-t cm2-mn" fill="#059669">var obj = B();</text><text x="530" y="205" text-anchor="middle" class="cm2-t cm2-note">Can instantiate and use objects</text><text x="360" y="275" text-anchor="middle" class="cm2-t cm2-note">Subclasses of base must also be base, final, or sealed — the chain is unbroken</text><defs><marker id="cm2-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      Important: subclasses of a <code>base</code> class must themselves be <code>base</code>, <code>final</code>, or <code>sealed</code>. The protection is transitive.
+
+  - id: interface-modifier
+    title: "interface — implement only, no extending"
+    summary: |
+      The <code>interface</code> modifier is the opposite of <code>base</code>. It allows implementing but blocks extending.
+      <br><br>
+      <pre><code>// In your library&#10;interface class Comparable {&#10;  int compareTo(Object other) => 0;  // Default impl&#10;}&#10;&#10;// Outside your library&#10;class Person implements Comparable {  // OK&#10;  final String name;&#10;  Person(this.name);&#10;&#10;  @override&#10;  int compareTo(Object other) {&#10;    if (other is Person) {&#10;      return name.compareTo(other.name);&#10;    }&#10;    return -1;&#10;  }&#10;}&#10;&#10;// class Employee extends Comparable { }  // Error!</code></pre>
+      Use <code>interface</code> when you want to define a contract without forcing users to inherit your implementation. This is useful when:
+      <br><br>
+      <strong>1.</strong> Your class has implementation details that shouldn't be inherited
+      <br>
+      <strong>2.</strong> You want to evolve the implementation without breaking subclasses
+      <br>
+      <strong>3.</strong> The class is meant purely as a type/contract
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="Interface class vs abstract class" style="max-width: 100%; height: auto;"><style>.cm3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.cm3-title{font-size:15px;font-weight:600}.cm3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.cm3-label{font-size:11px;fill:#64748b}.cm3-desc{font-size:10px;fill:#475569}</style><text x="360" y="24" text-anchor="middle" class="cm3-t cm3-title">interface class vs abstract class — different constraints</text><rect x="40" y="50" width="300" height="240" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="190" y="78" text-anchor="middle" class="cm3-t cm3-mn" fill="#059669" font-weight="600">interface class Logger</text><text x="60" y="110" class="cm3-t cm3-desc">Can implement (use as contract):</text><rect x="60" y="120" width="260" height="35" fill="#ffffff" stroke="#10b981" rx="4"/><text x="190" y="143" text-anchor="middle" class="cm3-t cm3-mn" fill="#10b981">class FileLogger implements Logger</text><text x="60" y="175" class="cm3-t cm3-desc">Cannot extend (outside library):</text><rect x="60" y="185" width="260" height="35" fill="#fee2e2" stroke="#dc2626" rx="4" opacity="0.6"/><text x="190" y="208" text-anchor="middle" class="cm3-t cm3-mn" fill="#dc2626">class MyLogger extends Logger</text><line x1="60" y1="185" x2="320" y2="220" stroke="#dc2626" stroke-width="2"/><text x="60" y="255" class="cm3-t cm3-desc">Can construct:</text><rect x="60" y="265" width="130" height="20" fill="#ffffff" stroke="#10b981" rx="4"/><text x="125" y="280" text-anchor="middle" class="cm3-t cm3-mn" fill="#10b981">Logger()</text><rect x="380" y="50" width="300" height="240" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="530" y="78" text-anchor="middle" class="cm3-t cm3-mn" fill="#0175C2" font-weight="600">abstract class Logger</text><text x="400" y="110" class="cm3-t cm3-desc">Can implement:</text><rect x="400" y="120" width="260" height="35" fill="#ffffff" stroke="#10b981" rx="4"/><text x="530" y="143" text-anchor="middle" class="cm3-t cm3-mn" fill="#10b981">class FileLogger implements Logger</text><text x="400" y="175" class="cm3-t cm3-desc">Can also extend:</text><rect x="400" y="185" width="260" height="35" fill="#ffffff" stroke="#10b981" rx="4"/><text x="530" y="208" text-anchor="middle" class="cm3-t cm3-mn" fill="#10b981">class MyLogger extends Logger</text><text x="400" y="255" class="cm3-t cm3-desc">Cannot construct:</text><rect x="400" y="265" width="130" height="20" fill="#fee2e2" stroke="#dc2626" rx="4" opacity="0.6"/><text x="465" y="280" text-anchor="middle" class="cm3-t cm3-mn" fill="#dc2626">Logger()</text><line x1="400" y1="265" x2="530" y2="285" stroke="#dc2626" stroke-width="2"/><text x="360" y="310" text-anchor="middle" class="cm3-t cm3-label">interface = contract only | abstract = template for extension</text></svg>
+
+  - id: final-modifier
+    title: "final — complete lockdown"
+    summary: |
+      The <code>final</code> modifier is the strictest. It blocks both extending and implementing outside the library. The type is frozen.
+      <br><br>
+      <pre><code>// In your library&#10;final class ApiResponse {&#10;  final int statusCode;&#10;  final String body;&#10;  final Map&lt;String, String&gt; headers;&#10;&#10;  ApiResponse(this.statusCode, this.body, this.headers);&#10;&#10;  bool get isSuccess => statusCode >= 200 && statusCode < 300;&#10;}</code></pre>
+      Outside the library, users can create instances and use them normally. But they cannot extend or implement the class.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img" aria-label="Final class lockdown" style="max-width: 100%; height: auto;"><style>.cm4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.cm4-title{font-size:15px;font-weight:600}.cm4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.cm4-label{font-size:11px;fill:#64748b}.cm4-desc{font-size:10px;fill:#475569}</style><text x="360" y="24" text-anchor="middle" class="cm4-t cm4-title">final class — complete lockdown outside your library</text><rect x="260" y="50" width="200" height="60" fill="#fee2e2" stroke="#dc2626" stroke-width="3" rx="8"/><text x="360" y="85" text-anchor="middle" class="cm4-t cm4-mn" fill="#dc2626" font-weight="700">final class String</text><line x1="260" y1="130" x2="140" y2="170" stroke="#dc2626" stroke-width="2"/><line x1="360" y1="110" x2="360" y2="170" stroke="#dc2626" stroke-width="2"/><line x1="460" y1="130" x2="580" y2="170" stroke="#dc2626" stroke-width="2"/><rect x="40" y="170" width="200" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="6" opacity="0.7"/><text x="140" y="192" text-anchor="middle" class="cm4-t cm4-mn" fill="#dc2626">class MyString</text><text x="140" y="208" text-anchor="middle" class="cm4-t cm4-mn" fill="#dc2626" font-size="10">extends String</text><line x1="40" y1="170" x2="240" y2="220" stroke="#dc2626" stroke-width="3"/><line x1="40" y1="220" x2="240" y2="170" stroke="#dc2626" stroke-width="3"/><text x="140" y="245" text-anchor="middle" class="cm4-t cm4-desc">No extending</text><rect x="260" y="170" width="200" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="6" opacity="0.7"/><text x="360" y="192" text-anchor="middle" class="cm4-t cm4-mn" fill="#dc2626">class FakeString</text><text x="360" y="208" text-anchor="middle" class="cm4-t cm4-mn" fill="#dc2626" font-size="10">implements String</text><line x1="260" y1="170" x2="460" y2="220" stroke="#dc2626" stroke-width="3"/><line x1="260" y1="220" x2="460" y2="170" stroke="#dc2626" stroke-width="3"/><text x="360" y="245" text-anchor="middle" class="cm4-t cm4-desc">No implementing</text><rect x="480" y="170" width="200" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="580" y="195" text-anchor="middle" class="cm4-t cm4-mn" fill="#059669">var s = 'hello';</text><text x="580" y="212" text-anchor="middle" class="cm4-t cm4-desc">String.fromCharCodes([...])</text><text x="580" y="245" text-anchor="middle" class="cm4-t cm4-desc" fill="#10b981">Can use normally</text><text x="360" y="275" text-anchor="middle" class="cm4-t cm4-label">The type is frozen — no subtyping allowed outside the defining library</text></svg>
+      <br><br>
+      Use <code>final</code> when:
+      <br>
+      <strong>1.</strong> The class represents a complete, self-contained value (like <code>DateTime</code> or <code>Uri</code>)
+      <br>
+      <strong>2.</strong> You want total control over all instances of the type
+      <br>
+      <strong>3.</strong> Subclassing would break invariants or security guarantees
+
+  - id: sealed-modifier
+    title: "sealed — exhaustive subtypes in one file"
+    summary: |
+      The <code>sealed</code> modifier restricts subclasses to the same file. This enables exhaustive pattern matching — the compiler knows all possible subtypes.
+      <br><br>
+      <pre><code>// All in one file: result.dart&#10;sealed class Result&lt;T&gt; {}&#10;&#10;class Success&lt;T&gt; extends Result&lt;T&gt; {&#10;  final T value;&#10;  Success(this.value);&#10;}&#10;&#10;class Failure&lt;T&gt; extends Result&lt;T&gt; {&#10;  final String error;&#10;  Failure(this.error);&#10;}&#10;&#10;// Usage: compiler knows the switch is exhaustive&#10;String describe&lt;T&gt;(Result&lt;T&gt; result) {&#10;  return switch (result) {&#10;    Success(:var value) => 'Got: $value',&#10;    Failure(:var error) => 'Failed: $error',&#10;    // No default needed — compiler knows these are all cases&#10;  };&#10;}</code></pre>
+      Sealed classes are implicitly abstract. You cannot instantiate a sealed class directly — only its subtypes.
+      <br><br>
+      Use <code>sealed</code> for algebraic data types: a fixed set of variants that represent all possible states. Network results, UI states, command types, AST nodes.
+
+  - id: mixin-class-modifier
+    title: "mixin class — dual-use declarations"
+    summary: |
+      The <code>mixin class</code> modifier creates something that can be both extended (like a class) and mixed in (like a mixin).
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Mixin composition" style="max-width: 100%; height: auto;"><style>.cm5-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.cm5-title{font-size:15px;font-weight:600}.cm5-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}.cm5-label{font-size:11px;fill:#64748b}.cm5-desc{font-size:10px;fill:#475569}</style><text x="360" y="24" text-anchor="middle" class="cm5-t cm5-title">mixin class — can be both extended AND mixed in</text><rect x="260" y="55" width="200" height="55" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="360" y="78" text-anchor="middle" class="cm5-t cm5-mn" fill="#7c3aed" font-weight="600">mixin class Logging</text><text x="360" y="97" text-anchor="middle" class="cm5-t cm5-desc">void log(String msg) {...}</text><line x1="310" y1="110" x2="160" y2="150" stroke="#475569" stroke-width="2" marker-end="url(#cm5-arrow)"/><line x1="410" y1="110" x2="560" y2="150" stroke="#475569" stroke-width="2" marker-end="url(#cm5-arrow)"/><rect x="40" y="155" width="240" height="100" fill="#dbeafe" stroke="#0175C2" stroke-width="2" rx="8"/><text x="160" y="180" text-anchor="middle" class="cm5-t cm5-label" font-weight="600">Pattern 1: extends</text><text x="160" y="205" text-anchor="middle" class="cm5-t cm5-mn">class FileLogger</text><text x="160" y="225" text-anchor="middle" class="cm5-t cm5-mn" fill="#0175C2">extends Logging</text><text x="160" y="245" text-anchor="middle" class="cm5-t cm5-desc">Single inheritance, gets all members</text><rect x="440" y="155" width="240" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="560" y="180" text-anchor="middle" class="cm5-t cm5-label" font-weight="600">Pattern 2: with (mixin)</text><text x="560" y="205" text-anchor="middle" class="cm5-t cm5-mn">class Widget extends Base</text><text x="560" y="225" text-anchor="middle" class="cm5-t cm5-mn" fill="#10b981">with Logging</text><text x="560" y="245" text-anchor="middle" class="cm5-t cm5-desc">Add behaviour without using up extends</text><rect x="140" y="280" width="200" height="45" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" rx="6"/><text x="240" y="300" text-anchor="middle" class="cm5-t cm5-mn" fill="#d97706">mixin Logging</text><text x="240" y="318" text-anchor="middle" class="cm5-t cm5-desc">Only mixable, cannot extend</text><rect x="380" y="280" width="200" height="45" fill="#e9d5ff" stroke="#9333ea" stroke-width="1" rx="6"/><text x="480" y="300" text-anchor="middle" class="cm5-t cm5-mn" fill="#7c3aed">mixin class Logging</text><text x="480" y="318" text-anchor="middle" class="cm5-t cm5-desc">Both mixable AND extendable</text><defs><marker id="cm5-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      <pre><code>mixin class Identifiable {&#10;  late final String id = _generateId();&#10;  String _generateId() => DateTime.now().toString();&#10;}&#10;&#10;// Use as superclass&#10;class Document extends Identifiable {&#10;  final String content;&#10;  Document(this.content);&#10;}&#10;&#10;// Use as mixin&#10;class User extends Person with Identifiable {&#10;  final String name;&#10;  User(this.name);&#10;}</code></pre>
+      A <code>mixin class</code> has restrictions: it cannot have an <code>extends</code> clause (must extend <code>Object</code>), and it cannot have a <code>on</code> clause. These are the same restrictions that would apply to using a regular class as a mixin.
+
+  - id: combining-modifiers
+    title: "Combining modifiers — valid combinations"
+    summary: |
+      Modifiers can be combined, but not all combinations are valid. Here are the useful ones:
+      <br><br>
+      <pre><code>// Abstract + base: extend only, no instantiation&#10;abstract base class Widget { }&#10;&#10;// Abstract + interface: implement only, no instantiation&#10;abstract interface class Serializable { }&#10;&#10;// Abstract + final: can only be used within the library&#10;abstract final class InternalBase { }&#10;&#10;// Base + mixin: extend or mix in, no implementing&#10;base mixin class Disposable { }&#10;&#10;// Interface + mixin: NOT VALID — conflicting constraints</code></pre>
+      The logic: <code>abstract</code> removes instantiation. <code>base</code> removes implementing. <code>interface</code> removes extending. <code>final</code> removes both. <code>sealed</code> restricts subtypes to the same file.
+      <br><br>
+      When choosing, ask yourself:
+      <br><br>
+      <strong>Should users extend this?</strong> If no, use <code>interface</code> or <code>final</code>.
+      <br>
+      <strong>Should users implement this?</strong> If no, use <code>base</code> or <code>final</code>.
+      <br>
+      <strong>Should users instantiate this?</strong> If no, use <code>abstract</code>.
+      <br>
+      <strong>Are all subtypes known?</strong> If yes, use <code>sealed</code>.
+
+quiz:
+  title: "Class Modifiers Quiz"
+  description: "Test your understanding of Dart 3 class modifiers"
+  questions:
+    - question: "Which modifier prevents a class from being instantiated directly?"
+      options:
+        - "base"
+        - "final"
+        - "abstract"
+        - "interface"
+      correctIndex: 2
+      explanation: "The abstract modifier prevents direct instantiation. You cannot call the constructor of an abstract class — only its concrete subclasses can be instantiated."
+
+    - question: "What does the base modifier allow outside the defining library?"
+      options:
+        - "Only implementing"
+        - "Only extending"
+        - "Both extending and implementing"
+        - "Neither extending nor implementing"
+      correctIndex: 1
+      explanation: "The base modifier allows extending but blocks implementing outside the library. This ensures subclasses inherit your implementation rather than just matching your interface."
+
+    - question: "Which modifier enables exhaustive pattern matching in switch statements?"
+      options:
+        - "final"
+        - "abstract"
+        - "sealed"
+        - "interface"
+      correctIndex: 2
+      explanation: "The sealed modifier restricts subclasses to the same file, allowing the compiler to know all possible subtypes and verify that switch statements are exhaustive."
+
+    - question: "What restriction applies to subclasses of a base class?"
+      options:
+        - "They must also be abstract"
+        - "They must be base, final, or sealed"
+        - "They can only be in the same file"
+        - "They cannot have constructors"
+      correctIndex: 1
+      explanation: "Subclasses of a base class must themselves be marked as base, final, or sealed. This ensures the protection against implementing is transitive through the entire inheritance chain."
+
+    - question: "Which modifier combination would you use for a class that defines a contract but shouldn't be extended or instantiated?"
+      options:
+        - "abstract base"
+        - "abstract interface"
+        - "abstract final"
+        - "sealed"
+      correctIndex: 1
+      explanation: "abstract interface creates a class that can be implemented (used as a contract) but cannot be extended or instantiated directly. It's like a traditional interface from other languages."
+
+    - question: "What makes mixin class different from a regular mixin?"
+      options:
+        - "It can have constructors"
+        - "It can be both extended AND mixed in"
+        - "It can use the on clause"
+        - "It runs faster"
+      correctIndex: 1
+      explanation: "A mixin class can be used both as a superclass (with extends) and as a mixin (with with). A regular mixin can only be mixed in, not extended."
+
+    - question: "Which statement about the final modifier is correct?"
+      options:
+        - "It prevents the class from having subclasses anywhere"
+        - "It prevents instantiation of the class"
+        - "It blocks extending and implementing outside the library, but allows normal use"
+        - "It makes all fields immutable"
+      correctIndex: 2
+      explanation: "The final modifier blocks both extending and implementing outside the defining library, but users can still create instances and use the class normally. Within the library, you retain full access."
+---
+
+# Class Modifiers in Dart
+
+Dart 3 introduced class modifiers that give you fine-grained control over how your classes can be used. This episode covers all six modifiers and when to use each one.

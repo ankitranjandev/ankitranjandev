@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-label="List alternatives decision tree" style="max-width: 100%; height: auto;">
+  <style>
+    .l3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .l3-title{font-size:16px;font-weight:600}
+    .l3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .l3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .l3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="l3-t l3-title">When NOT to Use a Standard List — Alternatives Decision Tree</text>
+
+  <!-- Start -->
+  <path d="M 360 55 L 450 95 L 360 135 L 270 95 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/>
+  <text x="360" y="90" text-anchor="middle" class="l3-t l3-label" font-weight="600">Need ordered</text>
+  <text x="360" y="105" text-anchor="middle" class="l3-t l3-label" font-weight="600">collection?</text>
+
+  <!-- No branch - Set -->
+  <line x1="270" y1="95" x2="120" y2="95" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="195" y="85" text-anchor="middle" class="l3-t l3-desc">no</text>
+  <rect x="40" y="70" width="80" height="50" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+  <text x="80" y="95" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Set</text>
+  <text x="80" y="110" text-anchor="middle" class="l3-t l3-desc">unique items</text>
+
+  <!-- Yes branch -->
+  <line x1="360" y1="135" x2="360" y2="165" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="375" y="155" class="l3-t l3-desc">yes</text>
+
+  <!-- Question 2: FIFO operations? -->
+  <path d="M 360 170 L 470 210 L 360 250 L 250 210 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/>
+  <text x="360" y="200" text-anchor="middle" class="l3-t l3-label" font-weight="600">Frequent add/remove</text>
+  <text x="360" y="215" text-anchor="middle" class="l3-t l3-label" font-weight="600">at both ends?</text>
+  <text x="360" y="230" text-anchor="middle" class="l3-t l3-desc">(FIFO queue pattern)</text>
+
+  <!-- Yes - Queue -->
+  <line x1="470" y1="210" x2="600" y2="210" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="535" y="200" text-anchor="middle" class="l3-t l3-desc">yes</text>
+  <rect x="600" y="180" width="100" height="60" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+  <text x="650" y="205" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Queue</text>
+  <text x="650" y="220" text-anchor="middle" class="l3-t l3-desc">ListQueue or</text>
+  <text x="650" y="232" text-anchor="middle" class="l3-t l3-desc">DoubleLinkedQueue</text>
+
+  <!-- No branch -->
+  <line x1="360" y1="250" x2="360" y2="280" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="375" y="270" class="l3-t l3-desc">no</text>
+
+  <!-- Question 3: Numeric data? -->
+  <path d="M 360 285 L 470 325 L 360 365 L 250 325 Z" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/>
+  <text x="360" y="315" text-anchor="middle" class="l3-t l3-label" font-weight="600">Large numeric</text>
+  <text x="360" y="330" text-anchor="middle" class="l3-t l3-label" font-weight="600">data? (>10k items)</text>
+  <text x="360" y="345" text-anchor="middle" class="l3-t l3-desc">(performance critical)</text>
+
+  <!-- Yes - Typed data -->
+  <line x1="470" y1="325" x2="600" y2="325" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="535" y="315" text-anchor="middle" class="l3-t l3-desc">yes</text>
+  <rect x="580" y="290" width="120" height="70" fill="var(--svg-purple-fill-light, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+  <text x="640" y="315" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Typed Data</text>
+  <text x="640" y="332" text-anchor="middle" class="l3-t l3-desc">Float64List</text>
+  <text x="640" y="347" text-anchor="middle" class="l3-t l3-desc">Int32List, etc.</text>
+
+  <!-- No branch -->
+  <line x1="360" y1="365" x2="360" y2="395" stroke="var(--svg-text-secondary, #475569)" stroke-width="2"/>
+  <text x="375" y="385" class="l3-t l3-desc">no</text>
+
+  <!-- Final: Standard List -->
+  <rect x="280" y="400" width="160" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="360" y="425" text-anchor="middle" class="l3-t l3-mn" font-weight="600">Standard List</text>
+  <text x="360" y="442" text-anchor="middle" class="l3-t l3-desc">Growable, flexible,</text>
+  <text x="360" y="455" text-anchor="middle" class="l3-t l3-desc">good for most cases</text>
+
+  <!-- Side note: LinkedList -->
+  <rect x="40" y="280" width="140" height="70" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="6" stroke-dasharray="4,2"/>
+  <text x="110" y="305" text-anchor="middle" class="l3-t l3-mn" font-weight="600">LinkedList</text>
+  <text x="110" y="322" text-anchor="middle" class="l3-t l3-desc">Rarely needed in Dart</text>
+  <text x="110" y="337" text-anchor="middle" class="l3-t l3-desc">O(1) splice, but</text>
+  <text x="110" y="352" text-anchor="middle" class="l3-t l3-desc">poor cache locality</text>
+</svg>

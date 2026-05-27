@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Set operations: union, intersection, difference" style="max-width: 100%; height: auto;">
+  <style>
+    .s2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .s2-title{font-size:16px;font-weight:600}
+    .s2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .s2-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .s2-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="s2-t s2-title">Set Operations — Union, Intersection, Difference</text>
+
+  <!-- Set A and Set B labels -->
+  <text x="120" y="55" text-anchor="middle" class="s2-t s2-label" font-weight="600">Set A = {1, 2, 3}</text>
+  <text x="360" y="55" text-anchor="middle" class="s2-t s2-label" font-weight="600">Set B = {2, 3, 4}</text>
+
+  <!-- Union -->
+  <text x="120" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.union(B)</text>
+  <ellipse cx="95" cy="145" rx="50" ry="35" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="145" cy="145" rx="50" ry="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <!-- Fill the union area -->
+  <ellipse cx="95" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none" opacity="0.5"/>
+  <ellipse cx="145" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none" opacity="0.5"/>
+  <ellipse cx="95" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="145" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <text x="70" y="145" text-anchor="middle" class="s2-t s2-mn">1</text>
+  <text x="120" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text>
+  <text x="170" y="145" text-anchor="middle" class="s2-t s2-mn">4</text>
+  <text x="120" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {1, 2, 3, 4}</text>
+
+  <!-- Intersection -->
+  <text x="360" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.intersection(B)</text>
+  <ellipse cx="335" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="385" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <!-- Fill only the intersection -->
+  <clipPath id="s2-clipA">
+    <ellipse cx="335" cy="145" rx="50" ry="35"/>
+  </clipPath>
+  <ellipse cx="385" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" clip-path="url(#s2-clipA)"/>
+  <ellipse cx="335" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="385" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <text x="310" y="145" text-anchor="middle" class="s2-t s2-mn">1</text>
+  <text x="360" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text>
+  <text x="410" y="145" text-anchor="middle" class="s2-t s2-mn">4</text>
+  <text x="360" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {2, 3}</text>
+
+  <!-- Difference -->
+  <text x="600" y="90" text-anchor="middle" class="s2-t s2-mn" font-weight="600">A.difference(B)</text>
+  <ellipse cx="575" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="625" cy="145" rx="50" ry="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <!-- Remove intersection from A -->
+  <clipPath id="s2-clipB">
+    <ellipse cx="625" cy="145" rx="50" ry="35"/>
+  </clipPath>
+  <ellipse cx="575" cy="145" rx="50" ry="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="none"/>
+  <ellipse cx="625" cy="145" rx="48" ry="33" fill="var(--svg-bg, #f8fafc)" stroke="none"/>
+  <ellipse cx="575" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <ellipse cx="625" cy="145" rx="50" ry="35" fill="none" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <text x="550" y="145" text-anchor="middle" class="s2-t s2-mn">1</text>
+  <text x="600" y="145" text-anchor="middle" class="s2-t s2-mn">2,3</text>
+  <text x="650" y="145" text-anchor="middle" class="s2-t s2-mn">4</text>
+  <text x="600" y="200" text-anchor="middle" class="s2-t s2-desc">Result: {1}</text>
+
+  <!-- Code examples -->
+  <rect x="40" y="230" width="640" height="130" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="8"/>
+  <text x="60" y="255" class="s2-t s2-mn">var a = {1, 2, 3};</text>
+  <text x="60" y="275" class="s2-t s2-mn">var b = {2, 3, 4};</text>
+  <text x="60" y="300" class="s2-t s2-mn">a.union(b);        </text>
+  <text x="280" y="300" class="s2-t s2-desc">// {1, 2, 3, 4} — all unique items from both</text>
+  <text x="60" y="320" class="s2-t s2-mn">a.intersection(b); </text>
+  <text x="280" y="320" class="s2-t s2-desc">// {2, 3} — items in both A and B</text>
+  <text x="60" y="340" class="s2-t s2-mn">a.difference(b);   </text>
+  <text x="280" y="340" class="s2-t s2-desc">// {1} — items in A but not in B</text>
+</svg>

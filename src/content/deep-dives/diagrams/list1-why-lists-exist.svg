@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Why Lists exist - OOP principles" style="max-width: 100%; height: auto;">
+  <style>
+    .l1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .l1-title{font-size:16px;font-weight:600}
+    .l1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .l1-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .l1-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="l1-t l1-title">Why Lists Exist — The OOP Perspective</text>
+
+  <!-- Problem side -->
+  <rect x="40" y="50" width="300" height="140" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+  <text x="190" y="75" text-anchor="middle" class="l1-t l1-label" font-weight="600">Without List — Managing Multiple Items</text>
+
+  <text x="60" y="100" class="l1-t l1-mn">var item0 = 'Apple';</text>
+  <text x="60" y="118" class="l1-t l1-mn">var item1 = 'Banana';</text>
+  <text x="60" y="136" class="l1-t l1-mn">var item2 = 'Cherry';</text>
+  <text x="60" y="154" class="l1-t l1-mn">// What if we need 1000 items?</text>
+  <text x="60" y="172" class="l1-t l1-mn">// How do we iterate?</text>
+
+  <!-- Arrow -->
+  <line x1="350" y1="120" x2="390" y2="120" stroke="var(--svg-text-secondary, #475569)" stroke-width="2" marker-end="url(#l1-arrow)"/>
+  <text x="370" y="110" text-anchor="middle" class="l1-t l1-desc">abstraction</text>
+
+  <!-- Solution side -->
+  <rect x="400" y="50" width="280" height="140" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+  <text x="540" y="75" text-anchor="middle" class="l1-t l1-label" font-weight="600">With List — Single Abstraction</text>
+
+  <text x="420" y="100" class="l1-t l1-mn">var items = ['Apple', 'Banana', ...];</text>
+  <text x="420" y="125" class="l1-t l1-mn">items.length;    // dynamic size</text>
+  <text x="420" y="150" class="l1-t l1-mn">items[i];        // uniform access</text>
+  <text x="420" y="175" class="l1-t l1-mn">for (var x in items) // iteration</text>
+
+  <!-- OOP Principles -->
+  <text x="360" y="220" text-anchor="middle" class="l1-t l1-label" font-weight="600">OOP Principles Lists Embody</text>
+
+  <rect x="40" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="140" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Encapsulation</text>
+  <text x="140" y="285" text-anchor="middle" class="l1-t l1-desc">Hides capacity, resizing, memory</text>
+
+  <rect x="260" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="360" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Abstraction</text>
+  <text x="360" y="285" text-anchor="middle" class="l1-t l1-desc">add(), remove(), [i] — simple interface</text>
+
+  <rect x="480" y="240" width="200" height="60" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+  <text x="580" y="265" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Polymorphism</text>
+  <text x="580" y="285" text-anchor="middle" class="l1-t l1-desc">List&lt;T&gt; works with any type T</text>
+
+  <rect x="150" y="315" width="200" height="50" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+  <text x="250" y="340" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Interface Segregation</text>
+  <text x="250" y="355" text-anchor="middle" class="l1-t l1-desc">Iterable, EfficientLengthIterable</text>
+
+  <rect x="370" y="315" width="200" height="50" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+  <text x="470" y="340" text-anchor="middle" class="l1-t l1-mn" font-weight="600">Liskov Substitution</text>
+  <text x="470" y="355" text-anchor="middle" class="l1-t l1-desc">UnmodifiableList is still a List</text>
+
+  <defs>
+    <marker id="l1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text-secondary, #475569)"/>
+    </marker>
+  </defs>
+</svg>

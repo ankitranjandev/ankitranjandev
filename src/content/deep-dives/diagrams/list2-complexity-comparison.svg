@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="List operation complexity comparison" style="max-width: 100%; height: auto;">
+  <style>
+    .l2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .l2-title{font-size:16px;font-weight:600}
+    .l2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .l2-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .l2-head{font-size:12px;font-weight:600}
+    .l2-fast{fill:var(--svg-green, #10b981)}
+    .l2-slow{fill:var(--svg-red, #dc2626)}
+    .l2-medium{fill:var(--svg-amber, #f59e0b)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="l2-t l2-title">List Operation Complexity — When Lists Shine (and Struggle)</text>
+
+  <!-- Table header -->
+  <rect x="40" y="50" width="180" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/>
+  <rect x="220" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="340" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="460" y="50" width="120" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="580" y="50" width="100" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/>
+
+  <text x="130" y="75" text-anchor="middle" class="l2-t l2-head">Operation</text>
+  <text x="280" y="75" text-anchor="middle" class="l2-t l2-head">List</text>
+  <text x="400" y="75" text-anchor="middle" class="l2-t l2-head">Set</text>
+  <text x="520" y="75" text-anchor="middle" class="l2-t l2-head">Map</text>
+  <text x="630" y="75" text-anchor="middle" class="l2-t l2-head">Winner</text>
+
+  <!-- Row 1: Access by index -->
+  <rect x="40" y="90" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="90" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="90" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="114" text-anchor="middle" class="l2-t l2-mn">list[index]</text>
+  <text x="280" y="114" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text>
+  <text x="400" y="114" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text>
+  <text x="520" y="114" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text>
+  <text x="630" y="114" text-anchor="middle" class="l2-t l2-mn l2-fast">List</text>
+
+  <!-- Row 2: Add at end -->
+  <rect x="40" y="128" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="128" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="128" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="152" text-anchor="middle" class="l2-t l2-mn">add(item)</text>
+  <text x="280" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text>
+  <text x="400" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text>
+  <text x="520" y="152" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)*</text>
+  <text x="630" y="152" text-anchor="middle" class="l2-t l2-mn">All</text>
+
+  <!-- Row 3: Insert at front -->
+  <rect x="40" y="166" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="166" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="166" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="190" text-anchor="middle" class="l2-t l2-mn">insert(0, item)</text>
+  <text x="280" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text>
+  <text x="400" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text>
+  <text x="520" y="190" text-anchor="middle" class="l2-t l2-mn l2-slow">N/A</text>
+  <text x="630" y="190" text-anchor="middle" class="l2-t l2-mn l2-medium">Queue</text>
+
+  <!-- Row 4: Contains -->
+  <rect x="40" y="204" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="204" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="204" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="228" text-anchor="middle" class="l2-t l2-mn">contains(item)</text>
+  <text x="280" y="228" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text>
+  <text x="400" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text>
+  <text x="520" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text>
+  <text x="630" y="228" text-anchor="middle" class="l2-t l2-mn l2-fast">Set/Map</text>
+
+  <!-- Row 5: Remove by value -->
+  <rect x="40" y="242" width="180" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="242" width="120" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="242" width="100" height="38" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="266" text-anchor="middle" class="l2-t l2-mn">remove(item)</text>
+  <text x="280" y="266" text-anchor="middle" class="l2-t l2-mn l2-slow">O(n)</text>
+  <text x="400" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text>
+  <text x="520" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">O(1)</text>
+  <text x="630" y="266" text-anchor="middle" class="l2-t l2-mn l2-fast">Set/Map</text>
+
+  <!-- Row 6: Iteration -->
+  <rect x="40" y="280" width="180" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="220" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="340" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="460" y="280" width="120" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="580" y="280" width="100" height="38" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="130" y="304" text-anchor="middle" class="l2-t l2-mn">for (x in coll)</text>
+  <text x="280" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text>
+  <text x="400" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text>
+  <text x="520" y="304" text-anchor="middle" class="l2-t l2-mn l2-fast">O(n)</text>
+  <text x="630" y="304" text-anchor="middle" class="l2-t l2-mn">All</text>
+
+  <!-- Footer notes -->
+  <text x="360" y="345" text-anchor="middle" class="l2-t l2-label">* Amortized O(1) — occasional resizing makes rare operations O(n)</text>
+
+  <rect x="120" y="365" width="480" height="40" rx="6" fill="none" stroke="var(--svg-border, #cbd5e1)" stroke-dasharray="4,2"/>
+  <text x="360" y="390" text-anchor="middle" class="l2-t l2-label">Key insight: Lists excel at indexed access but struggle with membership testing.</text>
+</svg>

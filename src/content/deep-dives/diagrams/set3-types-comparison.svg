@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Set types comparison in Dart" style="max-width: 100%; height: auto;">
+  <style>
+    .s3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:var(--svg-text, #1e293b)}
+    .s3-title{font-size:16px;font-weight:600}
+    .s3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px}
+    .s3-label{font-size:11px;fill:var(--svg-text-muted, #64748b)}
+    .s3-head{font-size:12px;font-weight:600}
+    .s3-desc{font-size:10px;fill:var(--svg-text-secondary, #475569)}
+  </style>
+
+  <text x="360" y="26" text-anchor="middle" class="s3-t s3-title">Dart Set Types — Choosing the Right Implementation</text>
+
+  <!-- Table header -->
+  <rect x="40" y="50" width="140" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/>
+  <rect x="180" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="310" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="440" y="50" width="130" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5"/>
+  <rect x="570" y="50" width="110" height="40" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6" ry="0"/>
+
+  <text x="110" y="75" text-anchor="middle" class="s3-t s3-head">Type</text>
+  <text x="245" y="75" text-anchor="middle" class="s3-t s3-head">Order</text>
+  <text x="375" y="75" text-anchor="middle" class="s3-t s3-head">Lookup</text>
+  <text x="505" y="75" text-anchor="middle" class="s3-t s3-head">Best For</text>
+  <text x="625" y="75" text-anchor="middle" class="s3-t s3-head">Create</text>
+
+  <!-- Row 1: LinkedHashSet (default) -->
+  <rect x="40" y="90" width="140" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2"/>
+  <rect x="180" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="310" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="440" y="90" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="570" y="90" width="110" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="110" y="112" text-anchor="middle" class="s3-t s3-mn" font-weight="600">LinkedHashSet</text>
+  <text x="110" y="130" text-anchor="middle" class="s3-t s3-desc" fill="var(--svg-green, #10b981)">(default)</text>
+  <text x="245" y="118" text-anchor="middle" class="s3-t s3-mn">Insertion order</text>
+  <text x="375" y="118" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-green, #10b981)">O(1)</text>
+  <text x="505" y="112" text-anchor="middle" class="s3-t s3-desc">General purpose,</text>
+  <text x="505" y="128" text-anchor="middle" class="s3-t s3-desc">predictable iteration</text>
+  <text x="625" y="118" text-anchor="middle" class="s3-t s3-mn">{}</text>
+
+  <!-- Row 2: HashSet -->
+  <rect x="40" y="145" width="140" height="55" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+  <rect x="180" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="310" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="440" y="145" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="570" y="145" width="110" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="110" y="167" text-anchor="middle" class="s3-t s3-mn" font-weight="600">HashSet</text>
+  <text x="110" y="185" text-anchor="middle" class="s3-t s3-desc">(dart:collection)</text>
+  <text x="245" y="173" text-anchor="middle" class="s3-t s3-mn">Unordered</text>
+  <text x="375" y="173" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-green, #10b981)">O(1)</text>
+  <text x="505" y="167" text-anchor="middle" class="s3-t s3-desc">Slightly less memory</text>
+  <text x="505" y="183" text-anchor="middle" class="s3-t s3-desc">when order irrelevant</text>
+  <text x="625" y="173" text-anchor="middle" class="s3-t s3-mn">HashSet()</text>
+
+  <!-- Row 3: SplayTreeSet -->
+  <rect x="40" y="200" width="140" height="55" fill="var(--svg-purple-fill, #e9d5ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2"/>
+  <rect x="180" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="310" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="440" y="200" width="130" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="570" y="200" width="110" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="110" y="222" text-anchor="middle" class="s3-t s3-mn" font-weight="600">SplayTreeSet</text>
+  <text x="110" y="240" text-anchor="middle" class="s3-t s3-desc">(dart:collection)</text>
+  <text x="245" y="228" text-anchor="middle" class="s3-t s3-mn">Sorted order</text>
+  <text x="375" y="228" text-anchor="middle" class="s3-t s3-mn" fill="var(--svg-amber, #f59e0b)">O(log n)</text>
+  <text x="505" y="222" text-anchor="middle" class="s3-t s3-desc">Range queries,</text>
+  <text x="505" y="238" text-anchor="middle" class="s3-t s3-desc">min/max operations</text>
+  <text x="625" y="228" text-anchor="middle" class="s3-t s3-mn">SplayTreeSet()</text>
+
+  <!-- Row 4: UnmodifiableSetView -->
+  <rect x="40" y="255" width="140" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2"/>
+  <rect x="180" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="310" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="440" y="255" width="130" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+  <rect x="570" y="255" width="110" height="55" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+
+  <text x="110" y="277" text-anchor="middle" class="s3-t s3-mn" font-weight="600">Unmodifiable</text>
+  <text x="110" y="295" text-anchor="middle" class="s3-t s3-desc">(wrapper)</text>
+  <text x="245" y="283" text-anchor="middle" class="s3-t s3-mn">Preserves base</text>
+  <text x="375" y="283" text-anchor="middle" class="s3-t s3-mn">Same as base</text>
+  <text x="505" y="277" text-anchor="middle" class="s3-t s3-desc">Safe API returns,</text>
+  <text x="505" y="293" text-anchor="middle" class="s3-t s3-desc">defensive copies</text>
+  <text x="625" y="277" text-anchor="middle" class="s3-t s3-mn" font-size="10">Set.unmodifiable</text>
+  <text x="625" y="293" text-anchor="middle" class="s3-t s3-mn" font-size="10">(set)</text>
+
+  <!-- Key insight -->
+  <rect x="120" y="325" width="480" height="25" rx="6" fill="none" stroke="var(--svg-border, #cbd5e1)" stroke-dasharray="4,2"/>
+  <text x="360" y="342" text-anchor="middle" class="s3-t s3-label">Surprise: Dart's default Set is LinkedHashSet — it maintains insertion order!</text>
+</svg>

@@ -1,12 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="IEEE 754 double precision 64-bit anatomy">
   <style>
-    .d2-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d2-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d2-title { font-size: 17px; font-weight: 600; }
-    .d2-bits { font-size: 12px; font-weight: 600; fill: #64748b; font-family: "SF Mono", Menlo, monospace; }
+    .d2-bits { font-size: 12px; font-weight: 600; fill: var(--svg-text-muted, #64748b); font-family: "SF Mono", Menlo, monospace; }
     .d2-section { font-size: 15px; font-weight: 700; fill: #ffffff; }
-    .d2-desc { font-size: 12px; fill: #475569; }
-    .d2-formula { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 15px; font-weight: 600; fill: #1e293b; }
-    .d2-note { font-size: 13px; fill: #475569; font-style: italic; }
+    .d2-desc { font-size: 12px; fill: var(--svg-text-secondary, #475569); }
+    .d2-formula { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 15px; font-weight: 600; }
+    .d2-note { font-size: 13px; fill: var(--svg-text-secondary, #475569); font-style: italic; }
+    .d2-sign { fill: var(--svg-dart-blue, #0175C2); stroke: var(--svg-dart-blue-stroke, #0369a1); }
+    .d2-exponent { fill: var(--svg-purple, #9333ea); stroke: var(--svg-purple-dark, #7e22ce); }
+    .d2-mantissa { fill: var(--svg-green, #10b981); stroke: var(--svg-green-dark, #047857); }
   </style>
 
   <text x="360" y="32" text-anchor="middle" class="d2-t d2-title">IEEE 754 double-precision — 64 bits, split three ways</text>
@@ -17,13 +20,13 @@
   <text x="500" y="76" text-anchor="middle" class="d2-t d2-bits">52 bits</text>
 
   <!-- The bar itself -->
-  <rect x="60" y="90" width="60" height="60" fill="#0175C2" stroke="#0369a1" stroke-width="2" rx="4"/>
+  <rect x="60" y="90" width="60" height="60" class="d2-sign" stroke-width="2" rx="4"/>
   <text x="90" y="128" text-anchor="middle" class="d2-section">S</text>
 
-  <rect x="120" y="90" width="200" height="60" fill="#9333ea" stroke="#7e22ce" stroke-width="2" rx="4"/>
+  <rect x="120" y="90" width="200" height="60" class="d2-exponent" stroke-width="2" rx="4"/>
   <text x="220" y="128" text-anchor="middle" class="d2-section">EXPONENT</text>
 
-  <rect x="320" y="90" width="360" height="60" fill="#10b981" stroke="#047857" stroke-width="2" rx="4"/>
+  <rect x="320" y="90" width="360" height="60" class="d2-mantissa" stroke-width="2" rx="4"/>
   <text x="500" y="128" text-anchor="middle" class="d2-section">MANTISSA</text>
 
   <!-- Descriptions below -->

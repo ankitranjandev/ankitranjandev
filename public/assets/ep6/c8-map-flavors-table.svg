@@ -1,75 +1,81 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Map flavors comparison table">
   <style>
-    .d-mf-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-mf-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d-mf-title { font-size: 16px; font-weight: 600; }
-    .d-mf-hdr { font-size: 13px; font-weight: 700; fill: #1e293b; }
-    .d-mf-prop { font-size: 13px; font-weight: 600; fill: #475569; }
-    .d-mf-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: #475569; }
-    .d-mf-cell { font-size: 12px; fill: #1e293b; }
-    .d-mf-fast { font-size: 12px; font-weight: 700; fill: #059669; }
-    .d-mf-mid { font-size: 12px; font-weight: 700; fill: #b45309; }
+    .d-mf-hdr { font-size: 13px; font-weight: 700; fill: var(--svg-text, #1e293b); }
+    .d-mf-prop { font-size: 13px; font-weight: 600; fill: var(--svg-text-secondary, #475569); }
+    .d-mf-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; fill: var(--svg-text-secondary, #475569); }
+    .d-mf-cell { font-size: 12px; fill: var(--svg-text, #1e293b); }
+    .d-mf-fast { font-size: 12px; font-weight: 700; fill: var(--svg-green-dark, #059669); }
+    .d-mf-mid { font-size: 12px; font-weight: 700; fill: var(--svg-amber-dark, #b45309); }
     .d-mf-tag { font-size: 11px; font-weight: 700; fill: #ffffff; }
+    .d-mf-header-cell { fill: var(--svg-bg-secondary, #f1f5f9); stroke: var(--svg-border, #cbd5e1); }
+    .d-mf-data-cell { fill: var(--svg-bg, #ffffff); stroke: var(--svg-border, #cbd5e1); }
+    .d-mf-data-alt { fill: var(--svg-bg-secondary, #f8fafc); stroke: var(--svg-border, #cbd5e1); }
+    .d-mf-blue-hdr { fill: var(--svg-dart-blue-fill, #dbeafe); stroke: var(--svg-dart-blue, #0175C2); }
+    .d-mf-green-hdr { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); }
+    .d-mf-purple-hdr { fill: var(--svg-purple-fill, #e9d5ff); stroke: var(--svg-purple, #9333ea); }
   </style>
 
   <text x="360" y="26" text-anchor="middle" class="d-mf-t d-mf-title">Three Map flavors — same API, different rules</text>
 
   <!-- Header row -->
-  <rect x="20" y="50" width="160" height="55" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="20" y="50" width="160" height="55" class="d-mf-header-cell" stroke-width="1"/>
   <text x="100" y="80" text-anchor="middle" class="d-mf-t d-mf-hdr">Property</text>
 
-  <rect x="180" y="50" width="180" height="55" fill="#dbeafe" stroke="#0175C2" stroke-width="1.5"/>
+  <rect x="180" y="50" width="180" height="55" class="d-mf-blue-hdr" stroke-width="1.5"/>
   <text x="270" y="74" text-anchor="middle" class="d-mf-t d-mf-hdr">LinkedHashMap</text>
   <text x="270" y="92" text-anchor="middle" class="d-mf-t d-mf-mn">{} or Map()  —  the default</text>
 
-  <rect x="360" y="50" width="170" height="55" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="360" y="50" width="170" height="55" class="d-mf-green-hdr" stroke-width="1.5"/>
   <text x="445" y="74" text-anchor="middle" class="d-mf-t d-mf-hdr">HashMap</text>
   <text x="445" y="92" text-anchor="middle" class="d-mf-t d-mf-mn">HashMap()</text>
 
-  <rect x="530" y="50" width="170" height="55" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/>
+  <rect x="530" y="50" width="170" height="55" class="d-mf-purple-hdr" stroke-width="1.5"/>
   <text x="615" y="74" text-anchor="middle" class="d-mf-t d-mf-hdr">SplayTreeMap</text>
   <text x="615" y="92" text-anchor="middle" class="d-mf-t d-mf-mn">SplayTreeMap()</text>
 
   <!-- Row 1: Iteration order -->
-  <rect x="20" y="105" width="160" height="50" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="20" y="105" width="160" height="50" class="d-mf-data-cell" stroke-width="1"/>
   <text x="100" y="135" text-anchor="middle" class="d-mf-t d-mf-prop">Iteration order</text>
 
-  <rect x="180" y="105" width="180" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="180" y="105" width="180" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="270" y="135" text-anchor="middle" class="d-mf-t d-mf-cell">insertion order</text>
 
-  <rect x="360" y="105" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="360" y="105" width="170" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="445" y="135" text-anchor="middle" class="d-mf-t d-mf-cell">unspecified</text>
 
-  <rect x="530" y="105" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="530" y="105" width="170" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="615" y="135" text-anchor="middle" class="d-mf-t d-mf-cell">sorted by key</text>
 
   <!-- Row 2: Lookup speed -->
-  <rect x="20" y="155" width="160" height="50" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="20" y="155" width="160" height="50" class="d-mf-data-cell" stroke-width="1"/>
   <text x="100" y="185" text-anchor="middle" class="d-mf-t d-mf-prop">Lookup speed</text>
 
-  <rect x="180" y="155" width="180" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="180" y="155" width="180" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="270" y="185" text-anchor="middle" class="d-mf-t d-mf-fast">O(1) average</text>
 
-  <rect x="360" y="155" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="360" y="155" width="170" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="445" y="185" text-anchor="middle" class="d-mf-t d-mf-fast">O(1) average</text>
 
-  <rect x="530" y="155" width="170" height="50" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="530" y="155" width="170" height="50" class="d-mf-data-alt" stroke-width="1"/>
   <text x="615" y="185" text-anchor="middle" class="d-mf-t d-mf-mid">O(log n)</text>
 
   <!-- Row 3: When to use -->
-  <rect x="20" y="205" width="160" height="70" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="20" y="205" width="160" height="70" class="d-mf-data-cell" stroke-width="1"/>
   <text x="100" y="245" text-anchor="middle" class="d-mf-t d-mf-prop">Use when…</text>
 
-  <rect x="180" y="205" width="180" height="70" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="180" y="205" width="180" height="70" class="d-mf-data-alt" stroke-width="1"/>
   <text x="270" y="232" text-anchor="middle" class="d-mf-t d-mf-cell">most cases — fast</text>
   <text x="270" y="250" text-anchor="middle" class="d-mf-t d-mf-cell">AND predictable</text>
   <text x="270" y="266" text-anchor="middle" class="d-mf-t d-mf-cell">iteration</text>
 
-  <rect x="360" y="205" width="170" height="70" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="360" y="205" width="170" height="70" class="d-mf-data-alt" stroke-width="1"/>
   <text x="445" y="232" text-anchor="middle" class="d-mf-t d-mf-cell">order truly doesn't</text>
   <text x="445" y="250" text-anchor="middle" class="d-mf-t d-mf-cell">matter; slightly</text>
   <text x="445" y="266" text-anchor="middle" class="d-mf-t d-mf-cell">lower overhead</text>
 
-  <rect x="530" y="205" width="170" height="70" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="530" y="205" width="170" height="70" class="d-mf-data-alt" stroke-width="1"/>
   <text x="615" y="232" text-anchor="middle" class="d-mf-t d-mf-cell">need keys sorted</text>
   <text x="615" y="250" text-anchor="middle" class="d-mf-t d-mf-cell">(e.g., range queries,</text>
   <text x="615" y="266" text-anchor="middle" class="d-mf-t d-mf-cell">ordered traversal)</text>

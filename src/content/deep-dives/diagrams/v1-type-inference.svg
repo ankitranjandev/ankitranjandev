@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" style="max-width: 100%; height: auto;" role="img" aria-label="Type inference in Dart: explicit vs inferred types">
   <defs>
     <marker id="v1t-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="#0175C2"/>
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
     </marker>
   </defs>
   <style>
-    .v1t-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
-    .v1t-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }
-    .v1t-code { font: 600 13px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }
-    .v1t-type { font: bold 13px "SF Mono", Menlo, Monaco, monospace; fill: #0175C2; }
-    .v1t-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }
-    .v1t-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 8; }
+    .v1t-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .v1t-label { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-secondary, #475569); }
+    .v1t-code { font: 600 13px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .v1t-type { font: bold 13px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-dart-blue, #0175C2); }
+    .v1t-desc { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .v1t-box { fill: var(--svg-bg, #f8fafc); stroke: var(--svg-border, #cbd5e1); stroke-width: 1.5; rx: 8; }
   </style>
 
   <text x="360" y="28" text-anchor="middle" class="v1t-title">Type Inference: The Compiler Figures It Out</text>
@@ -19,7 +19,7 @@
   <g transform="translate(40, 50)">
     <rect x="0" y="0" width="280" height="160" class="v1t-box"/>
     <text x="140" y="28" text-anchor="middle" class="v1t-label">Explicit Type</text>
-    <line x1="20" y1="40" x2="260" y2="40" stroke="#cbd5e1" stroke-width="1"/>
+    <line x1="20" y1="40" x2="260" y2="40" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
 
     <text x="30" y="75" class="v1t-type">String</text>
     <text x="85" y="75" class="v1t-code">name = 'Dart';</text>
@@ -32,13 +32,13 @@
   </g>
 
   <!-- Equals sign -->
-  <text x="360" y="135" text-anchor="middle" style="font: bold 24px sans-serif; fill: #10b981;">=</text>
+  <text x="360" y="135" text-anchor="middle" style="font: bold 24px sans-serif; fill: var(--svg-green, #10b981);">=</text>
 
   <!-- Inferred typing -->
   <g transform="translate(400, 50)">
     <rect x="0" y="0" width="280" height="160" class="v1t-box"/>
     <text x="140" y="28" text-anchor="middle" class="v1t-label">Inferred Type</text>
-    <line x1="20" y1="40" x2="260" y2="40" stroke="#cbd5e1" stroke-width="1"/>
+    <line x1="20" y1="40" x2="260" y2="40" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
 
     <text x="30" y="75" class="v1t-code">var name = 'Dart';</text>
     <text x="220" y="75" class="v1t-type">→ String</text>

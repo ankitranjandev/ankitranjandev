@@ -1,15 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Growable list capacity doubling">
   <defs>
-    <marker id="m-cap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/></marker>
+    <marker id="m-cap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--svg-text, #1e293b)"/></marker>
   </defs>
   <style>
-    .d-cap-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }
+    .d-cap-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
     .d-cap-title { font-size: 16px; font-weight: 600; }
-    .d-cap-sub { font-size: 13px; fill: #475569; font-weight: 500; }
-    .d-cap-label { font-size: 12px; fill: #64748b; }
+    .d-cap-sub { font-size: 13px; fill: var(--svg-text-secondary, #475569); font-weight: 500; }
+    .d-cap-label { font-size: 12px; fill: var(--svg-text-muted, #64748b); }
     .d-cap-mn { font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 12px; font-weight: 600; }
-    .d-cap-action { font-size: 13px; fill: #b45309; font-style: italic; font-weight: 600; }
-    .d-cap-note { font-size: 13px; font-weight: 600; fill: #059669; }
+    .d-cap-action { font-size: 13px; fill: var(--svg-amber-dark, #b45309); font-style: italic; font-weight: 600; }
+    .d-cap-note { font-size: 13px; font-weight: 600; fill: var(--svg-green-dark, #059669); }
+    .d-cap-filled { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); }
+    .d-cap-empty { fill: var(--svg-bg-secondary, #f8fafc); stroke: var(--svg-border, #cbd5e1); }
+    .d-cap-new { fill: var(--svg-amber-fill, #fef3c7); stroke: var(--svg-amber, #f59e0b); }
   </style>
 
   <text x="360" y="26" text-anchor="middle" class="d-cap-t d-cap-title">How a growable List actually grows</text>
@@ -17,19 +20,19 @@
   <!-- State 1: capacity 8, length 5 -->
   <text x="40" y="60" class="d-cap-t d-cap-sub">1. Start: length 5, capacity 8</text>
   <g transform="translate(40, 75)">
-    <rect x="0" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="20" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">A</text>
-    <rect x="40" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="40" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="60" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">B</text>
-    <rect x="80" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="80" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="100" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">C</text>
-    <rect x="120" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="120" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="140" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">D</text>
-    <rect x="160" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="160" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="180" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">E</text>
-    <rect x="200" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="240" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="280" y="0" width="40" height="40" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="200" y="0" width="40" height="40" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="240" y="0" width="40" height="40" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="280" y="0" width="40" height="40" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
   </g>
   <text x="140" y="135" text-anchor="middle" class="d-cap-t d-cap-label">filled</text>
   <text x="260" y="135" text-anchor="middle" class="d-cap-t d-cap-label">spare capacity</text>
@@ -37,21 +40,21 @@
   <!-- State 2: capacity 8, length 8 (full) -->
   <text x="40" y="165" class="d-cap-t d-cap-sub">2. After 3 more adds: length 8, capacity 8 — now full</text>
   <g transform="translate(40, 180)">
-    <rect x="0" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="20" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">A</text>
-    <rect x="40" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="40" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="60" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">B</text>
-    <rect x="80" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="80" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="100" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">C</text>
-    <rect x="120" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="120" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="140" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">D</text>
-    <rect x="160" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="160" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="180" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">E</text>
-    <rect x="200" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="200" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="220" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">F</text>
-    <rect x="240" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="240" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="260" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">G</text>
-    <rect x="280" y="0" width="40" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="280" y="0" width="40" height="40" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="300" y="25" text-anchor="middle" class="d-cap-t d-cap-mn">H</text>
   </g>
 
@@ -62,31 +65,31 @@
   <!-- State 3: capacity 16, length 9 -->
   <text x="40" y="280" class="d-cap-t d-cap-sub">3. After add: length 9, capacity 16 — doubled</text>
   <g transform="translate(40, 295)">
-    <rect x="0" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="16" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">A</text>
-    <rect x="32" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="32" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="48" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">B</text>
-    <rect x="64" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="64" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="80" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">C</text>
-    <rect x="96" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="96" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="112" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">D</text>
-    <rect x="128" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="128" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="144" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">E</text>
-    <rect x="160" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="160" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="176" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">F</text>
-    <rect x="192" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="192" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="208" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">G</text>
-    <rect x="224" y="0" width="32" height="32" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="2"/>
+    <rect x="224" y="0" width="32" height="32" class="d-cap-filled" stroke-width="1.5" rx="2"/>
     <text x="240" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">H</text>
-    <rect x="256" y="0" width="32" height="32" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="2"/>
+    <rect x="256" y="0" width="32" height="32" class="d-cap-new" stroke-width="1.5" rx="2"/>
     <text x="272" y="21" text-anchor="middle" class="d-cap-t d-cap-mn">I</text>
-    <rect x="288" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="320" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="352" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="384" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="416" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="448" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
-    <rect x="480" y="0" width="32" height="32" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="288" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="320" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="352" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="384" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="416" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="448" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
+    <rect x="480" y="0" width="32" height="32" class="d-cap-empty" stroke-width="1" stroke-dasharray="3 2" rx="2"/>
   </g>
 
   <text x="360" y="360" text-anchor="middle" class="d-cap-t d-cap-note">Amortized O(1) — most adds are cheap, occasional doubling pays the rare cost.</text>

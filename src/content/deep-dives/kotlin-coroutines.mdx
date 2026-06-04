@@ -1,0 +1,231 @@
+---
+title: "Kotlin Coroutines & Flow — A Million Threads That Aren't Threads"
+description: "How Kotlin makes asynchronous code read like ordinary code. A deep dive into suspend functions and the state machine behind them, dispatchers, structured concurrency, cancellation, and the cold and hot streams of Flow."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Concurrency"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: the-callback-pyramid
+    title: "The callback pyramid of doom"
+    summary: |
+      Almost every interesting program has to <em>wait</em>. It waits for a network response, a database query, a file to load, a user to tap a button. The hard question of concurrent programming is: what does the rest of your program do while it waits?
+      <br><br>
+      The naive answer — just block and wait — is a disaster on a single thread. If your app's main thread blocks for a one-second network call, the UI freezes for a full second. So for decades the standard solution was the <strong>callback</strong>: "go do this slow thing, and call me back when you're done." It works, but it does not compose. Chain a few async steps together and you get the infamous <strong>pyramid of doom</strong>.
+      <br><br>
+      <pre><code>// Callback hell: each step nests inside the last&#10;fetchUser(id) { user -&gt;&#10;    fetchProfile(user) { profile -&gt;&#10;        fetchPhoto(profile) { photo -&gt;&#10;            updateUI(user, profile, photo)&#10;        } // error handling? cancellation? good luck&#10;    }&#10;}</code></pre>
+      The logic drifts ever further to the right. Error handling becomes a nightmare — each callback needs its own. Cancelling the whole chain partway through is nearly impossible. The code no longer reads in the order it executes.
+      <br><br>
+      Other languages attacked this with <code>Future</code>/<code>Promise</code> chains (<code>.then().then().catch()</code>) and later with <code>async</code>/<code>await</code>. Kotlin's answer is <strong>coroutines</strong>, and its central promise is simple but radical: <em>write asynchronous code that looks exactly like ordinary sequential code.</em>
+      <br><br>
+      <pre><code>// The same logic with coroutines — flat, sequential, cancellable&#10;suspend fun loadScreen(id: String) {&#10;    val user = fetchUser(id)&#10;    val profile = fetchProfile(user)&#10;    val photo = fetchPhoto(profile)&#10;    updateUI(user, profile, photo)&#10;}</code></pre>
+      No nesting. No callbacks. Errors propagate with ordinary <code>try/catch</code>. And, as we will see, the whole thing can be cancelled by cancelling one parent. The thread is never blocked while waiting. This is the payoff. The rest of this episode explains how it works.
+
+  - id: what-is-a-coroutine
+    title: "What a coroutine actually is"
+    summary: |
+      The word <strong>coroutine</strong> is older than you might think. It was coined by <strong>Melvin Conway in 1958</strong> — the same Conway of "Conway's Law" — to describe routines that cooperate by voluntarily handing control back and forth. Coroutines predate threads as a concurrency idea by decades; they fell out of fashion, then came roaring back.
+      <br><br>
+      The key distinction is between <strong>suspending</strong> and <strong>blocking</strong>.
+      <br><br>
+      • A <strong>blocked</strong> thread is stuck. It holds its expensive ~1 MB of memory and does nothing useful until the thing it waits for completes. The operating system cannot reuse it.<br>
+      • A <strong>suspended</strong> coroutine has stepped aside. It saves where it was, releases the thread entirely, and lets that thread go run other work. When its data is ready, it <em>resumes</em> — possibly on a different thread.<br><br>
+      That difference is everything. Because a suspended coroutine costs almost nothing — just a small object on the heap — you can have an absurd number of them.
+      <br><br>
+      <pre><code>import kotlinx.coroutines.*&#10;&#10;fun main() = runBlocking {&#10;    // Launch 100,000 coroutines. Try this with threads and your machine dies.&#10;    repeat(100_000) {&#10;        launch {&#10;            delay(1000L)   // suspends — does NOT block a thread&#10;            print(".")&#10;        }&#10;    }&#10;}</code></pre>
+      This program runs fine, finishing in about a second, on a handful of threads. The equivalent with 100,000 real threads would exhaust memory long before it started. Coroutines are sometimes called "lightweight threads," but that undersells it — they are a fundamentally cheaper unit of work.
+      <br><br>
+      One more piece of history worth knowing: coroutines are <em>not</em> part of the Kotlin language in the way <code>if</code> or <code>class</code> are. The language provides exactly one primitive — the <code>suspend</code> keyword — and everything else (<code>launch</code>, <code>async</code>, <code>Flow</code>, dispatchers) lives in a separate library, <code>kotlinx.coroutines</code>. This was a deliberate choice by the team, led by <strong>Roman Elizarov</strong>: keep the language small, put the machinery in a library that can evolve independently.
+
+  - id: suspend-and-the-state-machine
+    title: "suspend and the state machine"
+    summary: |
+      How can a function pause in the middle and resume later? There is no magic — just a clever compiler trick that is worth understanding, because it demystifies the whole model.
+      <br><br>
+      When you mark a function <code>suspend</code>, the Kotlin compiler rewrites it using <strong>Continuation-Passing Style (CPS)</strong>. It secretly adds one hidden parameter — a <code>Continuation</code> — which is essentially a callback representing "the rest of the program." So this:
+      <br><br>
+      <pre><code>suspend fun loadUser(id: String): User</code></pre>
+      is compiled to something closer to this under the hood:
+      <br><br>
+      <pre><code>fun loadUser(id: String, cont: Continuation&lt;User&gt;): Any?</code></pre>
+      Then, at every point where the function might suspend, the compiler slices it into pieces and stitches them back together as a <strong>state machine</strong>. Each suspension point becomes a labelled state. When the function resumes, it jumps back to the right label with its local variables restored.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="A suspend function compiled into a resumable state machine" style="max-width: 100%; height: auto;"><defs><marker id="sm-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7F52FF"/></marker></defs><style>.sm-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sm-title{font-size:16px;font-weight:600}.sm-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#fff;font-weight:600}.sm-label{font-size:11px;fill:#64748b}.sm-state{font-size:12px;font-weight:700;fill:#7F52FF}</style><text x="360" y="24" text-anchor="middle" class="sm-t sm-title">One suspend function → a resumable state machine</text><rect x="40" y="55" width="180" height="55" rx="8" fill="#7F52FF"/><text x="130" y="80" text-anchor="middle" class="sm-t sm-code">state 0: start</text><text x="130" y="98" text-anchor="middle" class="sm-t sm-code" style="font-size:10px">fetchUser()</text><rect x="270" y="55" width="180" height="55" rx="8" fill="#7F52FF"/><text x="360" y="80" text-anchor="middle" class="sm-t sm-code">state 1</text><text x="360" y="98" text-anchor="middle" class="sm-t sm-code" style="font-size:10px">fetchProfile()</text><rect x="500" y="55" width="180" height="55" rx="8" fill="#7F52FF"/><text x="590" y="80" text-anchor="middle" class="sm-t sm-code">state 2</text><text x="590" y="98" text-anchor="middle" class="sm-t sm-code" style="font-size:10px">fetchPhoto()</text><line x1="220" y1="82" x2="268" y2="82" stroke="#7F52FF" stroke-width="2" marker-end="url(#sm-arr)"/><line x1="450" y1="82" x2="498" y2="82" stroke="#7F52FF" stroke-width="2" marker-end="url(#sm-arr)"/><text x="244" y="74" text-anchor="middle" class="sm-t sm-label">resume</text><text x="474" y="74" text-anchor="middle" class="sm-t sm-label">resume</text><g><path d="M130 110 C 130 150, 130 150, 130 175" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#sm-arr)"/><path d="M360 110 C 360 150, 360 150, 360 175" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#sm-arr)"/><path d="M590 110 C 590 150, 590 150, 590 175" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#sm-arr)"/></g><rect x="60" y="180" width="600" height="64" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="360" y="205" text-anchor="middle" class="sm-t sm-label">At each suspension point the coroutine SUSPENDS:</text><text x="360" y="225" text-anchor="middle" class="sm-t sm-label">saves its state + locals into the Continuation, releases the thread, and returns COROUTINE_SUSPENDED.</text><rect x="160" y="262" width="400" height="50" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/><text x="360" y="284" text-anchor="middle" class="sm-t sm-label" style="font-weight:600;fill:#10b981">When the result is ready, the Continuation is called →</text><text x="360" y="301" text-anchor="middle" class="sm-t sm-label">the machine jumps to the next state and continues.</text></svg>
+      <br><br>
+      This is why a single <code>suspend</code> function can "pause" without a thread sitting idle: at each suspension point it literally returns control to its caller (returning a special <code>COROUTINE_SUSPENDED</code> marker), freeing the thread. When the awaited value arrives, the saved <code>Continuation</code> is invoked and the state machine advances. You write straight-line code; the compiler builds the callback machinery for you.
+      <br><br>
+      A crucial consequence: you can only call a <code>suspend</code> function from another <code>suspend</code> function, or from inside a coroutine builder. Suspension is "coloured" — it propagates up the call stack until it reaches something that knows how to launch a coroutine.
+
+  - id: builders-launch-async
+    title: "Coroutine builders: launch, async, runBlocking"
+    summary: |
+      You cannot call a <code>suspend</code> function from ordinary code directly — you need a <strong>coroutine builder</strong> to bridge the normal world and the suspending world. There are three you will meet constantly.
+      <br><br>
+      <strong><code>launch</code></strong> — fire-and-forget. It starts a coroutine that returns no result, and hands you back a <code>Job</code> you can use to cancel or wait on it.
+      <br><br>
+      <pre><code>val job = scope.launch {&#10;    saveToDatabase()   // we don't need a return value&#10;}&#10;job.cancel()           // ...but we can cancel it</code></pre>
+      <strong><code>async</code></strong> — when you want a result. It returns a <code>Deferred&lt;T&gt;</code> (a coroutine-aware "promise"). Call <code>await()</code> to suspend until the value is ready. This is also how you run things <em>concurrently</em>.
+      <br><br>
+      <pre><code>suspend fun loadDashboard() = coroutineScope {&#10;    // Both requests start immediately, running concurrently&#10;    val user = async { fetchUser() }&#10;    val feed = async { fetchFeed() }&#10;    // Suspend until BOTH are done&#10;    render(user.await(), feed.await())&#10;}</code></pre>
+      <strong><code>runBlocking</code></strong> — the bridge of last resort. It actually <em>blocks</em> the current thread until its coroutine finishes. You use it in <code>main()</code> functions and tests — places where you genuinely want to stop and wait — but almost never in production app code, because blocking is the very thing coroutines exist to avoid.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 230" role="img" aria-label="Comparison of launch, async and runBlocking builders" style="max-width: 100%; height: auto;"><style>.bd-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.bd-title{font-size:16px;font-weight:600}.bd-name{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:15px;font-weight:700;fill:#7F52FF}.bd-ret{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.bd-desc{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="bd-t bd-title">Three ways into the coroutine world</text><rect x="30" y="48" width="205" height="150" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="2"/><text x="132" y="78" text-anchor="middle" class="bd-t bd-name">launch</text><text x="132" y="102" text-anchor="middle" class="bd-t bd-ret">returns Job</text><text x="132" y="130" text-anchor="middle" class="bd-t bd-desc">fire-and-forget</text><text x="132" y="148" text-anchor="middle" class="bd-t bd-desc">no result value</text><text x="132" y="172" text-anchor="middle" class="bd-t bd-desc">does not block</text><rect x="257" y="48" width="205" height="150" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/><text x="359" y="78" text-anchor="middle" class="bd-t bd-name">async</text><text x="359" y="102" text-anchor="middle" class="bd-t bd-ret">returns Deferred&lt;T&gt;</text><text x="359" y="130" text-anchor="middle" class="bd-t bd-desc">produces a result</text><text x="359" y="148" text-anchor="middle" class="bd-t bd-desc">.await() for value</text><text x="359" y="172" text-anchor="middle" class="bd-t bd-desc">for concurrency</text><rect x="484" y="48" width="206" height="150" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/><text x="587" y="78" text-anchor="middle" class="bd-t bd-name">runBlocking</text><text x="587" y="102" text-anchor="middle" class="bd-t bd-ret">returns T</text><text x="587" y="130" text-anchor="middle" class="bd-t bd-desc">BLOCKS the thread</text><text x="587" y="148" text-anchor="middle" class="bd-t bd-desc">main() &amp; tests only</text><text x="587" y="172" text-anchor="middle" class="bd-t bd-desc">avoid in app code</text></svg>
+      <br><br>
+      <strong>The sequential-by-default gotcha.</strong> This trips up nearly everyone. If you simply <code>await()</code> right after each <code>async</code>, or just call two suspend functions in a row, they run <em>one after another</em>. Concurrency only happens when you start both <code>async</code> blocks <em>before</em> awaiting either. <code>suspend</code> means "can pause," not "runs in parallel."
+
+  - id: dispatchers-and-context
+    title: "Dispatchers: which thread runs the work"
+    summary: |
+      Coroutines suspend and resume — but when they are actively running, they still need a real thread. A <strong>dispatcher</strong> decides which thread (or thread pool) that is. It is part of the <code>CoroutineContext</code>, the bundle of metadata every coroutine carries.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="The standard coroutine dispatchers and their purposes" style="max-width: 100%; height: auto;"><style>.dp-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.dp-title{font-size:16px;font-weight:600}.dp-name{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700;fill:#7F52FF}.dp-desc{font-size:11px;fill:#64748b}.dp-use{font-size:11px;font-weight:600;fill:#1e293b}</style><text x="360" y="24" text-anchor="middle" class="dp-t dp-title">The standard dispatchers</text><rect x="30" y="48" width="320" height="85" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="50" y="74" class="dp-t dp-name">Dispatchers.Default</text><text x="50" y="97" class="dp-t dp-use">CPU-intensive work</text><text x="50" y="116" class="dp-t dp-desc">pool sized to CPU cores · sorting, parsing, math</text><rect x="370" y="48" width="320" height="85" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/><text x="390" y="74" class="dp-t dp-name">Dispatchers.IO</text><text x="390" y="97" class="dp-t dp-use">blocking I/O</text><text x="390" y="116" class="dp-t dp-desc">large elastic pool · network, disk, database</text><rect x="30" y="143" width="320" height="85" rx="8" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/><text x="50" y="169" class="dp-t dp-name">Dispatchers.Main</text><text x="50" y="192" class="dp-t dp-use">UI thread</text><text x="50" y="211" class="dp-t dp-desc">single thread · update widgets, touch handlers</text><rect x="370" y="143" width="320" height="85" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/><text x="390" y="169" class="dp-t dp-name">Dispatchers.Unconfined</text><text x="390" y="192" class="dp-t dp-use">advanced / rarely used</text><text x="390" y="211" class="dp-t dp-desc">resumes on whatever thread called it · easy to misuse</text></svg>
+      <br><br>
+      The everyday tool for moving work between dispatchers is <code>withContext</code>. It suspends the current coroutine, runs its block on the requested dispatcher, and resumes you with the result — no callback, no thread juggling.
+      <br><br>
+      <pre><code>suspend fun loadImage(url: String): Bitmap {&#10;    // Suspend here, do the blocking download on the IO pool&#10;    val bytes = withContext(Dispatchers.IO) {&#10;        downloadBytes(url)&#10;    }&#10;    // Heavy decoding belongs on the CPU pool&#10;    return withContext(Dispatchers.Default) {&#10;        decodeBitmap(bytes)&#10;    }&#10;    // The caller (often on Main) is never blocked&#10;}</code></pre>
+      This is the pattern that keeps UIs smooth: the main thread launches the coroutine, the work hops to <code>IO</code> and <code>Default</code> as needed, and the final result lands back on <code>Main</code> to update the screen — all written as plain top-to-bottom code.
+
+  - id: structured-concurrency
+    title: "Structured concurrency"
+    summary: |
+      This is Kotlin's signature contribution to the field, and the idea Roman Elizarov championed in an influential 2018 essay. The principle: <strong>a coroutine cannot outlive its scope</strong>. Every coroutine is launched inside a <code>CoroutineScope</code> and becomes a child of that scope's <code>Job</code>, forming a tree.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="A scope with parent and child coroutines, where cancelling the parent cancels all children" style="max-width: 100%; height: auto;"><defs><marker id="sc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.sc-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sc-title{font-size:16px;font-weight:600}.sc-box{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:600;fill:#fff}.sc-label{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="sc-t sc-title">Structured concurrency: a tree of coroutines</text><rect x="280" y="44" width="160" height="48" rx="8" fill="#7F52FF"/><text x="360" y="73" text-anchor="middle" class="sc-t sc-box">CoroutineScope</text><line x1="320" y1="92" x2="180" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#sc-arr)"/><line x1="360" y1="92" x2="360" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#sc-arr)"/><line x1="400" y1="92" x2="540" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#sc-arr)"/><rect x="100" y="138" width="160" height="44" rx="8" fill="#a78bfa"/><text x="180" y="165" text-anchor="middle" class="sc-t sc-box">child: fetchUser</text><rect x="280" y="138" width="160" height="44" rx="8" fill="#a78bfa"/><text x="360" y="165" text-anchor="middle" class="sc-t sc-box">child: fetchFeed</text><rect x="460" y="138" width="160" height="44" rx="8" fill="#a78bfa"/><text x="540" y="165" text-anchor="middle" class="sc-t sc-box">child: fetchAds</text><line x1="360" y1="182" x2="290" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#sc-arr)"/><line x1="360" y1="182" x2="430" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#sc-arr)"/><rect x="210" y="223" width="160" height="44" rx="8" fill="#c4b5fd"/><text x="290" y="250" text-anchor="middle" class="sc-t sc-box" style="fill:#1e293b">grandchild</text><rect x="380" y="223" width="160" height="44" rx="8" fill="#c4b5fd"/><text x="460" y="250" text-anchor="middle" class="sc-t sc-box" style="fill:#1e293b">grandchild</text><text x="360" y="290" text-anchor="middle" class="sc-t sc-label">Cancel the scope → the whole subtree is cancelled. The scope waits for all children before completing.</text></svg>
+      <br><br>
+      Two guarantees fall out of this tree, and they eliminate whole classes of bugs:
+      <br><br>
+      • <strong>Cancel the parent, cancel the children.</strong> When a user leaves a screen and its scope is cancelled, every coroutine launched there — and their children — is cancelled automatically. No orphaned background task crashing on a dead screen.<br>
+      • <strong>The parent waits for its children.</strong> A scope does not complete until all coroutines inside it finish. No silent leaks of work you forgot about.<br><br>
+      The everyday tool is <code>coroutineScope { }</code>, which creates a scope that only returns once everything inside it is done. Its sibling <code>supervisorScope { }</code> changes one rule: in a plain scope, if one child fails the others are cancelled; in a supervisor scope, children fail independently. You pick based on whether the tasks are "all or nothing" or genuinely independent.
+      <br><br>
+      On Android, you rarely create scopes by hand — the framework provides lifecycle-aware ones like <code>viewModelScope</code> and <code>lifecycleScope</code> that are cancelled automatically when the ViewModel is cleared or the screen is destroyed. Structured concurrency is what makes that automatic cleanup possible.
+
+  - id: cancellation-and-exceptions
+    title: "Cancellation is cooperative"
+    summary: |
+      Cancellation in coroutines is <strong>cooperative</strong>, not forceful. Kotlin will not violently kill a coroutine mid-instruction — that would risk leaving data in a broken state. Instead, cancellation sets a flag, and the coroutine is expected to <em>notice</em> and stop.
+      <br><br>
+      Every suspending function in <code>kotlinx.coroutines</code> checks for cancellation. So a coroutine that regularly suspends (with <code>delay</code>, <code>withContext</code>, network calls, etc.) cancels promptly and cleanly. The mechanism is an exception: cancellation throws a special <code>CancellationException</code> that unwinds the coroutine.
+      <br><br>
+      <pre><code>val job = scope.launch {&#10;    repeat(1000) { i -&gt;&#10;        delay(100)        // a suspension point — checks for cancellation&#10;        println("working $i")&#10;    }&#10;}&#10;delay(350)&#10;job.cancel()              // after ~3 iterations, the next delay() throws</code></pre>
+      <strong>The famous trap.</strong> A coroutine doing tight CPU work that <em>never suspends</em> cannot be cancelled — there is no point at which it checks the flag. It will run to completion regardless of <code>cancel()</code>.
+      <br><br>
+      <pre><code>// BAD: this loop ignores cancellation entirely&#10;launch {&#10;    var i = 0&#10;    while (i &lt; 1_000_000) { heavyCompute(i++) }  // never suspends&#10;}&#10;&#10;// GOOD: give it a chance to notice&#10;launch {&#10;    var i = 0&#10;    while (i &lt; 1_000_000 &amp;&amp; isActive) {   // check the flag&#10;        heavyCompute(i++)&#10;    }&#10;    // or call yield() / ensureActive() periodically&#10;}</code></pre>
+      Two more rules that catch people out. First: never swallow a <code>CancellationException</code> in a blanket <code>catch (e: Exception)</code> — if you do, you break cancellation, because that exception is how cancellation travels. Rethrow it. Second: if you must run cleanup that itself suspends (closing a connection, say) after cancellation, wrap it in <code>withContext(NonCancellable)</code> so the cleanup is allowed to finish.
+
+  - id: introducing-flow
+    title: "Flow — streams of values over time"
+    summary: |
+      A <code>suspend</code> function produces <em>one</em> value, eventually. But plenty of problems involve a <em>sequence</em> of values arriving over time: search results as the user types, rows streaming from a database, price ticks, location updates. Kotlin's answer is <strong>Flow</strong> — an asynchronous stream built on coroutines.
+      <br><br>
+      <pre><code>fun searchResults(query: String): Flow&lt;Result&gt; = flow {&#10;    val pages = api.search(query)        // can suspend&#10;    for (page in pages) {&#10;        emit(page)                        // push each value downstream&#10;        delay(50)&#10;    }&#10;}&#10;&#10;// Consume it — collect is itself a suspend function&#10;searchResults("kotlin").collect { result -&gt;&#10;    display(result)&#10;}</code></pre>
+      The defining property of a basic <code>Flow</code> is that it is <strong>cold</strong>. The code inside the <code>flow { }</code> builder does not run when you create the flow — it runs only when something calls a <em>terminal operator</em> like <code>collect</code>, and it runs again, from scratch, for every collector. A cold flow is a recipe, not a running process.
+      <br><br>
+      It helps to place Flow among its relatives:
+      <br><br>
+      • <strong><code>Sequence</code></strong> — lazy but <em>synchronous</em>: it cannot suspend, so it is for in-memory computation, not waiting on I/O.<br>
+      • <strong><code>Flow</code></strong> — lazy and <em>asynchronous</em>: it can suspend, and it is cold by default.<br>
+      • <strong><code>Channel</code></strong> — a <em>hot</em> pipe between coroutines, like a queue; each value is received by exactly one consumer.<br><br>
+      Flow carries a rich operator library — <code>map</code>, <code>filter</code>, <code>transform</code>, <code>debounce</code>, <code>combine</code>, <code>flatMapLatest</code> — that will feel familiar if you have used RxJava, but built natively on suspension and structured concurrency. Operators are themselves cold: chaining them just builds the recipe; nothing runs until collection.
+      <br><br>
+      <pre><code>searchResults(query)&#10;    .debounce(300)              // wait for typing to settle&#10;    .filter { it.score &gt; 0.5 }&#10;    .map { it.title }&#10;    .flowOn(Dispatchers.IO)     // upstream runs on IO&#10;    .collect { showSuggestion(it) }</code></pre>
+
+  - id: hot-flows-stateflow-sharedflow
+    title: "Hot flows: StateFlow and SharedFlow"
+    summary: |
+      Cold flows are perfect for "do this work when asked." But UIs often need the opposite: a value that <em>exists now</em> and that many observers share — the current screen state, a stream of one-off events. For this, Kotlin provides <strong>hot</strong> flows.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 270" role="img" aria-label="Cold flow versus hot flow behaviour" style="max-width: 100%; height: auto;"><style>.hf-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.hf-title{font-size:16px;font-weight:600}.hf-h{font-size:13px;font-weight:700}.hf-desc{font-size:11px;fill:#64748b}.hf-sm{font-size:10px;fill:#fff;font-weight:600}</style><text x="360" y="24" text-anchor="middle" class="hf-t hf-title">Cold vs hot</text><rect x="30" y="44" width="320" height="200" rx="8" fill="#eff6ff" stroke="#0175C2" stroke-width="1.5"/><text x="190" y="68" text-anchor="middle" class="hf-t hf-h" fill="#0175C2">Cold (flow { })</text><text x="190" y="95" text-anchor="middle" class="hf-t hf-desc">Starts producing only when collected</text><text x="190" y="115" text-anchor="middle" class="hf-t hf-desc">Each collector gets its own run</text><rect x="70" y="135" width="100" height="34" rx="6" fill="#0175C2"/><text x="120" y="157" text-anchor="middle" class="hf-t hf-sm">collector A</text><rect x="210" y="135" width="100" height="34" rx="6" fill="#0175C2"/><text x="260" y="157" text-anchor="middle" class="hf-t hf-sm">collector B</text><text x="190" y="195" text-anchor="middle" class="hf-t hf-desc">→ independent streams</text><text x="190" y="222" text-anchor="middle" class="hf-t hf-desc">Like a recipe: re-run per request</text><rect x="370" y="44" width="320" height="200" rx="8" fill="#fdf4ff" stroke="#7F52FF" stroke-width="1.5"/><text x="530" y="68" text-anchor="middle" class="hf-t hf-h" fill="#7F52FF">Hot (StateFlow / SharedFlow)</text><text x="530" y="95" text-anchor="middle" class="hf-t hf-desc">Emits whether or not anyone listens</text><text x="530" y="115" text-anchor="middle" class="hf-t hf-desc">All collectors share the same stream</text><rect x="480" y="132" width="100" height="30" rx="6" fill="#7F52FF"/><text x="530" y="152" text-anchor="middle" class="hf-t hf-sm">source</text><rect x="410" y="185" width="90" height="30" rx="6" fill="#a78bfa"/><text x="455" y="205" text-anchor="middle" class="hf-t hf-sm">collector A</text><rect x="560" y="185" width="90" height="30" rx="6" fill="#a78bfa"/><text x="605" y="205" text-anchor="middle" class="hf-t hf-sm">collector B</text><line x1="510" y1="162" x2="465" y2="185" stroke="#a78bfa" stroke-width="2"/><line x1="550" y1="162" x2="600" y2="185" stroke="#a78bfa" stroke-width="2"/><text x="530" y="234" text-anchor="middle" class="hf-t hf-desc">Like a radio broadcast: one source, many tuned in</text></svg>
+      <br><br>
+      <strong><code>StateFlow</code></strong> is a hot flow that always holds exactly one current value and emits updates when it changes. It is the modern, coroutine-native replacement for Android's older <code>LiveData</code>, and the backbone of state management in a Jetpack Compose app.
+      <br><br>
+      <pre><code>class CounterViewModel {&#10;    private val _count = MutableStateFlow(0)&#10;    val count: StateFlow&lt;Int&gt; = _count.asStateFlow()   // read-only to the UI&#10;&#10;    fun increment() { _count.value++ }&#10;}&#10;&#10;// In the UI: always has a value, re-renders on change&#10;viewModel.count.collect { n -&gt; render(n) }</code></pre>
+      <strong><code>SharedFlow</code></strong> is the more general hot flow, useful for one-off events (a navigation command, a "show snackbar" signal) that should be delivered to whoever is listening but not retained as state. The bridge between cold and hot is <code>stateIn</code> / <code>shareIn</code>, which convert a cold upstream flow into a hot one tied to a scope — the standard pattern for exposing a repository's cold database flow as observable UI state.
+      <br><br>
+      The mental model that ties it all together: a <strong>cold</strong> flow is a recipe you run on demand; a <strong>hot</strong> flow is a live broadcast that exists whether or not anyone is tuned in. Coroutines gave Kotlin a way to <em>pause</em>; Flow gives it a way to <em>stream</em>; hot flows give it a way to <em>share</em>.
+
+  - id: ai-prompts-coroutines
+    title: "AI prompts — coroutines and Flow"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — Callbacks to coroutines:</strong>
+      <pre><code>Rewrite this callback-based async code using Kotlin coroutines:&#10;[paste code]&#10;&#10;Show where each call suspends, mark whether the steps run&#10;sequentially or concurrently, and use structured concurrency.</code></pre>
+      <br>
+      <strong>Prompt 2 — Choosing a dispatcher:</strong>
+      <pre><code>For each operation below, tell me which dispatcher it belongs on&#10;(Default, IO, or Main) and why:&#10;[list your operations: network call, JSON parse, UI update, image decode...]&#10;Then show the withContext calls.</code></pre>
+      <br>
+      <strong>Prompt 3 — Cancellation review:</strong>
+      <pre><code>Review this coroutine code for cancellation correctness:&#10;[paste code]&#10;&#10;Flag any tight loops that never suspend, any catch blocks that&#10;swallow CancellationException, and any cleanup that should use&#10;NonCancellable.</code></pre>
+      <br>
+      <strong>Prompt 4 — Cold vs hot flow design:</strong>
+      <pre><code>I'm modelling [screen state / one-off events / a database stream].&#10;Should this be a cold Flow, a StateFlow, or a SharedFlow?&#10;&#10;Explain the trade-offs and show how to expose it from a ViewModel,&#10;including stateIn/shareIn if a cold source is involved.</code></pre>
+
+quiz:
+  title: "Coroutines & Flow — Quiz"
+  description: "Seven questions on suspension, builders, dispatchers, structured concurrency, cancellation, and the cold and hot streams of Flow."
+  questions:
+    - question: "What is the difference between a suspended coroutine and a blocked thread?"
+      options:
+        - "There is no difference; they are two names for the same thing"
+        - "A blocked thread holds its resources idle; a suspended coroutine releases its thread to do other work"
+        - "A suspended coroutine uses more memory than a blocked thread"
+        - "A blocked thread can be cancelled but a suspended coroutine cannot"
+      correctIndex: 1
+      explanation: "A blocked thread sits idle holding ~1 MB of memory until its wait finishes. A suspended coroutine saves its state, releases the thread entirely so it can run other work, and resumes later. That is why millions of coroutines can run on a handful of threads."
+    - question: "How does the Kotlin compiler implement a suspend function under the hood?"
+      options:
+        - "It spawns a new operating-system thread for each call"
+        - "It rewrites the function as a state machine using continuation-passing style"
+        - "It runs the function on the GPU"
+        - "It converts the function into a loop that polls until done"
+      correctIndex: 1
+      explanation: "The compiler adds a hidden Continuation parameter (continuation-passing style) and slices the function into a state machine. Each suspension point is a state; on resume, the machine jumps to the right state with locals restored. This is how a function can pause and resume without blocking a thread."
+    - question: "You write `val a = async { x() }` then `val b = async { y() }`, then `a.await()` and `b.await()`. How do x() and y() run?"
+      options:
+        - "Strictly sequentially, one after the other"
+        - "Concurrently, because both async blocks start before either is awaited"
+        - "Neither runs until the program exits"
+        - "On separate OS processes"
+      correctIndex: 1
+      explanation: "Both async builders start their coroutines immediately, so x() and y() run concurrently; the awaits then suspend until each result is ready. Concurrency comes from starting both before awaiting. If you instead wrote `async { x() }.await()` then `async { y() }.await()`, they would run sequentially."
+    - question: "Which dispatcher is intended for blocking I/O such as network and disk access?"
+      options:
+        - "Dispatchers.Default"
+        - "Dispatchers.Main"
+        - "Dispatchers.IO"
+        - "Dispatchers.Unconfined"
+      correctIndex: 2
+      explanation: "Dispatchers.IO has a large, elastic thread pool designed for blocking I/O (network, disk, database). Dispatchers.Default is sized to CPU cores for CPU-intensive work, and Dispatchers.Main is the single UI thread."
+    - question: "Under structured concurrency, what happens to child coroutines when their parent scope is cancelled?"
+      options:
+        - "They keep running until they finish on their own"
+        - "They are all cancelled automatically"
+        - "They are paused and resumed later"
+        - "Only the most recently launched child is cancelled"
+      correctIndex: 1
+      explanation: "Coroutines form a parent-child tree within a scope. Cancelling the scope cancels every coroutine in its subtree automatically, and a scope will not complete until all its children finish. This prevents orphaned background tasks and leaks."
+    - question: "Why might a coroutine running a tight CPU loop fail to cancel?"
+      options:
+        - "Cancellation only works on the Main dispatcher"
+        - "Cancellation is cooperative, and a loop that never suspends never checks the cancellation flag"
+        - "CPU loops automatically disable cancellation"
+        - "You can never cancel a coroutine once it has started"
+      correctIndex: 1
+      explanation: "Cancellation is cooperative: it sets a flag that suspending functions check. A tight loop that never suspends (no delay, yield, isActive check, etc.) never notices the flag and runs to completion. The fix is to check isActive or call yield()/ensureActive() periodically."
+    - question: "What does it mean that a basic Flow is 'cold'?"
+      options:
+        - "It can only carry numeric values"
+        - "It runs on a background thread by default"
+        - "Its builder code runs only when collected, and runs fresh for each collector"
+        - "It retains its last value forever for new subscribers"
+      correctIndex: 2
+      explanation: "A cold Flow is like a recipe: the code in the flow { } builder runs only when a terminal operator such as collect subscribes, and it runs again from scratch for each collector. Hot flows (StateFlow, SharedFlow) instead emit whether or not anyone is listening and share the stream among collectors."
+---
+
+{/* Episode 1 of Kotlin: Concurrency. Deep dive on coroutines and Flow: the
+    callback pyramid, suspend vs blocking, the CPS/state-machine compilation,
+    launch/async/runBlocking builders, dispatchers and withContext, structured
+    concurrency, cooperative cancellation, cold Flow, and hot StateFlow/SharedFlow.
+    Six inline SVG diagrams. */}

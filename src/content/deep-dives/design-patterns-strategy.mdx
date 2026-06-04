@@ -1,0 +1,236 @@
+---
+title: "The Strategy Pattern in Dart — Swapping Behaviour Without Subclasses"
+description: "One job, many ways to do it. The strategy pattern pulls the part that varies into its own object — and in Dart, that object is often just a function you hand in."
+category: "Design Patterns"
+color: "#9333ea"
+subject: "Patterns: Composition"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: the-problem-many-ways
+    title: "The problem — one job, many ways to do it"
+    summary: |
+      Picture a checkout. You can pay by card, by PayPal, by UPI. The job is always the same — take the money — but the <em>how</em> changes every time. So where does that how live?
+      <br><br>
+      The first instinct is one big method with a branch per option.
+      <br><br>
+      <pre><code>void checkout(String method, int amount) {
+        if (method == 'card') {
+          // charge the card...
+        } else if (method == 'paypal') {
+          // redirect to PayPal...
+        } else if (method == 'upi') {
+          // open the UPI app...
+        }
+        // and one more branch every single time
+      }</code></pre>
+      It works. Right up until the fifth payment method, and the sixth, and the tax rule that applies to only two of them. The method swells, every edit risks the branches you didn't touch, and testing one path means dragging the whole thing along.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="A growing if-else chain versus a strategy slot: the left side adds a branch for every new payment method, the right side plugs interchangeable strategy objects into one call" style="max-width: 100%; height: auto;"><style>.str1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.str1-title{font-size:16px;font-weight:600}.str1-bad{font-size:13px;font-weight:600;fill:#dc2626}.str1-good{font-size:13px;font-weight:600;fill:#10b981}.str1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#475569}.str1-h{font-size:13px;font-weight:600}.str1-label{font-size:11px;fill:#64748b}</style><text x="360" y="30" text-anchor="middle" class="str1-t str1-title">A switch that grows forever, or a slot you plug into</text><rect x="30" y="52" width="320" height="252" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="78" text-anchor="middle" class="str1-t str1-bad">Without strategy</text><rect x="54" y="94" width="272" height="158" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" rx="6"/><text x="70" y="118" class="str1-t str1-mn">checkout(method) {</text><text x="82" y="140" class="str1-t str1-mn">if (method == card) {...}</text><text x="82" y="162" class="str1-t str1-mn">else if (paypal) {...}</text><text x="82" y="184" class="str1-t str1-mn">else if (upi) {...}</text><text x="82" y="206" class="str1-t str1-mn">else if (applePay) {...}</text><text x="82" y="228" class="str1-t str1-mn">// +1 branch every time</text><text x="70" y="248" class="str1-t str1-mn">}</text><text x="190" y="284" text-anchor="middle" class="str1-t str1-label">One method does every job. It only grows.</text><rect x="370" y="52" width="320" height="252" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="78" text-anchor="middle" class="str1-t str1-good">With strategy</text><rect x="430" y="96" width="200" height="48" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="530" y="116" text-anchor="middle" class="str1-t str1-h">Checkout</text><text x="530" y="134" text-anchor="middle" class="str1-t str1-mn">strategy.pay()</text><line x1="530" y1="144" x2="530" y2="176" stroke="#9333ea" stroke-width="2" marker-end="url(#str1-a)"/><text x="592" y="166" text-anchor="middle" class="str1-t str1-label">plug in</text><rect x="392" y="180" width="86" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="435" y="205" text-anchor="middle" class="str1-t str1-mn">Card</text><rect x="487" y="180" width="86" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="530" y="205" text-anchor="middle" class="str1-t str1-mn">PayPal</text><rect x="582" y="180" width="86" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="625" y="205" text-anchor="middle" class="str1-t str1-mn">UPI</text><rect x="439" y="234" width="182" height="40" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3" rx="6"/><text x="530" y="259" text-anchor="middle" class="str1-t str1-mn">+ ApplePay</text><text x="530" y="293" text-anchor="middle" class="str1-t str1-label">New way? Write a class. Checkout never changes.</text><defs><marker id="str1-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      The second instinct is a subclass per option — <code>CardCheckout</code>, <code>PayPalCheckout</code>, <code>UpiCheckout</code>. Cleaner at first. But now the behaviour is welded to the class hierarchy, and you can't switch it on a live object. The user changes their mind on the payment screen? You can't swap one subclass for another mid-flight.
+      <br><br>
+      Both instincts share the same flaw: the thing that varies is tangled into the thing that doesn't. Let's pull them apart.
+
+  - id: pull-the-behaviour-out
+    title: "The pattern — pull the behaviour into its own object"
+    summary: |
+      Here's the move. Take the part that varies — the payment behaviour — and lift it into its own object. The checkout stops knowing <em>how</em> to pay. It just holds something that does, and calls it.
+      <br><br>
+      There are two roles, and they map onto the two halves of the problem.
+      <br><br>
+      <strong>The context</strong> is the part that stays the same — the checkout flow. It holds a strategy and delegates to it.
+      <br><br>
+      <strong>The strategy</strong> is the part that varies — a tiny interface with one job, and a concrete class for each way of doing it.
+      <br><br>
+      <pre><code>// The strategy: an interface with one job
+      abstract interface class PaymentStrategy {
+        void pay(int amount);
+      }
+
+      class CardPayment implements PaymentStrategy {
+        @override
+        void pay(int amount) =&gt; print('Charging card: \$amount');
+      }
+
+      class UpiPayment implements PaymentStrategy {
+        @override
+        void pay(int amount) =&gt; print('Opening UPI for: \$amount');
+      }
+
+      // The context: holds a strategy, never the details
+      class Checkout {
+        final PaymentStrategy strategy;
+        Checkout(this.strategy);
+
+        void complete(int amount) =&gt; strategy.pay(amount);
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Strategy structure: a context depends on a strategy interface, and three concrete strategies implement that interface, so any one can fill the slot" style="max-width: 100%; height: auto;"><style>.str2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.str2-title{font-size:16px;font-weight:600}.str2-h{font-size:14px;font-weight:600}.str2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#475569}.str2-label{font-size:12px;fill:#64748b}.str2-cap{font-size:12px;fill:#64748b}</style><text x="360" y="30" text-anchor="middle" class="str2-t str2-title">Context leans on the interface, not the details</text><rect x="58" y="92" width="200" height="92" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="158" y="124" text-anchor="middle" class="str2-t str2-h">Checkout</text><text x="158" y="148" text-anchor="middle" class="str2-t str2-label">the context</text><text x="158" y="170" text-anchor="middle" class="str2-t str2-mn">strategy.pay()</text><rect x="462" y="92" width="200" height="92" fill="#ffffff" stroke="#9333ea" stroke-width="2" stroke-dasharray="6 4" rx="8"/><text x="562" y="124" text-anchor="middle" class="str2-t str2-h">PaymentStrategy</text><text x="562" y="148" text-anchor="middle" class="str2-t str2-label">the interface</text><text x="562" y="170" text-anchor="middle" class="str2-t str2-mn">void pay();</text><line x1="258" y1="138" x2="462" y2="138" stroke="#9333ea" stroke-width="2" marker-end="url(#str2-a)"/><text x="360" y="128" text-anchor="middle" class="str2-t str2-label">depends on</text><rect x="58" y="258" width="184" height="62" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="8"/><text x="150" y="284" text-anchor="middle" class="str2-t str2-h">CardPayment</text><text x="150" y="304" text-anchor="middle" class="str2-t str2-mn">pay() {...}</text><rect x="268" y="258" width="184" height="62" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="8"/><text x="360" y="284" text-anchor="middle" class="str2-t str2-h">PayPalPayment</text><text x="360" y="304" text-anchor="middle" class="str2-t str2-mn">pay() {...}</text><rect x="478" y="258" width="184" height="62" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="8"/><text x="570" y="284" text-anchor="middle" class="str2-t str2-h">UpiPayment</text><text x="570" y="304" text-anchor="middle" class="str2-t str2-mn">pay() {...}</text><line x1="150" y1="258" x2="528" y2="186" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#str2-g)"/><line x1="360" y1="258" x2="556" y2="186" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#str2-g)"/><line x1="570" y1="258" x2="592" y2="186" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#str2-g)"/><text x="430" y="228" text-anchor="middle" class="str2-t str2-label">implements</text><text x="360" y="346" text-anchor="middle" class="str2-t str2-cap">Swap which concrete fills the slot. Checkout never notices.</text><defs><marker id="str2-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker><marker id="str2-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      Look at what <code>Checkout</code> depends on: the interface, never the concrete classes. That one detail is the whole payoff. You can add a tenth payment method tomorrow, and <code>Checkout</code> doesn't change a line.
+      <br><br>
+      <pre><code>var order = Checkout(CardPayment());
+      order.complete(500);                  // Charging card: 500
+
+      // user switched at the last second — just swap the object
+      order = Checkout(UpiPayment());
+      order.complete(500);                  // Opening UPI for: 500</code></pre>
+      Same context, different strategy, different behaviour. No branches, no subclassing the checkout.
+
+  - id: a-strategy-is-often-a-function
+    title: "In Dart, a strategy is often just a function"
+    summary: |
+      Most of the time, though, a full interface is more ceremony than you need. A strategy is behaviour, and behaviour is a function — and in Dart functions are first-class. We leaned on that a few episodes back. This is where it pays off again.
+      <br><br>
+      Take sorting. <code>List.sort</code> has no idea how <em>you</em> want things ordered. So you hand it the rule.
+      <br><br>
+      <pre><code>final numbers = [3, 1, 2];
+
+      numbers.sort((a, b) =&gt; a - b);   // ascending  → [1, 2, 3]
+      numbers.sort((a, b) =&gt; b - a);   // descending → [3, 2, 1]
+
+      final words = ['bb', 'a', 'ccc'];
+      words.sort((a, b) =&gt; a.length - b.length);   // → ['a', 'bb', 'ccc']</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="The same sort call with three different comparator functions produces three different orderings: ascending, descending, and by length on any type" style="max-width: 100%; height: auto;"><style>.str3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.str3-title{font-size:16px;font-weight:600}.str3-call{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;fill:#475569}.str3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.str3-tag{font-size:12px;font-weight:600;fill:#9333ea}.str3-out{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#065f46}</style><text x="360" y="26" text-anchor="middle" class="str3-t str3-title">Same call, swap the function, different order</text><text x="360" y="50" text-anchor="middle" class="str3-t str3-call">list.sort( strategy )</text><text x="346" y="80" text-anchor="middle" class="str3-t str3-tag">ascending</text><rect x="24" y="88" width="150" height="46" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="99" y="116" text-anchor="middle" class="str3-t str3-mn">[3, 1, 2]</text><line x1="174" y1="111" x2="204" y2="111" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="206" y="88" width="280" height="46" fill="#ede9fe" stroke="#9333ea" stroke-width="1.5" rx="6"/><text x="346" y="116" text-anchor="middle" class="str3-t str3-mn">(a, b) =&gt; a - b</text><line x1="486" y1="111" x2="516" y2="111" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="518" y="88" width="178" height="46" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="607" y="116" text-anchor="middle" class="str3-t str3-out">[1, 2, 3]</text><text x="346" y="158" text-anchor="middle" class="str3-t str3-tag">descending</text><rect x="24" y="166" width="150" height="46" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="99" y="194" text-anchor="middle" class="str3-t str3-mn">[3, 1, 2]</text><line x1="174" y1="189" x2="204" y2="189" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="206" y="166" width="280" height="46" fill="#ede9fe" stroke="#9333ea" stroke-width="1.5" rx="6"/><text x="346" y="194" text-anchor="middle" class="str3-t str3-mn">(a, b) =&gt; b - a</text><line x1="486" y1="189" x2="516" y2="189" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="518" y="166" width="178" height="46" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="607" y="194" text-anchor="middle" class="str3-t str3-out">[3, 2, 1]</text><text x="346" y="236" text-anchor="middle" class="str3-t str3-tag">by length — any type</text><rect x="24" y="244" width="150" height="46" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="99" y="272" text-anchor="middle" class="str3-t str3-mn">['bb','a','ccc']</text><line x1="174" y1="267" x2="204" y2="267" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="206" y="244" width="280" height="46" fill="#ede9fe" stroke="#9333ea" stroke-width="1.5" rx="6"/><text x="346" y="272" text-anchor="middle" class="str3-t str3-mn">(a, b) =&gt; a.length - b.length</text><line x1="486" y1="267" x2="516" y2="267" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#str3-a)"/><rect x="518" y="244" width="178" height="46" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="607" y="272" text-anchor="middle" class="str3-t str3-out">['a','bb','ccc']</text><defs><marker id="str3-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs></svg>
+      <br><br>
+      That comparator <em>is</em> a strategy. Same <code>sort</code>, swap the function, different order. Dart even names the type: <code>Comparator&lt;T&gt;</code>, which is nothing more than <code>int Function(T, T)</code>.
+      <br><br>
+      And here's the thing — you've been passing strategies for this whole series without calling them that. <code>where</code> takes a predicate strategy. <code>map</code> takes a transform strategy. <code>fold</code> takes a combine strategy. The functional toolkit from the collections episode <em>is</em> the strategy pattern, sold without the label.
+
+  - id: class-based-strategies
+    title: "Class-based strategies — when behaviour carries state"
+    summary: |
+      So when do you reach for a whole class instead of a one-line function? The moment the strategy needs to <em>remember</em> something — configuration, dependencies, a name you'll reuse across the app.
+      <br><br>
+      A lambda is perfect for a throwaway rule. But a "10% bulk discount" strategy has state: the percentage. A class holds that cleanly.
+      <br><br>
+      <pre><code>abstract interface class PricingStrategy {
+        int priceFor(int subtotal);
+      }
+
+      class FullPrice implements PricingStrategy {
+        @override
+        int priceFor(int subtotal) =&gt; subtotal;
+      }
+
+      class BulkDiscount implements PricingStrategy {
+        final int percent;        // the state a lambda couldn't hold
+        BulkDiscount(this.percent);
+
+        @override
+        int priceFor(int subtotal) =&gt; subtotal - (subtotal * percent ~/ 100);
+      }</code></pre>
+      Now the discount is a thing you can construct, configure, store, and pass around — <code>BulkDiscount(10)</code> versus <code>BulkDiscount(25)</code>. Try squeezing that into an anonymous function and you'll be capturing variables and losing the name.
+      <br><br>
+      <strong>Rule of thumb:</strong> stateless and short, reach for a function; stateful, configurable, or reused, reach for a class. Both are the exact same pattern. You're only choosing how much structure the behaviour has earned.
+
+  - id: composition-over-inheritance
+    title: "The real lesson — composition over inheritance"
+    summary: |
+      Strategy is one face of a principle you'll hear forever in Flutter circles: <strong>favour composition over inheritance.</strong> This pattern is what that slogan actually looks like in code.
+      <br><br>
+      Inheritance answers "what kind of thing is this?" by making a subclass. That's fine when behaviour varies on one axis. But it rarely does. Payment method <em>and</em> pricing rule <em>and</em> currency — model each axis with subclasses and the count multiplies. Three payments times two pricings is six classes, and the next axis multiplies all six again.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Inheritance needs a subclass for every combination so class count multiplies, while composition picks one strategy per option so class count only adds" style="max-width: 100%; height: auto;"><style>.str4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.str4-title{font-size:16px;font-weight:600}.str4-bad{font-size:13px;font-weight:600;fill:#dc2626}.str4-good{font-size:13px;font-weight:600;fill:#10b981}.str4-h{font-size:12px;font-weight:600}.str4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.str4-label{font-size:11px;fill:#64748b}.str4-dots{font-size:18px;font-weight:700;fill:#94a3b8}</style><text x="360" y="28" text-anchor="middle" class="str4-t str4-title">Inheritance multiplies. Composition adds.</text><rect x="30" y="48" width="320" height="268" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="74" text-anchor="middle" class="str4-t str4-bad">A subclass per combination</text><rect x="148" y="88" width="84" height="30" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="190" y="108" text-anchor="middle" class="str4-t str4-h">Checkout</text><line x1="190" y1="118" x2="80" y2="146" stroke="#94a3b8" stroke-width="1.2"/><line x1="190" y1="118" x2="190" y2="146" stroke="#94a3b8" stroke-width="1.2"/><line x1="190" y1="118" x2="300" y2="146" stroke="#94a3b8" stroke-width="1.2"/><rect x="44" y="146" width="72" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.2" rx="5"/><text x="80" y="165" text-anchor="middle" class="str4-t str4-mn">Card</text><rect x="154" y="146" width="72" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.2" rx="5"/><text x="190" y="165" text-anchor="middle" class="str4-t str4-mn">PayPal</text><rect x="264" y="146" width="72" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.2" rx="5"/><text x="300" y="165" text-anchor="middle" class="str4-t str4-mn">UPI</text><line x1="80" y1="174" x2="62" y2="198" stroke="#94a3b8" stroke-width="1.2"/><line x1="80" y1="174" x2="104" y2="198" stroke="#94a3b8" stroke-width="1.2"/><rect x="30" y="198" width="68" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.2" rx="5"/><text x="64" y="217" text-anchor="middle" class="str4-t str4-mn">+ Full</text><rect x="104" y="198" width="74" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.2" rx="5"/><text x="141" y="217" text-anchor="middle" class="str4-t str4-mn">+ Disc</text><text x="190" y="218" text-anchor="middle" class="str4-t str4-dots">…</text><text x="300" y="218" text-anchor="middle" class="str4-t str4-dots">…</text><text x="190" y="268" text-anchor="middle" class="str4-t str4-h">Every combination is a class</text><text x="190" y="292" text-anchor="middle" class="str4-t str4-bad">3 × 2 = 6, and it multiplies</text><rect x="370" y="48" width="320" height="268" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="74" text-anchor="middle" class="str4-t str4-good">One option, one class</text><rect x="430" y="86" width="200" height="74" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="530" y="108" text-anchor="middle" class="str4-t str4-h">Checkout</text><text x="530" y="130" text-anchor="middle" class="str4-t str4-mn">pay:   [ Card ]</text><text x="530" y="148" text-anchor="middle" class="str4-t str4-mn">price: [ Full ]</text><text x="530" y="184" text-anchor="middle" class="str4-t str4-label">payment options</text><rect x="392" y="192" width="84" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.2" rx="5"/><text x="434" y="212" text-anchor="middle" class="str4-t str4-mn">Card</text><rect x="486" y="192" width="84" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.2" rx="5"/><text x="528" y="212" text-anchor="middle" class="str4-t str4-mn">PayPal</text><rect x="580" y="192" width="84" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.2" rx="5"/><text x="622" y="212" text-anchor="middle" class="str4-t str4-mn">UPI</text><text x="530" y="244" text-anchor="middle" class="str4-t str4-label">pricing options</text><rect x="440" y="252" width="84" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.2" rx="5"/><text x="482" y="272" text-anchor="middle" class="str4-t str4-mn">Full</text><rect x="534" y="252" width="110" height="30" fill="#d1fae5" stroke="#10b981" stroke-width="1.2" rx="5"/><text x="589" y="272" text-anchor="middle" class="str4-t str4-mn">Discount</text><text x="530" y="306" text-anchor="middle" class="str4-t str4-good">3 + 2 = 5, it just adds</text></svg>
+      <br><br>
+      Composition asks a different question: "what parts is this made of?" One <code>Checkout</code>, holding a payment strategy and a pricing strategy, each chosen on its own. Three plus two, not three times two. Add a fourth payment method and you write one class — not a fresh row of combinations.
+      <br><br>
+      Flutter is built on this from the ground up. You don't subclass <code>Container</code> to get a padded, bordered, rounded box. You <em>wrap</em> a <code>Padding</code> around a <code>DecoratedBox</code> around your child. Widgets are parts you assemble, not types you extend. Strategy is the same instinct, pointed at behaviour instead of layout.
+
+  - id: strategy-all-over-flutter
+    title: "Strategy is threaded through all of Flutter"
+    summary: |
+      Once the shape clicks, you start spotting strategies everywhere in the framework — including in widgets you already use every day.
+      <br>• <code>ListView.builder</code> takes an <code>itemBuilder</code> — a strategy for <em>how to build each row</em>.
+      <br>• <code>showDialog</code> takes a <code>builder</code> — a strategy for <em>what to put on screen</em>.
+      <br>• A scrollable takes <code>ScrollPhysics</code> — <code>BouncingScrollPhysics</code> for the iOS feel, <code>ClampingScrollPhysics</code> for Android. Swap the object, swap the behaviour.
+      <br>• <code>sort</code> takes a <code>Comparator</code>. An animation takes a <code>Curve</code>. A text field takes a list of <code>TextInputFormatter</code>s.
+      <br><br>
+      <pre><code>ListView.builder(
+        physics: const BouncingScrollPhysics(),   // scroll strategy
+        itemCount: messages.length,
+        itemBuilder: (context, i) =&gt; MessageTile(messages[i]),  // build strategy
+      )</code></pre>
+      None of these are subclasses of the widget that uses them. They're behaviours handed in from outside. That's exactly why one <code>ListView</code> can render a chat, a feed, or a settings page — you give it a different building strategy each time, and the list itself never changes.
+
+  - id: choosing-and-neighbours
+    title: "Choosing a form, and how Strategy relates to its neighbours"
+    summary: |
+      So how do you reach for this day to day? Start with the smallest thing that works and grow only when you must.
+      <br>• A one-off rule → a lambda, written inline.
+      <br>• A rule you reuse → a named function, passed as a tear-off.
+      <br>• Behaviour with state or config → a class implementing a small interface.
+      <br><br>
+      All three are the strategy pattern. You're only sliding along a scale of how much structure the behaviour has earned. Most Flutter code lives at the top of that list and never says the word "strategy" out loud.
+      <br><br>
+      <strong>Strategy versus the Observer we just met.</strong> Observer is about <em>who gets told</em> when something changes. Strategy is about <em>which behaviour runs</em> when something happens. Different questions — and you'll often use both on one screen: an observer notifies the UI that the cart changed, and a strategy decides how the checkout button behaves.
+      <br><br>
+      <strong>Strategy and first-class functions.</strong> In a language without them, this pattern needs the full interface-and-classes machinery every time. Dart hands you most of it for free, which is why so much Dart code passes a function and never names the pattern at all.
+      <br><br>
+      And that's the quiet truth of design patterns in Dart: half of them are already in your hands as functions. Naming them just tells you when you're holding one.
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on the strategy pattern — the problem it solves, function versus class strategies, composition over inheritance, and where it hides inside Flutter."
+  questions:
+    - question: "What problem does the strategy pattern solve?"
+      options:
+        - "It makes a single method run on a background isolate"
+        - "It lets you swap interchangeable behaviours at runtime without a growing if/else or a subclass per variant"
+        - "It guarantees only one instance of a class can exist"
+        - "It notifies listeners whenever a value changes"
+      correctIndex: 1
+      explanation: "Strategy pulls the part that varies into its own object so the context can swap behaviours at runtime. It replaces both the ever-growing if/else chain and the subclass-per-variant explosion, because the context depends on an interface rather than on concrete behaviour."
+    - question: "In the strategy pattern, what does the context depend on?"
+      options:
+        - "The concrete strategy classes directly"
+        - "A global registry of all strategies"
+        - "The strategy interface — never the concrete implementations"
+        - "Nothing; the context contains the behaviour itself"
+      correctIndex: 2
+      explanation: "The context holds a reference typed as the strategy interface and delegates to it. Because it never names the concrete classes, you can add or swap implementations without touching the context. That decoupling is the whole point of the pattern."
+    - question: "Why is a plain Dart function often enough to be a strategy?"
+      options:
+        - "Functions run faster than objects in Dart"
+        - "Functions are first-class, so a behaviour can be passed directly — Comparator is just int Function(T, T)"
+        - "Dart forbids interfaces, so functions are the only option"
+        - "Functions automatically cache their results"
+      correctIndex: 1
+      explanation: "A strategy is behaviour, and in Dart behaviour is a first-class value. You can pass a function straight into sort, where, or map without defining an interface. Dart even names the common case: Comparator<T> is an alias for int Function(T, T)."
+    - question: "When should you prefer a class over a function for a strategy?"
+      options:
+        - "Always — functions should never be used as strategies"
+        - "Only when the strategy will be called more than once"
+        - "When the strategy needs to carry state or configuration, or be reused with a name"
+        - "Never — a class strategy is an anti-pattern"
+      correctIndex: 2
+      explanation: "A lambda is ideal for a short, stateless rule. Reach for a class when the behaviour must remember something — like BulkDiscount(percent) holding its percentage — or when it needs a reusable name and constructor. Both are the same pattern; the class simply holds state a function can't carry cleanly."
+    - question: "Why does inheritance struggle when behaviour varies on several axes at once?"
+      options:
+        - "Subclasses are slower to construct than composed objects"
+        - "Dart does not support inheritance"
+        - "The number of subclasses multiplies — every combination of axes needs its own class"
+        - "Inherited methods cannot be overridden"
+      correctIndex: 2
+      explanation: "Model each axis with subclasses and you need a class for every combination: three payment methods times two pricing rules is six classes, and each new axis multiplies again. Composition picks one strategy per axis independently, so the class count only adds — three plus two is five."
+    - question: "Which of these Flutter APIs is an example of the strategy pattern?"
+      options:
+        - "ListView.builder's itemBuilder — a strategy for how to build each row"
+        - "The const keyword on a widget constructor"
+        - "Importing a package with the show keyword"
+        - "Marking a field final"
+      correctIndex: 0
+      explanation: "itemBuilder is a behaviour handed into ListView from outside — a strategy for building each row. ScrollPhysics, Comparator, Curve, and dialog builders are the same idea. None are subclasses of the widget that uses them, which is why one ListView can render wildly different screens."
+    - question: "How does the strategy pattern differ from the observer pattern?"
+      options:
+        - "They are two names for the same pattern"
+        - "Strategy decides which behaviour runs; observer decides who gets told when something changes"
+        - "Strategy works only in Flutter; observer works only in pure Dart"
+        - "Observer is for behaviour, strategy is for notifications"
+      correctIndex: 1
+      explanation: "Strategy is about selecting behaviour — which implementation runs when an action happens. Observer is about notification — who gets called back when state changes. They answer different questions and often appear together: an observer tells the UI the cart changed, while a strategy decides what the checkout button does."
+---
+
+{/* Design Patterns, Episode 2: The Strategy Pattern. Part of the Patterns: Composition series.
+    7 topics covering the problem (if/else and subclass explosion), the context/strategy split,
+    function-as-strategy, class-based strategies with state, composition over inheritance,
+    strategy across Flutter, and choosing a form plus the link to Observer. 4 inline SVG diagrams. */}

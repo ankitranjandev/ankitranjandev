@@ -1,0 +1,180 @@
+---
+title: "Closures in Swift — Capture Lists, Escaping, and Retain Cycles"
+description: "Closures are first-class reference types that capture the world around them. Those capture semantics are the source of both Swift's expressive power and its trickiest memory bugs."
+category: "Swift"
+color: "#F05138"
+subject: "Swift: Primitive Computation"
+order: 3
+publishedAt: 2026-06-04
+topics:
+  - id: functions-are-first-class
+    title: "Functions and closures are first-class"
+    summary: |
+      In Swift, a function is not a special, untouchable thing. It is a value. We can store it in a variable, pass it as an argument, and return it from another function. Anything we can do with an <code>Int</code> or a <code>String</code>, we can do with a function.
+      <br><br>
+      And here is the key idea that runs through this whole episode: a function is just a named closure. A closure is a self-contained block of code that can be passed around and called later. When we write <code>func greet()</code>, we are really giving a name to a closure. The anonymous block <code>{ print("hi") }</code> is the same kind of thing, only without a name.
+      <br><br>
+      <pre><code>func greet() {&#10;    print("Hello!")&#10;}&#10;&#10;let f = greet      // assign the function to a variable&#10;f()                // call it — prints "Hello!"&#10;&#10;let blocks = [greet, greet, greet]&#10;for block in blocks {&#10;    block()        // prints "Hello!" three times&#10;}</code></pre>
+      Because functions are values, they have <strong>types</strong>. A function type is written as the parameter types in parentheses, an arrow, then the return type. <code>(Int) -> Bool</code> is the type of any function that takes an <code>Int</code> and returns a <code>Bool</code>. <code>() -> Void</code> takes nothing and returns nothing. <code>(String, String) -> Bool</code> takes two strings and returns a bool.
+      <br><br>
+      <pre><code>let isEven: (Int) -> Bool = { n in n % 2 == 0 }&#10;let printer: (String) -> Void = { s in print(s) }&#10;&#10;func apply(_ value: Int, _ test: (Int) -> Bool) -> Bool {&#10;    return test(value)&#10;}&#10;&#10;apply(10, isEven)   // true</code></pre>
+      A little history for context. When Swift was unveiled at WWDC in 2014, Chris Lattner and the team made closures central to the language from day one. The <code>{ }</code> syntax with the <code>in</code> keyword was deliberately designed to read well at the call site, because Cocoa was already drowning in Objective-C blocks (which used the famously hard-to-remember <code>^</code> caret syntax). Swift's closures are the spiritual successor to those blocks, but with cleaner syntax and full type inference.
+
+  - id: closure-expression-syntax
+    title: "Closure expression syntax — from full to shorthand"
+    summary: |
+      Swift lets us write the same closure at several levels of brevity. The compiler fills in everything it can infer, so we are free to omit the obvious. Let's take sorting an array of names and peel the ceremony away one layer at a time.
+      <br><br>
+      We start with the full form: explicit parameter types, an explicit return type, the <code>in</code> keyword separating the signature from the body, and an explicit <code>return</code>.
+      <br><br>
+      <pre><code>let names = ["Chris", "Ada", "Brian"]&#10;&#10;// 1. Full form&#10;names.sorted(by: { (a: String, b: String) -> Bool in&#10;    return a &lt; b&#10;})</code></pre>
+      Because <code>sorted(by:)</code> already knows it wants a <code>(String, String) -> Bool</code>, the types are redundant. And a single-expression closure returns its value implicitly, so <code>return</code> goes too.
+      <br><br>
+      <pre><code>// 2. Inferred types, implicit return&#10;names.sorted(by: { a, b in a &lt; b })</code></pre>
+      Swift gives every closure automatic <strong>shorthand argument names</strong>: <code>$0</code>, <code>$1</code>, <code>$2</code>, and so on. Once we use them, we can drop the parameter list and the <code>in</code> entirely.
+      <br><br>
+      <pre><code>// 3. Shorthand argument names&#10;names.sorted(by: { $0 &lt; $1 })</code></pre>
+      Finally, when a closure is the <em>last</em> argument to a function, we can lift it outside the parentheses as a <strong>trailing closure</strong>. If it is the only argument, the parentheses vanish completely.
+      <br><br>
+      <pre><code>// 4. Trailing closure&#10;names.sorted { $0 &lt; $1 }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Four stages of simplifying a Swift closure passed to sorted by, from full syntax down to a trailing closure" style="max-width: 100%; height: auto;"><style>.sclo4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sclo4-title{font-size:16px;font-weight:600}.sclo4-step{font-size:12px;font-weight:700;fill:#C7411F}.sclo4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;fill:#1e293b}.sclo4-note{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="sclo4-t sclo4-title">The same closure, peeled down to its essentials</text><rect x="40" y="46" width="640" height="58" fill="#FFE9E2" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="58" y="70" class="sclo4-t sclo4-step">1. Full form</text><text x="58" y="92" class="sclo4-t sclo4-mn">names.sorted(by: { (a: String, b: String) -> Bool in return a &lt; b })</text><rect x="40" y="116" width="640" height="58" fill="#FFE9E2" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="58" y="140" class="sclo4-t sclo4-step">2. Infer types, drop return</text><text x="58" y="162" class="sclo4-t sclo4-mn">names.sorted(by: { a, b in a &lt; b })</text><rect x="40" y="186" width="640" height="58" fill="#FFE9E2" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="58" y="210" class="sclo4-t sclo4-step">3. Shorthand argument names</text><text x="58" y="232" class="sclo4-t sclo4-mn">names.sorted(by: { $0 &lt; $1 })</text><rect x="40" y="256" width="640" height="58" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="58" y="280" class="sclo4-t sclo4-step" fill="#059669">4. Trailing closure</text><text x="58" y="302" class="sclo4-t sclo4-mn">names.sorted { $0 &lt; $1 }</text><text x="360" y="340" text-anchor="middle" class="sclo4-t sclo4-note">Each step removes ceremony the compiler can already work out for itself.</text></svg>
+      <br><br>
+      This is why so much Swift reads cleanly. <code>names.sorted { $0 &lt; $1 }</code> says exactly what it does with no noise. Swift 5.3 went one step further with <strong>multiple trailing closures</strong> (proposal SE-0279). When a function takes several closure arguments, the first is unlabelled and the rest are labelled, which is why SwiftUI can write <code>Button { save() } label: { Text("Save") }</code>.
+
+  - id: capturing-the-environment
+    title: "Capturing the environment"
+    summary: |
+      Here is what makes a closure more than a bare block of code. A closure <strong>captures</strong> the variables it references from the surrounding scope. By default it captures them by reference, which means it can both read <em>and</em> write them — and it keeps doing so even after the enclosing function has returned.
+      <br><br>
+      The classic demonstration is a counter maker. We write a function that returns a closure, and that closure keeps mutating a variable that, on paper, should have stopped existing the moment the outer function returned.
+      <br><br>
+      <pre><code>func makeCounter() -> () -> Int {&#10;    var count = 0&#10;    return {&#10;        count += 1&#10;        return count&#10;    }&#10;}&#10;&#10;let counter = makeCounter()&#10;print(counter())   // 1&#10;print(counter())   // 2&#10;print(counter())   // 3</code></pre>
+      The inner closure captured <code>count</code>. Even though <code>makeCounter()</code> has returned, the closure still holds a live reference to that variable and goes on incrementing it. Each fresh call to <code>makeCounter()</code> creates a new, independent <code>count</code>, so two counters never tread on each other.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="A closure carrying its captured count variable out of the makeCounter scope" style="max-width: 100%; height: auto;"><style>.sclo1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sclo1-title{font-size:16px;font-weight:600}.sclo1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.sclo1-label{font-size:12px;fill:#64748b}.sclo1-note{font-size:13px;fill:#475569;font-weight:500}</style><text x="360" y="26" text-anchor="middle" class="sclo1-t sclo1-title">A closure carries its captured environment with it</text><rect x="40" y="55" width="280" height="120" fill="#FFE9E2" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="180" y="78" text-anchor="middle" class="sclo1-t sclo1-note">makeCounter() scope</text><rect x="60" y="95" width="100" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="110" y="120" text-anchor="middle" class="sclo1-t sclo1-mn">count = 0</text><text x="110" y="140" text-anchor="middle" class="sclo1-t sclo1-label">variable</text><rect x="180" y="95" width="120" height="60" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="4"/><text x="240" y="120" text-anchor="middle" class="sclo1-t sclo1-mn">{ count += 1 }</text><text x="240" y="140" text-anchor="middle" class="sclo1-t sclo1-label">inner closure</text><line x1="180" y1="125" x2="160" y2="125" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/><text x="170" y="113" text-anchor="middle" class="sclo1-t sclo1-label" font-size="10">captures</text><line x1="320" y1="125" x2="378" y2="125" stroke="#475569" stroke-width="2" marker-end="url(#sclo1-arrow)"/><text x="350" y="114" text-anchor="middle" class="sclo1-t sclo1-label">return</text><rect x="400" y="55" width="280" height="120" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="78" text-anchor="middle" class="sclo1-t sclo1-note">The returned closure</text><rect x="420" y="95" width="120" height="60" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="4"/><text x="480" y="120" text-anchor="middle" class="sclo1-t sclo1-mn">{ count += 1 }</text><text x="480" y="140" text-anchor="middle" class="sclo1-t sclo1-label">closure</text><rect x="560" y="95" width="100" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/><text x="610" y="120" text-anchor="middle" class="sclo1-t sclo1-mn">count = 0</text><text x="610" y="140" text-anchor="middle" class="sclo1-t sclo1-label">captured</text><line x1="540" y1="125" x2="560" y2="125" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/><text x="540" y="212" text-anchor="middle" class="sclo1-t sclo1-note">The variable lives on after the scope returns</text><text x="540" y="236" text-anchor="middle" class="sclo1-t sclo1-label">Each call to makeCounter() builds a fresh closure</text><text x="540" y="256" text-anchor="middle" class="sclo1-t sclo1-label">with its own independent count.</text><defs><marker id="sclo1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      Capturing by reference is what makes this work, but it is also where surprises hide. Because the closure shares the <em>same</em> variable rather than a snapshot, anything that mutates that variable later is visible inside the closure. That is the difference between capturing a reference and capturing a value, and it is exactly what capture lists let us control.
+
+  - id: capture-lists
+    title: "Capture lists — snapshotting and controlling references"
+    summary: |
+      What if we do not want the live, shared reference? What if we want the closure to remember a value as it was at the moment of creation? That is what a <strong>capture list</strong> is for. We write the names we care about in square brackets right at the start of the closure.
+      <br><br>
+      <pre><code>var x = 10&#10;&#10;let snapshot = { [x] in print(x) }   // captures a copy of x: 10&#10;let live     = { print(x) }          // captures x by reference&#10;&#10;x = 99&#10;snapshot()   // 10 — frozen at creation time&#10;live()       // 99 — sees the current value</code></pre>
+      The <code>[x]</code> capture list says "take the current value of <code>x</code> and stash a copy inside the closure." The closure that captures <code>x</code> implicitly, with no capture list, shares the real variable and so reports its later value.
+      <br><br>
+      Capture lists matter most for <strong>reference types</strong> — classes. By default a closure captures a class instance strongly, which keeps it alive. We can change that with two keywords inside the capture list:
+      <br><br>
+      • <code>[weak self]</code> captures <code>self</code> as an <em>optional</em> weak reference. It does not keep <code>self</code> alive, and becomes <code>nil</code> if <code>self</code> has been deallocated.<br>
+      • <code>[unowned self]</code> captures <code>self</code> without keeping it alive either, but assumes <code>self</code> will still exist when the closure runs. If it does not, the program crashes — so use it only when you are certain of the lifetime.<br><br>
+      <pre><code>final class Downloader {&#10;    var onFinish: (() -> Void)?&#10;&#10;    func start() {&#10;        // weak: self may be gone by the time this runs&#10;        onFinish = { [weak self] in&#10;            self?.cleanUp()&#10;        }&#10;    }&#10;&#10;    func cleanUp() { print("done") }&#10;}</code></pre>
+      So we have two distinct tools wearing the same bracket syntax. For value types, a capture list <em>snapshots</em> the value. For reference types, it lets us choose <em>how</em> the reference is held — strongly, weakly, or unowned. Getting this choice right is the whole game when it comes to memory, which is exactly where we are heading.
+
+  - id: escaping-vs-nonescaping
+    title: "Escaping vs non-escaping closures"
+    summary: |
+      Swift draws a sharp line between two kinds of closure parameters, and the distinction is about <em>lifetime</em>: does the closure outlive the function call it was passed into, or not?
+      <br><br>
+      A <strong>non-escaping</strong> closure is called before the function returns and is never stored anywhere. Think of <code>map</code> or <code>sorted(by:)</code> — they run the closure right there and then throw it away. Since Swift 3 (proposal SE-0103), closures are non-escaping by <em>default</em>. We write nothing special.
+      <br><br>
+      An <strong>escaping</strong> closure may be stored for later or run after the function has already returned. Completion handlers, stored callbacks, anything pushed onto a queue — these all escape. We mark such a parameter with <code>@escaping</code>, and the compiler insists on it.
+      <br><br>
+      <pre><code>// Non-escaping: runs now, then gone&#10;func transform(_ x: Int, with f: (Int) -> Int) -> Int {&#10;    return f(x)&#10;}&#10;&#10;// Escaping: stored to run later&#10;var handlers: [() -> Void] = []&#10;func defer(_ work: @escaping () -> Void) {&#10;    handlers.append(work)   // escapes — outlives this call&#10;}</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="Timeline comparing a non-escaping closure that runs within the call to an escaping closure stored and run after the call returns" style="max-width: 100%; height: auto;"><style>.sclo2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sclo2-title{font-size:16px;font-weight:600}.sclo2-head{font-size:14px;font-weight:700}.sclo2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.sclo2-label{font-size:12px;fill:#64748b}.sclo2-note{font-size:12px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="sclo2-t sclo2-title">Non-escaping lives within the call; escaping outlives it</text><text x="40" y="64" class="sclo2-t sclo2-head" fill="#10b981">Non-escaping (the default)</text><line x1="40" y1="80" x2="680" y2="80" stroke="#94a3b8" stroke-width="2"/><line x1="120" y1="74" x2="120" y2="86" stroke="#475569" stroke-width="2"/><line x1="520" y1="74" x2="520" y2="86" stroke="#475569" stroke-width="2"/><text x="120" y="104" text-anchor="middle" class="sclo2-t sclo2-label">call begins</text><text x="520" y="104" text-anchor="middle" class="sclo2-t sclo2-label">call returns</text><rect x="160" y="112" width="280" height="34" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="300" y="134" text-anchor="middle" class="sclo2-t sclo2-mn">closure runs here, then is done</text><text x="40" y="186" class="sclo2-t sclo2-head" fill="#F05138">@escaping</text><line x1="40" y1="202" x2="680" y2="202" stroke="#94a3b8" stroke-width="2"/><line x1="120" y1="196" x2="120" y2="208" stroke="#475569" stroke-width="2"/><line x1="420" y1="196" x2="420" y2="208" stroke="#475569" stroke-width="2"/><text x="120" y="226" text-anchor="middle" class="sclo2-t sclo2-label">call begins</text><text x="420" y="226" text-anchor="middle" class="sclo2-t sclo2-label">call returns</text><rect x="150" y="234" width="200" height="34" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="6"/><text x="250" y="256" text-anchor="middle" class="sclo2-t sclo2-mn">stored for later</text><rect x="470" y="234" width="200" height="34" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="6"/><text x="570" y="256" text-anchor="middle" class="sclo2-t sclo2-mn">invoked after return</text><line x1="350" y1="251" x2="468" y2="251" stroke="#C7411F" stroke-width="2" stroke-dasharray="5 3"/><text x="360" y="300" text-anchor="middle" class="sclo2-t sclo2-note">A non-escaping closure cannot outlive the call, so the optimiser need not heap-allocate or retain it.</text><text x="360" y="320" text-anchor="middle" class="sclo2-t sclo2-note">An escaping closure may, so the compiler keeps it alive and that is where retain cycles can form.</text></svg>
+      <br><br>
+      Why make non-escaping the default? Two reasons. First, the optimiser. If the compiler knows a closure cannot escape, it can keep its captures on the stack and avoid heap allocation and reference-counting overhead entirely. Second, safety. A non-escaping closure that captures <code>self</code> cannot create a long-lived reference cycle, because it simply does not live long enough — which is why we are never asked to write <code>[weak self]</code> inside a plain <code>map</code>. The danger only appears once a closure can escape, and Swift makes that danger visible by forcing the <code>@escaping</code> annotation.
+
+  - id: retain-cycles
+    title: "Retain cycles — the most common real-world Swift memory bug"
+    summary: |
+      Here it is, the bug that catches every Swift developer eventually. An escaping closure is stored on an object, and that closure captures <code>self</code> strongly. Now <code>self</code> holds the closure, and the closure holds <code>self</code>. Each keeps the other's reference count above zero, ARC sees neither as garbage, and the pair leaks forever.
+      <br><br>
+      <pre><code>final class ViewModel {&#10;    var onUpdate: (() -> Void)?&#10;&#10;    func configure() {&#10;        // self → onUpdate → self : a strong cycle&#10;        onUpdate = {&#10;            self.refresh()&#10;        }&#10;    }&#10;&#10;    func refresh() { /* ... */ }&#10;    deinit { print("freed") }   // never prints!&#10;}</code></pre>
+      The <code>deinit</code> never runs. The object is unreachable from the outside, yet ARC cannot collect it because the closure is still holding a strong reference back to it. This is a textbook <strong>retain cycle</strong>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="A strong reference cycle between self and a stored closure, and how weak self breaks the loop" style="max-width: 100%; height: auto;"><style>.sclo3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sclo3-title{font-size:16px;font-weight:600}.sclo3-head{font-size:14px;font-weight:700}.sclo3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px}.sclo3-label{font-size:12px;fill:#64748b}.sclo3-strong{font-size:11px;font-weight:700;fill:#dc2626}.sclo3-weak{font-size:11px;font-weight:700;fill:#059669}.sclo3-note{font-size:12px;fill:#475569}</style><text x="360" y="26" text-anchor="middle" class="sclo3-t sclo3-title">The retain cycle, and how [weak self] breaks it</text><text x="180" y="60" text-anchor="middle" class="sclo3-t sclo3-head" fill="#dc2626">Strong cycle — leaks</text><rect x="70" y="80" width="120" height="60" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="130" y="106" text-anchor="middle" class="sclo3-t sclo3-mn">self</text><text x="130" y="126" text-anchor="middle" class="sclo3-t sclo3-label">object</text><rect x="70" y="200" width="120" height="60" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="6"/><text x="130" y="226" text-anchor="middle" class="sclo3-t sclo3-mn">{ self... }</text><text x="130" y="246" text-anchor="middle" class="sclo3-t sclo3-label">stored closure</text><line x1="112" y1="140" x2="112" y2="200" stroke="#dc2626" stroke-width="2.5" marker-end="url(#sclo3-redarrow)"/><line x1="148" y1="200" x2="148" y2="140" stroke="#dc2626" stroke-width="2.5" marker-end="url(#sclo3-redarrow)"/><text x="60" y="174" text-anchor="end" class="sclo3-t sclo3-strong">strong</text><text x="200" y="174" text-anchor="start" class="sclo3-t sclo3-strong">strong</text><text x="130" y="288" text-anchor="middle" class="sclo3-t sclo3-note">Neither count reaches zero.</text><text x="130" y="306" text-anchor="middle" class="sclo3-t sclo3-note">ARC never frees them.</text><line x1="330" y1="170" x2="380" y2="170" stroke="#475569" stroke-width="2" marker-end="url(#sclo3-arrow)"/><text x="540" y="60" text-anchor="middle" class="sclo3-t sclo3-head" fill="#059669">[weak self] — freed</text><rect x="480" y="80" width="120" height="60" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="540" y="106" text-anchor="middle" class="sclo3-t sclo3-mn">self</text><text x="540" y="126" text-anchor="middle" class="sclo3-t sclo3-label">object</text><rect x="480" y="200" width="120" height="60" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="6"/><text x="540" y="226" text-anchor="middle" class="sclo3-t sclo3-mn">{ self?... }</text><text x="540" y="246" text-anchor="middle" class="sclo3-t sclo3-label">stored closure</text><line x1="522" y1="140" x2="522" y2="200" stroke="#10b981" stroke-width="2.5" marker-end="url(#sclo3-greenarrow)"/><line x1="558" y1="200" x2="558" y2="140" stroke="#10b981" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#sclo3-greenarrow)"/><text x="470" y="174" text-anchor="end" class="sclo3-t sclo3-strong">strong</text><text x="610" y="174" text-anchor="start" class="sclo3-t sclo3-weak">weak</text><text x="540" y="288" text-anchor="middle" class="sclo3-t sclo3-note">The weak edge does not retain.</text><text x="540" y="306" text-anchor="middle" class="sclo3-t sclo3-note">self can deallocate as normal.</text><defs><marker id="sclo3-redarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker><marker id="sclo3-greenarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker><marker id="sclo3-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs></svg>
+      <br><br>
+      We break the cycle with a capture list. <code>[weak self]</code> turns <code>self</code> into a weak optional inside the closure, so the closure no longer keeps the object alive. Because it is now optional, we unwrap it — usually with the <code>guard let self else { return }</code> dance at the top of the closure, which gives us a strong local <code>self</code> for the rest of the body if the object is still around.
+      <br><br>
+      <pre><code>onUpdate = { [weak self] in&#10;    guard let self else { return }&#10;    self.refresh()&#10;}</code></pre>
+      The alternative is <code>[unowned self]</code>, which avoids the optional and reads more cleanly — but it is a promise to the compiler that <code>self</code> will still be alive when the closure fires. Break that promise and you get a crash, not a leak. Reach for <code>weak</code> when the lifetime is uncertain (network callbacks, timers), and <code>unowned</code> only when <code>self</code> provably outlives the closure. As a rule, if you store an escaping closure on an object and reference <code>self</code> inside it, assume you have a cycle until you have proven otherwise.
+
+  - id: functional-toolkit-and-trivia
+    title: "The functional toolkit, and a little trivia"
+    summary: |
+      Closures are the fuel for Swift's higher-order functions — functions that take other functions as arguments. The standard library leans on them heavily, and once the shorthand syntax is second nature, these read almost like English.
+      <br><br>
+      <pre><code>let nums = [1, 2, 3, 4, 5]&#10;&#10;nums.map { $0 * 2 }            // [2, 4, 6, 8, 10]&#10;nums.filter { $0 % 2 == 0 }    // [2, 4]&#10;nums.reduce(0) { $0 + $1 }     // 15&#10;&#10;let raw = ["1", "x", "3"]&#10;raw.compactMap { Int($0) }     // [1, 3] — drops nils&#10;&#10;let nested = [[1, 2], [3], [4, 5]]&#10;nested.flatMap { $0 }          // [1, 2, 3, 4, 5] — one level flatter</code></pre>
+      Each of these takes a closure and applies it across the collection. <code>map</code> transforms, <code>filter</code> keeps what passes a test, <code>reduce</code> folds everything into a single value, <code>compactMap</code> maps then quietly discards any <code>nil</code> results, and <code>flatMap</code> maps then concatenates one level of nesting away.
+      <br><br>
+      Two facts worth keeping in your pocket. First, <strong>closures are reference types</strong>. Assign a closure to two variables and they point at the same underlying object, captured state and all — which is precisely why ARC manages closures and why retain cycles are even possible. Second, <strong><code>@autoclosure</code></strong>. It wraps a plain expression in a <code>() -> T</code> closure automatically, so an argument is not evaluated until it is actually needed. This is the trick behind lazy evaluation in the standard library:
+      <br><br>
+      <pre><code>// The nil-coalescing operator only evaluates the default if needed&#10;func ?? &lt;T&gt;(value: T?, defaultValue: @autoclosure () -> T) -> T {&#10;    if let value { return value } else { return defaultValue() }&#10;}&#10;&#10;let name = optionalName ?? expensiveDefault()   // expensiveDefault() runs only if nil</code></pre>
+      The same mechanism powers <code>assert</code>, whose condition is skipped entirely in release builds. To close, a quick contrast with Dart, the subject of our sibling series. Both languages give us first-class closures that capture by reference, and both lean on <code>map</code> and friends. But Dart relies on a tracing garbage collector, so it has no retain cycles and no need for capture lists or <code>weak</code> references at all. Swift trades that convenience for deterministic, immediate deallocation through ARC — and the price of that determinism is the very capture-list discipline this episode has been about.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering first-class closures, capture lists, escaping, retain cycles, and the functional toolkit."
+  questions:
+    - question: "What is the type of a closure that takes two Int arguments and returns a Bool?"
+      options:
+        - "Bool(Int, Int)"
+        - "(Int, Int) -> Bool"
+        - "func(Int, Int): Bool"
+        - "Closure<Int, Int, Bool>"
+      correctIndex: 1
+      explanation: "Swift function and closure types are written as the parameter types in parentheses, then an arrow, then the return type: (Int, Int) -> Bool. A function is just a named closure, so both share this type syntax."
+    - question: "In the closure { $0 < $1 }, what are $0 and $1?"
+      options:
+        - "Global variables defined elsewhere"
+        - "Shorthand argument names the compiler provides automatically"
+        - "Captured variables from the outer scope"
+        - "Optional unwrapping placeholders"
+      correctIndex: 1
+      explanation: "Swift gives every closure automatic shorthand argument names $0, $1, $2, and so on. Using them lets you omit the explicit parameter list and the 'in' keyword entirely, which is why names.sorted { $0 < $1 } reads so cleanly."
+    - question: "What does this print?  var x = 10; let c = { print(x) }; x = 20; c()"
+      options:
+        - "10"
+        - "20"
+        - "It does not compile"
+        - "nil"
+      correctIndex: 1
+      explanation: "With no capture list, the closure captures x by reference — it shares the actual variable rather than a snapshot. By the time c() runs, x is 20, so it prints 20. Writing { [x] in print(x) } instead would capture a copy and print 10."
+    - question: "What is the difference between [weak self] and [unowned self] in a capture list?"
+      options:
+        - "weak self is faster; unowned self is safer"
+        - "weak self captures an optional that becomes nil if self is deallocated; unowned self is non-optional and crashes if self is already gone"
+        - "They are identical aliases"
+        - "weak self snapshots a copy; unowned self captures by reference"
+      correctIndex: 1
+      explanation: "[weak self] makes self an optional weak reference that becomes nil when self is deallocated, so you must unwrap it. [unowned self] is non-optional and does not keep self alive, but assumes self outlives the closure — if it does not, the program crashes. Use weak when the lifetime is uncertain, unowned only when self provably outlives the closure."
+    - question: "Since Swift 3, are closure parameters escaping or non-escaping by default?"
+      options:
+        - "Escaping by default; you write @nonescaping to opt out"
+        - "Non-escaping by default; you write @escaping to allow storing or deferring the closure"
+        - "It depends on whether the closure captures self"
+        - "There is no default — every closure parameter must be annotated"
+      correctIndex: 1
+      explanation: "Since Swift 3 (proposal SE-0103), closures are non-escaping by default. You add @escaping when the closure may be stored or run after the function returns, such as a completion handler. The default helps the optimiser keep captures on the stack and prevents accidental long-lived reference cycles."
+    - question: "Why does a stored closure that captures self strongly cause a memory leak?"
+      options:
+        - "Closures are never deallocated in Swift"
+        - "self holds the closure and the closure holds self, so neither reference count reaches zero and ARC cannot free either"
+        - "The garbage collector runs too infrequently"
+        - "Capturing self always copies the entire object"
+      correctIndex: 1
+      explanation: "It creates a retain cycle. self strongly holds the stored closure, and the closure strongly holds self. Each keeps the other's reference count above zero, so ARC never deallocates them even when nothing else references the object. Breaking the cycle with [weak self] removes one of the strong edges."
+    - question: "What does @autoclosure do to a function argument?"
+      options:
+        - "It automatically runs the closure on a background thread"
+        - "It wraps a plain expression in a () -> T closure so it is not evaluated until needed"
+        - "It marks the closure as escaping automatically"
+        - "It captures all surrounding variables automatically"
+      correctIndex: 1
+      explanation: "@autoclosure wraps an argument expression in a () -> T closure automatically, deferring its evaluation until the function actually calls it. This powers lazy evaluation in the standard library: the ?? operator only evaluates its default value if the left side is nil, and assert skips its condition in release builds."
+---
+
+{/* Episode 3: Closures in Swift. Part of the Swift: Primitive Computation series.
+    7 topics covering first-class closures, closure expression syntax, capturing
+    the environment, capture lists, escaping vs non-escaping, retain cycles, and
+    the functional toolkit. 4 inline SVG diagrams. */}

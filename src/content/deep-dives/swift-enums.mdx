@@ -1,0 +1,192 @@
+---
+title: "Enums in Swift — Associated Values, Pattern Matching, and Algebraic Data Types"
+description: "Swift enums are not just named integers. They are full sum types that can carry data, model state precisely, and let the compiler prove your switch is complete."
+category: "Swift"
+color: "#F05138"
+subject: "Swift: Primitive Computation"
+order: 2
+publishedAt: 2026-06-04
+topics:
+  - id: enums-as-named-values
+    title: "Enums as named values — breaking from C"
+    summary: |
+      If you have written any C, you already have a mental model of an enum. In C, an enum is just a set of named integers. You write <code>enum Direction { NORTH, SOUTH, EAST, WEST }</code> and the compiler quietly hands each name a number — NORTH is 0, SOUTH is 1, and so on. The names are a convenience for the human; underneath, it is all just <code>int</code>. That means a C enum will happily compare equal to a stray integer, and you can pass <code>42</code> where a <code>Direction</code> was expected without a peep from the compiler.
+      <br><br>
+      Swift breaks from this heritage on day one. A Swift enum case is its own thing — a distinct value of a distinct type, not a thin disguise over an integer.
+      <br><br>
+      <pre><code>enum Direction {&#10;    case north&#10;    case south&#10;    case east&#10;    case west&#10;}&#10;&#10;let heading = Direction.north&#10;// heading is a Direction, full stop.&#10;// There is no hidden integer to leak out.</code></pre>
+      So what if we genuinely do want an underlying integer, or a string, or a character? Swift lets us ask for one explicitly, through a <strong>raw value</strong>. We declare the raw type after the enum name, and Swift conforms the enum to the <code>RawRepresentable</code> protocol.
+      <br><br>
+      <pre><code>enum Planet: Int {&#10;    case mercury = 1&#10;    case venus       // 2, auto-incremented&#10;    case earth       // 3&#10;    case mars        // 4&#10;}&#10;&#10;Planet.earth.rawValue   // 3&#10;&#10;enum Suit: String {&#10;    case hearts, diamonds, clubs, spades&#10;    // raw values default to the case names: "hearts", ...&#10;}&#10;Suit.spades.rawValue    // "spades"</code></pre>
+      Notice the difference in attitude. The raw value is something we opt into, and it lives behind <code>.rawValue</code> rather than being the value itself. Going the other way — from a raw value back to a case — is where Swift shows its hand on safety. What should happen if we hand it a number that matches no case?
+      <br><br>
+      <pre><code>let p = Planet(rawValue: 3)    // Optional(Planet.earth)&#10;let q = Planet(rawValue: 99)   // nil — there is no planet 99</code></pre>
+      The initialiser <code>init?(rawValue:)</code> is failable. It returns an <code>Optional</code>, because the lookup might fail, and Swift refuses to pretend otherwise. Compare that to C, where casting a bad integer to an enum is undefined territory you only discover at runtime. Here the possibility of failure is right there in the type. Already, before we have touched a single advanced feature, the Swift enum is a more honest tool than its C ancestor.
+
+  - id: associated-values-sum-types
+    title: "Associated values — enums become sum types"
+    summary: |
+      Raw values attach a single fixed constant to each case. But what if a case needs to carry data that varies from one value to the next — data that is only known at runtime? That is where Swift enums take a leap that C never could. Each case can carry its own <strong>associated values</strong>: a little payload of any types you like.
+      <br><br>
+      <pre><code>enum Barcode {&#10;    case upc(Int, Int, Int, Int)&#10;    case qr(String)&#10;}&#10;&#10;var code = Barcode.upc(8, 85909, 51226, 3)&#10;code = .qr("ABCDEFGHIJKLMNOP")&#10;// Same variable, same type — but the .upc case&#10;// carries four Ints and the .qr case carries a String.</code></pre>
+      This is a profound shift. A <code>Barcode</code> is now "either a UPC with four numbers, or a QR code with a string." It is one type that is the <em>sum</em> of several shapes. In type-theory language this is a <strong>sum type</strong>, and combined with the structs Swift uses for <em>product</em> types, it makes the Swift enum a genuine <strong>algebraic data type</strong>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" style="max-width: 100%; height: auto;" role="img" aria-label="A Shape enum as an algebraic sum type with circle and rectangle cases each carrying their own data"><defs><marker id="senum2-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker></defs><style>.senum2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.senum2-title{font-size:16px;font-weight:600}.senum2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.senum2-val{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.senum2-cap{font-size:11px;fill:#64748b}.senum2-sum{font-size:13px;font-weight:700;fill:#C7411F}.senum2-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="senum2-t senum2-title">An algebraic data type: Shape is a sum of cases</text><rect x="270" y="48" width="180" height="50" fill="#FFE9E2" stroke="#C7411F" stroke-width="2" rx="8"/><text x="360" y="70" text-anchor="middle" class="senum2-t senum2-mn" font-weight="700">enum Shape</text><text x="360" y="88" text-anchor="middle" class="senum2-t senum2-sum">circle OR rectangle OR point</text><line x1="300" y1="98" x2="150" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#senum2-arrow)"/><line x1="360" y1="98" x2="360" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#senum2-arrow)"/><line x1="420" y1="98" x2="570" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#senum2-arrow)"/><rect x="40" y="145" width="200" height="95" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="140" y="170" text-anchor="middle" class="senum2-t senum2-mn" font-weight="700">.circle</text><line x1="60" y1="182" x2="220" y2="182" stroke="#10b981" stroke-width="1"/><text x="60" y="204" class="senum2-t senum2-val">radius: Double</text><text x="60" y="226" class="senum2-t senum2-cap">one payload value</text><rect x="260" y="145" width="200" height="95" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/><text x="360" y="170" text-anchor="middle" class="senum2-t senum2-mn" font-weight="700">.rectangle</text><line x1="280" y1="182" x2="440" y2="182" stroke="#f59e0b" stroke-width="1"/><text x="280" y="204" class="senum2-t senum2-val">width: Double</text><text x="280" y="226" class="senum2-t senum2-val">height: Double</text><rect x="480" y="145" width="200" height="95" fill="#e9d5ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="580" y="170" text-anchor="middle" class="senum2-t senum2-mn" font-weight="700">.point</text><line x1="500" y1="182" x2="660" y2="182" stroke="#9333ea" stroke-width="1"/><text x="500" y="204" class="senum2-t senum2-val">no payload</text><text x="500" y="226" class="senum2-t senum2-cap">a bare case</text><text x="360" y="270" text-anchor="middle" class="senum2-t senum2-note">Each case carries differently-typed data. A value is exactly one of them.</text><text x="360" y="300" text-anchor="middle" class="senum2-t senum2-cap">This is the sum-type lineage from ML and Haskell, brought into Swift.</text></svg>
+      <br><br>
+      The lineage here runs deep. Sum types were pioneered by the ML family of languages in the 1970s and made famous by Haskell, where the type <code>data Maybe a = Nothing | Just a</code> reads almost exactly like a Swift enum. When Chris Lattner and the Swift team designed the language in the early 2010s, they pulled this idea straight out of functional programming and gave it the friendly C-style keyword <code>enum</code>. The name is a historical accident; the substance is pure ADT.
+      <br><br>
+      You have almost certainly used this without noticing. Swift's <code>Result</code> type is nothing more than an enum with two payload-carrying cases.
+      <br><br>
+      <pre><code>enum Result&lt;Success, Failure: Error&gt; {&#10;    case success(Success)&#10;    case failure(Failure)&#10;}&#10;&#10;func loadUser() -&gt; Result&lt;User, NetworkError&gt; {&#10;    // ...&#10;    return .success(user)&#10;    // or: return .failure(.timedOut)&#10;}</code></pre>
+      One value that is either a success carrying data or a failure carrying an error. That is a sum type doing real work, and it is the same machinery as our humble <code>Barcode</code>.
+
+  - id: pattern-matching-switch
+    title: "Pattern matching — switch and exhaustiveness"
+    summary: |
+      An enum that carries data is only half the story. We need a way to ask "which case is this, and what is inside it?" In Swift that question is answered with <code>switch</code>, and switching over an enum is where the safety guarantees really land. A <code>switch</code> over an enum must be <strong>exhaustive</strong>: it has to handle every case, or the code will not compile.
+      <br><br>
+      <pre><code>enum Direction { case north, south, east, west }&#10;&#10;func arrow(for d: Direction) -&gt; String {&#10;    switch d {&#10;    case .north: return "↑"&#10;    case .south: return "↓"&#10;    case .east:  return "→"&#10;    case .west:  return "←"&#10;    }&#10;    // No default needed — the compiler can see all four cases.&#10;}</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="An exhaustive switch over a Swift enum, where the compiler proves every case is handled"><style>.senum3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.senum3-title{font-size:16px;font-weight:600}.senum3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.senum3-lbl{font-size:11px;fill:#475569}.senum3-good{font-size:12px;fill:#059669;font-weight:600}.senum3-warn{font-size:12px;fill:#dc2626;font-weight:600}.senum3-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="senum3-t senum3-title">switch must be exhaustive — the compiler checks it</text><rect x="40" y="50" width="420" height="190" fill="#f0fdf4" stroke="#10b981" stroke-width="2" rx="8"/><text x="60" y="78" class="senum3-t senum3-mn">switch direction {</text><text x="80" y="102" class="senum3-t senum3-mn">case .north: return "up"</text><text x="80" y="126" class="senum3-t senum3-mn">case .south: return "down"</text><text x="80" y="150" class="senum3-t senum3-mn">case .east:  return "right"</text><text x="80" y="174" class="senum3-t senum3-mn">case .west:  return "left"</text><text x="60" y="200" class="senum3-t senum3-mn">}</text><text x="60" y="226" class="senum3-t senum3-lbl">// no default needed</text><rect x="490" y="70" width="190" height="70" fill="#dcfce7" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="585" y="98" text-anchor="middle" class="senum3-t senum3-good">All 4 cases covered</text><text x="585" y="118" text-anchor="middle" class="senum3-t senum3-lbl">Compiler verified</text><rect x="490" y="160" width="190" height="80" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="585" y="186" text-anchor="middle" class="senum3-t senum3-warn">Drop one case?</text><text x="585" y="206" text-anchor="middle" class="senum3-t senum3-lbl">"switch must be</text><text x="585" y="224" text-anchor="middle" class="senum3-t senum3-lbl">exhaustive" error</text><rect x="40" y="258" width="640" height="56" fill="#FFE9E2" stroke="#C7411F" stroke-width="2" rx="8"/><text x="360" y="282" text-anchor="middle" class="senum3-t senum3-note">Add a new case to the enum, and every non-exhaustive switch fails to compile.</text><text x="360" y="302" text-anchor="middle" class="senum3-t senum3-lbl">The compiler points you to every place that needs updating. No silent gaps.</text></svg>
+      <br><br>
+      Why is exhaustiveness such a win? Because it turns a runtime surprise into a compile-time error. Add a fifth case, <code>case up</code>, and every switch that does not yet handle it stops compiling. The compiler becomes a checklist, walking you to each place that needs attention. A stray <code>default:</code> would silence that checklist, so reach for it sparingly.
+      <br><br>
+      When a case carries associated values, the switch can bind them to local constants in the same breath. The neat form is <code>case let</code>, which binds every payload at once.
+      <br><br>
+      <pre><code>switch barcode {&#10;case let .upc(system, manufacturer, product, check):&#10;    print("UPC: \(system) \(manufacturer) \(product) \(check)")&#10;case let .qr(text):&#10;    print("QR: \(text)")&#10;}</code></pre>
+      We can also add a <strong>where clause</strong> to a case, so it only matches when an extra condition holds. The cases are tried top to bottom, just like the order they are written.
+      <br><br>
+      <pre><code>switch result {&#10;case let .success(value) where value &gt; 100:&#10;    print("Big win: \(value)")&#10;case let .success(value):&#10;    print("Got \(value)")&#10;case let .failure(error):&#10;    print("Failed: \(error)")&#10;}</code></pre>
+      Binding and guarding together let a single switch read almost like a sentence: "on success with a value over one hundred, do this; on any other success, do that; on failure, handle the error." The data and the decision live in one place, and the compiler keeps the whole thing honest.
+
+  - id: methods-and-mutating
+    title: "Methods, computed properties, and mutating self"
+    summary: |
+      Here is something that surprises people coming from C: a Swift enum can have methods. It can also have computed properties, static members, initialisers, and conform to protocols. An enum is a first-class type, not a bag of constants. The one thing it cannot have is a <strong>stored property</strong> — there is nowhere to put per-instance storage beyond the case and its associated values.
+      <br><br>
+      <pre><code>enum Direction {&#10;    case north, south, east, west&#10;&#10;    // A computed property — fine, nothing stored.&#10;    var symbol: String {&#10;        switch self {&#10;        case .north: return "↑"&#10;        case .south: return "↓"&#10;        case .east:  return "→"&#10;        case .west:  return "←"&#10;        }&#10;    }&#10;&#10;    // A method.&#10;    func degrees() -&gt; Int {&#10;        switch self {&#10;        case .north: return 0&#10;        case .east:  return 90&#10;        case .south: return 180&#10;        case .west:  return 270&#10;        }&#10;    }&#10;}&#10;&#10;Direction.east.symbol     // "→"&#10;Direction.east.degrees()  // 90</code></pre>
+      Try to add <code>var visits = 0</code> and the compiler stops you: "enums must not contain stored properties." That restriction is the price of an enum being a closed set of cases — every value of the type is one of the cases, and nothing more.
+      <br><br>
+      Now for the genuinely clever part. A method marked <code>mutating</code> can reassign <code>self</code> to a different case. Because an enum value <em>is</em> simply "which case am I," changing the case is the whole mutation. This gives us a state machine in a handful of lines.
+      <br><br>
+      <pre><code>enum TrafficLight {&#10;    case red, green, amber&#10;&#10;    mutating func advance() {&#10;        switch self {&#10;        case .red:   self = .green&#10;        case .green: self = .amber&#10;        case .amber: self = .red&#10;        }&#10;    }&#10;}&#10;&#10;var light = TrafficLight.red&#10;light.advance()   // light is now .green&#10;light.advance()   // light is now .amber&#10;light.advance()   // back to .red</code></pre>
+      Read <code>advance()</code> and the entire transition table is right there. There is no separate "current state" variable, no integer to keep in sync, no chance of landing in an invalid state — the type itself only permits the three cases. This is one of the most pleasing patterns enums enable, and we will lean on it constantly when modelling UI and network state.
+
+  - id: indirect-recursive-enums
+    title: "Indirect enums — recursive data structures"
+    summary: |
+      Sum types are wonderful for finite shapes, but some data is recursive: a tree whose branches are smaller trees, a linked list whose tail is another list, an arithmetic expression built from smaller expressions. Can an enum case hold a value of its own type? Let's try the obvious thing.
+      <br><br>
+      <pre><code>enum Expr {&#10;    case value(Int)&#10;    case add(Expr, Expr)   //  error!&#10;}</code></pre>
+      Swift rejects this with "recursive enum 'Expr' is not marked 'indirect'." The reason is layout. As we will see in a moment, an enum is laid out inline, sized to its largest case. But a case that contains the enum itself would need infinite size — the box would have to be big enough to hold a copy of itself, which is impossible. The fix is the <code>indirect</code> keyword, which tells Swift to store the recursive payload behind a pointer to a heap-allocated box rather than inline.
+      <br><br>
+      <pre><code>indirect enum Expr {&#10;    case value(Int)&#10;    case add(Expr, Expr)&#10;    case multiply(Expr, Expr)&#10;}&#10;&#10;// Represent 1 + (2 + 3)&#10;let tree: Expr = .add(.value(1), .add(.value(2), .value(3)))&#10;&#10;func evaluate(_ e: Expr) -&gt; Int {&#10;    switch e {&#10;    case let .value(n):       return n&#10;    case let .add(l, r):      return evaluate(l) + evaluate(r)&#10;    case let .multiply(l, r): return evaluate(l) * evaluate(r)&#10;    }&#10;}&#10;evaluate(tree)   // 6</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="An indirect recursive enum modelling an arithmetic expression, with recursive payloads boxed on the heap"><defs><marker id="senum4-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#C7411F"/></marker></defs><style>.senum4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.senum4-title{font-size:16px;font-weight:600}.senum4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.senum4-cap{font-size:11px;fill:#64748b}.senum4-box{font-size:11px;fill:#C7411F;font-weight:600}.senum4-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="senum4-t senum4-title">indirect — a recursive enum boxed on the heap</text><text x="360" y="48" text-anchor="middle" class="senum4-t senum4-cap">indirect enum Expr { case value(Int); case add(Expr, Expr) }   //  evaluates 1 + (2 + 3)</text><rect x="280" y="66" width="160" height="56" fill="#FFE9E2" stroke="#C7411F" stroke-width="2" rx="8"/><text x="360" y="90" text-anchor="middle" class="senum4-t senum4-mn" font-weight="700">.add</text><text x="360" y="110" text-anchor="middle" class="senum4-t senum4-cap">left, right</text><line x1="320" y1="122" x2="180" y2="170" stroke="#C7411F" stroke-width="2" marker-end="url(#senum4-arrow)"/><line x1="400" y1="122" x2="500" y2="170" stroke="#C7411F" stroke-width="2" marker-end="url(#senum4-arrow)"/><text x="240" y="150" text-anchor="middle" class="senum4-t senum4-box">heap box</text><text x="470" y="150" text-anchor="middle" class="senum4-t senum4-box">heap box</text><rect x="90" y="176" width="170" height="56" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="175" y="200" text-anchor="middle" class="senum4-t senum4-mn" font-weight="700">.value(1)</text><text x="175" y="220" text-anchor="middle" class="senum4-t senum4-cap">a leaf</text><rect x="420" y="176" width="170" height="56" fill="#FFE9E2" stroke="#C7411F" stroke-width="2" rx="8"/><text x="505" y="200" text-anchor="middle" class="senum4-t senum4-mn" font-weight="700">.add</text><text x="505" y="220" text-anchor="middle" class="senum4-t senum4-cap">left, right</text><line x1="465" y1="232" x2="385" y2="278" stroke="#C7411F" stroke-width="2" marker-end="url(#senum4-arrow)"/><line x1="545" y1="232" x2="615" y2="278" stroke="#C7411F" stroke-width="2" marker-end="url(#senum4-arrow)"/><rect x="295" y="284" width="170" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="380" y="314" text-anchor="middle" class="senum4-t senum4-mn" font-weight="700">.value(2)</text><rect x="540" y="284" width="160" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="620" y="314" text-anchor="middle" class="senum4-t senum4-mn" font-weight="700">.value(3)</text><text x="120" y="300" text-anchor="middle" class="senum4-t senum4-note">A case holds its own</text><text x="120" y="318" text-anchor="middle" class="senum4-t senum4-note">enum type — only via a</text><text x="120" y="336" text-anchor="middle" class="senum4-t senum4-note">pointer to a heap box.</text></svg>
+      <br><br>
+      You can mark the whole enum <code>indirect</code>, as above, or mark only the individual cases that need it: <code>indirect case add(Expr, Expr)</code>. The latter is a little more frugal, because non-recursive cases like <code>.value</code> stay inline and only the recursive ones pay for a heap allocation. Either way, the same trick powers a binary tree, a JSON-like nested value, or a singly linked list:
+      <br><br>
+      <pre><code>indirect enum List&lt;Element&gt; {&#10;    case empty&#10;    case node(Element, List&lt;Element&gt;)&#10;}&#10;&#10;let nums: List&lt;Int&gt; = .node(1, .node(2, .node(3, .empty)))</code></pre>
+      With one keyword, an enum graduates from describing flat alternatives to describing arbitrarily deep, recursive structures — and the exhaustive switch still keeps us honest about handling the base case.
+
+  - id: caseiterable-and-namespaces
+    title: "CaseIterable and enums as namespaces"
+    summary: |
+      Often we want the full list of an enum's cases — to populate a picker, to run a test over every option, to build a lookup table. Writing that array by hand is tedious and goes stale the moment someone adds a case. Swift can synthesise it for us. Conform an enum to <code>CaseIterable</code> and the compiler generates a static <code>allCases</code> collection automatically.
+      <br><br>
+      <pre><code>enum Suit: CaseIterable {&#10;    case hearts, diamonds, clubs, spades&#10;}&#10;&#10;Suit.allCases.count        // 4&#10;for suit in Suit.allCases {&#10;    print(suit)            // hearts, diamonds, clubs, spades&#10;}</code></pre>
+      There is a quiet rule worth knowing: the compiler will only synthesise <code>allCases</code> for enums whose cases have no associated values. That makes sense, because a case like <code>.qr(String)</code> stands for infinitely many possible values — there is no finite list to hand back. For simple, payload-free enums, though, <code>CaseIterable</code> is free and it never drifts out of date.
+      <br><br>
+      Now for an idiom that looks odd at first. An enum with <em>no cases at all</em> is perfectly legal, and surprisingly useful. Because it has no cases, it can never be instantiated — there is no value of the type. We exploit that to build a pure <strong>namespace</strong>: a tidy bag of static members that nobody can accidentally create an instance of.
+      <br><br>
+      <pre><code>enum Math {&#10;    static let pi = 3.14159265358979&#10;    static let e  = 2.71828182845905&#10;&#10;    static func square(_ x: Double) -&gt; Double { x * x }&#10;}&#10;&#10;Math.pi            // 3.14159...&#10;Math.square(4)     // 16&#10;// let m = Math()  // error: no accessible initialisers</code></pre>
+      A <code>struct</code> could hold these statics too, but a struct comes with a free memberwise initialiser, so someone could write <code>Math()</code> and create a pointless empty value. A caseless enum slams that door shut: zero cases means zero instances. This is why you will see Swift codebases use enums purely as namespaces for constants and helper functions. The Swift standard library itself does this in places — it is the recognised, intentional way to say "this type is a container for static members and nothing else."
+
+  - id: trivia-and-bigger-picture
+    title: "Trivia and the bigger picture"
+    summary: |
+      Let's zoom out and connect the threads, with a few facts worth tucking away. The first is that two of Swift's most-used types are themselves just enums. <code>Optional&lt;Wrapped&gt;</code> — the thing behind every <code>String?</code> — is an enum with two cases:
+      <br><br>
+      <pre><code>enum Optional&lt;Wrapped&gt; {&#10;    case none&#10;    case some(Wrapped)&#10;}&#10;// "nil" is sugar for .none; a value is .some(value).</code></pre>
+      And <code>Result</code>, which we met earlier, is the same idea with success and failure. So every time you unwrap an optional or pattern-match a result, you are pattern-matching an enum. The feature is not a niche tool bolted on the side; it is woven into the spine of the language.
+      <br><br>
+      How is all of this stored? Under the hood a Swift enum is a small struct-like value: a <strong>discriminator tag</strong> that records which case it is, plus a payload region sized to hold the largest case. Only one case occupies the payload at any moment, and the tag tells the runtime how to read those bytes. Swift is even cleverer than that — for some enums it can pack the tag into spare bit patterns of the payload, so an <code>Optional&lt;SomeReferenceType&gt;</code> often costs not a single extra byte.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="Memory layout of a Swift enum showing a discriminator tag plus a payload sized to the largest case"><style>.senum1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.senum1-title{font-size:16px;font-weight:600}.senum1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.senum1-lbl{font-size:11px;fill:#475569}.senum1-cap{font-size:11px;fill:#64748b}.senum1-note{font-size:12px;fill:#475569;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="senum1-t senum1-title">How a Swift enum sits in memory</text><text x="360" y="48" text-anchor="middle" class="senum1-t senum1-cap">enum Barcode { case upc(Int,Int,Int,Int); case qr(String) }</text><rect x="60" y="70" width="120" height="70" fill="#FFE9E2" stroke="#C7411F" stroke-width="2" rx="8"/><text x="120" y="100" text-anchor="middle" class="senum1-t senum1-mn" font-weight="700">tag</text><text x="120" y="122" text-anchor="middle" class="senum1-t senum1-cap">which case?</text><rect x="200" y="70" width="460" height="70" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" rx="8"/><text x="430" y="100" text-anchor="middle" class="senum1-t senum1-mn" font-weight="700">payload</text><text x="430" y="122" text-anchor="middle" class="senum1-t senum1-cap">sized to the largest case</text><text x="360" y="172" text-anchor="middle" class="senum1-t senum1-lbl">The payload region is shared. Only one case lives in it at a time.</text><rect x="60" y="195" width="600" height="50" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="80" y="225" class="senum1-t senum1-mn">tag = 0  .upc</text><text x="290" y="225" class="senum1-t senum1-mn">| 39 | 1234 | 56789 | 9 |  (four Ints)</text><rect x="60" y="255" width="600" height="50" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="80" y="285" class="senum1-t senum1-mn">tag = 1  .qr</text><text x="290" y="285" class="senum1-t senum1-mn">| "ABCDEF..." |  (a String)</text><text x="360" y="328" text-anchor="middle" class="senum1-t senum1-note">The tag selects the case; the bytes are reinterpreted accordingly.</text></svg>
+      <br><br>
+      It is worth holding three comparisons in mind. Against a <strong>C enum</strong>, which is a plain integer with no payload and no exhaustiveness, the Swift enum is a different beast entirely — distinct type, associated values, methods, the lot. Against <strong>Dart's enhanced enums</strong>, the picture is more nuanced: Dart enums can carry data too, but every Dart enum value has the <em>same</em> set of fields, whereas each Swift case can carry a completely different payload — that is the sum-type difference, and it is why Dart added sealed classes to cover the cases enums could not. And against a Swift <strong>struct</strong>: a struct is a product type that bundles stored properties together, while an enum is a sum type that holds exactly one of several alternatives and, crucially, has <em>no stored properties</em> of its own.
+      <br><br>
+      So the next time you reach for <code>enum</code> in Swift, remember you are not declaring a list of integers. You are declaring a precise set of possibilities — a sum type with the full lineage of ML and Haskell behind it, the compiler standing guard over every switch, and the ability to model exactly the states your program can be in and no others.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering raw values, associated values, pattern matching, mutating methods, indirect enums, CaseIterable, and the bigger picture."
+  questions:
+    - question: "How does a Swift enum differ fundamentally from a classic C enum?"
+      options:
+        - "A Swift enum is a distinct type whose cases can carry data; a C enum is essentially just a named integer"
+        - "A Swift enum is always stored as a 32-bit integer"
+        - "A C enum can have associated values but a Swift enum cannot"
+        - "There is no real difference; both are just integers with names"
+      correctIndex: 0
+      explanation: "A C enum is essentially an integer with named constants, and it interoperates freely with plain ints. A Swift enum is a distinct type. Its cases can carry associated values, it can have methods and computed properties, and switching over it is checked for exhaustiveness."
+
+    - question: "What does Planet(rawValue: 99) return when no case has the raw value 99?"
+      options:
+        - "It throws a runtime error"
+        - "It returns the first case as a fallback"
+        - "It returns nil, because init?(rawValue:) is failable and returns an Optional"
+        - "It refuses to compile"
+      correctIndex: 2
+      explanation: "Initialising an enum from a raw value uses the failable initialiser init?(rawValue:), which returns an Optional. If no case matches the supplied raw value, the result is nil rather than an error or a fallback."
+
+    - question: "What makes a Swift enum with associated values a 'sum type'?"
+      options:
+        - "Its cases can be added together arithmetically"
+        - "A value is exactly one of several cases, each of which may carry differently-typed data"
+        - "It stores the sum of all its case values"
+        - "It can only be used inside switch statements"
+      correctIndex: 1
+      explanation: "A sum type represents a value that is exactly one of several alternatives, where each alternative can carry its own payload. Swift's Result and Optional are sum types. This lineage comes from ML and Haskell. Combined with structs (product types), it makes Swift enums algebraic data types."
+
+    - question: "Why does a switch over an enum usually need no default case?"
+      options:
+        - "Swift inserts a hidden default automatically"
+        - "Because the compiler knows every case and requires the switch to be exhaustive"
+        - "Because enums can only have at most four cases"
+        - "Because default cases are forbidden in Swift switches"
+      correctIndex: 1
+      explanation: "A switch over an enum must be exhaustive. Because the compiler knows the complete set of cases, handling every one means no default is required. If you add a new case later, every non-exhaustive switch stops compiling, pointing you to each place that needs updating."
+
+    - question: "What can a mutating method on an enum do that demonstrates a tidy state machine?"
+      options:
+        - "Add a new case to the enum at runtime"
+        - "Reassign self to a different case of the same enum"
+        - "Store a counter as a new property"
+        - "Convert the enum into a struct"
+      correctIndex: 1
+      explanation: "A mutating method can reassign self to another case. Because an enum value is simply 'which case it is', changing the case is the entire mutation. A TrafficLight that advances red to green to amber is a complete state machine in a few lines, with no separate state variable to keep in sync."
+
+    - question: "Why is the indirect keyword required for a recursive enum?"
+      options:
+        - "To make the enum thread-safe"
+        - "Because a case containing its own enum type would otherwise need infinite inline size, so the payload is stored behind a pointer to a heap box"
+        - "To allow the enum to conform to CaseIterable"
+        - "Because recursion is disabled by default in Swift"
+      correctIndex: 1
+      explanation: "An enum is normally laid out inline, sized to its largest case. A case that contains the enum itself would need infinite inline size. The indirect keyword tells Swift to store the recursive payload behind a pointer to a heap-allocated box, breaking the size recursion. You can mark the whole enum or just specific cases indirect."
+
+    - question: "Which statement about CaseIterable and caseless enums is correct?"
+      options:
+        - "allCases is synthesised for every enum, even those with associated values"
+        - "A caseless enum can still be instantiated with a default initialiser"
+        - "CaseIterable synthesises allCases only for enums without associated values, and a caseless enum is commonly used as a namespace because it can never be instantiated"
+        - "Caseless enums are a compile error in Swift"
+      correctIndex: 2
+      explanation: "The compiler synthesises allCases only when no case has associated values, since cases with payloads represent infinitely many values. A caseless enum has no cases, so it can never be instantiated, which makes it ideal as a pure namespace for static members — better than a struct, which would expose a memberwise initialiser."
+---
+
+{/* Episode 2 of Swift: Primitive Computation. Enums — raw values and RawRepresentable,
+    associated values as sum types, exhaustive pattern matching with switch, methods and
+    mutating self for state machines, indirect recursive enums, CaseIterable and caseless
+    enums as namespaces, plus the bigger picture (Optional/Result are enums, memory layout,
+    contrast with C and Dart). 4 inline SVG diagrams. History woven in: sum-type lineage
+    from ML and Haskell, the enum keyword as a historical accident over an ADT. */}

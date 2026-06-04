@@ -1,0 +1,169 @@
+---
+title: "Strings in Swift — Unicode Correctness, Grapheme Clusters, and Why count is O(n)"
+description: "Swift treats a String as a collection of human-perceived characters rather than bytes or code units. That choice buys us Unicode correctness for free, and it costs us O(1) indexing. Let's see why the trade was worth it."
+category: "Swift"
+color: "#F05138"
+subject: "Swift: Data Foundations"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: string-is-a-collection-of-character
+    title: "A String is a value type and a Collection of Character"
+    summary: |
+      Most languages treat a string as an array of bytes, or an array of code units, and let the programmer worry about what a "character" really means. Swift made a different, opinionated choice. A <code>String</code> is a value type — copying one gives you an independent copy, with copy-on-write keeping that cheap — and it is a <code>Collection</code> whose element type is <code>Character</code>.
+      <br><br>
+      So when we iterate a Swift string, we do not get bytes. We do not get code units. We get <code>Character</code> values, one per visible character, in order.
+      <br><br>
+      <pre><code>let greeting = "Cafe&#769;"&#10;for c in greeting {&#10;    print(c)   // C, a, f, e&#769;  &#8212; four Characters&#10;}&#10;print(type(of: greeting.first!))   // Character</code></pre>
+      This is the thread that runs through the whole episode. Swift decided that the natural unit of a string is the thing a human points at and calls "a character", and it built the entire API around that decision. Almost everything that surprises newcomers — why <code>count</code> is slow, why you cannot write <code>s[2]</code>, why two differently encoded strings can still be equal — falls out of this one commitment.
+      <br><br>
+      The contrast with Dart is sharp. In the Dart series we saw that a Dart <code>String</code> is a sequence of UTF-16 code units, so iterating or measuring it exposes the encoding. Swift hides the encoding behind a model built around human perception. Both are defensible. They simply optimise for different things, and the rest of this episode is about that fork in the road.
+
+  - id: character-is-a-grapheme-cluster
+    title: "Character = extended grapheme cluster"
+    summary: |
+      So what exactly is a <code>Character</code>? It is what the Unicode standard calls an <strong>extended grapheme cluster</strong> — the smallest sequence of Unicode scalar values that a reader perceives as one character. The crucial word is <em>sequence</em>. A single <code>Character</code> may be built from several scalars working together.
+      <br><br>
+      Take the letter "&#233;". It can be a single scalar, U+00E9 (LATIN SMALL LETTER E WITH ACUTE). Or it can be two scalars: a plain "e" (U+0065) followed by a combining acute accent (U+0301) that floats on top of the previous letter. Both spellings render identically, and Swift treats each as exactly one <code>Character</code>.
+      <br><br>
+      It gets richer. A flag emoji such as the flag of Japan is two <em>regional indicator</em> scalars (a regional "J" plus a regional "P"). A family emoji is several full emoji glued together with invisible Zero-Width Joiners.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="The family emoji as one grapheme cluster broken into five Unicode scalar values joined by Zero-Width Joiners"><style>.sstr1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sstr1-title{font-size:16px;font-weight:600}.sstr1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sstr1-label{font-size:11px;fill:#64748b}.sstr1-emoji{font-size:30px}.sstr1-cap{font-size:12px;fill:#475569}.sstr1-one{font-size:13px;font-weight:600;fill:#10b981}</style><text x="360" y="28" text-anchor="middle" class="sstr1-t sstr1-title">One Character, Five Scalars</text><rect x="280" y="48" width="160" height="64" rx="10" fill="#FFE9E2" stroke="#F05138" stroke-width="2"/><text x="360" y="88" text-anchor="middle" class="sstr1-t sstr1-emoji">&#128104;&#8205;&#128105;&#8205;&#128103;</text><text x="360" y="130" text-anchor="middle" class="sstr1-cap">one Character (extended grapheme cluster)</text><line x1="360" y1="140" x2="360" y2="158" stroke="#94a3b8" stroke-width="1.5"/><g><rect x="40" y="170" width="80" height="56" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="80" y="200" text-anchor="middle" class="sstr1-t sstr1-emoji">&#128104;</text><text x="80" y="244" text-anchor="middle" class="sstr1-mn">U+1F468</text><text x="80" y="262" text-anchor="middle" class="sstr1-label">man</text></g><g><rect x="140" y="184" width="60" height="32" rx="6" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="170" y="205" text-anchor="middle" class="sstr1-mn">ZWJ</text><text x="170" y="244" text-anchor="middle" class="sstr1-mn">U+200D</text></g><g><rect x="220" y="170" width="80" height="56" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="260" y="200" text-anchor="middle" class="sstr1-t sstr1-emoji">&#128105;</text><text x="260" y="244" text-anchor="middle" class="sstr1-mn">U+1F469</text><text x="260" y="262" text-anchor="middle" class="sstr1-label">woman</text></g><g><rect x="320" y="184" width="60" height="32" rx="6" fill="#e9d5ff" stroke="#9333ea" stroke-width="1.5"/><text x="350" y="205" text-anchor="middle" class="sstr1-mn">ZWJ</text><text x="350" y="244" text-anchor="middle" class="sstr1-mn">U+200D</text></g><g><rect x="400" y="170" width="80" height="56" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="440" y="200" text-anchor="middle" class="sstr1-t sstr1-emoji">&#128103;</text><text x="440" y="244" text-anchor="middle" class="sstr1-mn">U+1F467</text><text x="440" y="262" text-anchor="middle" class="sstr1-label">girl</text></g><rect x="510" y="176" width="170" height="44" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="595" y="195" text-anchor="middle" class="sstr1-mn">.count</text><text x="595" y="213" text-anchor="middle" class="sstr1-one">== 1</text><text x="360" y="298" text-anchor="middle" class="sstr1-cap">Five scalar values fuse into a single human-perceived Character.</text></svg>
+      <br>
+      <pre><code>let family = "&#128104;&#8205;&#128105;&#8205;&#128103;"&#10;print(family.count)   // 1  &#8212; one Character&#10;&#10;let flag = "&#127471;&#127477;"&#10;print(flag.count)     // 1  &#8212; one Character</code></pre>
+      Swift even updates its notion of grapheme clusters as the Unicode standard evolves, which is why the same code can count newer emoji correctly after a runtime update. The unit is human perception, and human perception is exactly what Unicode keeps refining.
+
+  - id: count-is-on-and-string-index
+    title: "Why count is O(n) and there is no Int subscripting"
+    summary: |
+      Here is the price of that decision. Because grapheme clusters are <strong>variable width</strong> — one cluster might be a single byte, the next might be eight — Swift cannot know where the fifth character lives without walking past the first four. There is no formula that turns "character number 5" into a memory offset.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="Walking a String.Index across grapheme clusters of a string because clusters are variable width and cannot be reached by an integer offset"><defs><marker id="sstr3-arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F05138"/></marker></defs><style>.sstr3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sstr3-title{font-size:16px;font-weight:600}.sstr3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;fill:#1e293b}.sstr3-label{font-size:11px;fill:#64748b}.sstr3-cap{font-size:12px;fill:#475569}.sstr3-glyph{font-size:24px}.sstr3-bad{font-size:12px;font-weight:600;fill:#dc2626}</style><text x="360" y="28" text-anchor="middle" class="sstr3-t sstr3-title">Why There Is No s[2] &#8212; Walking by String.Index</text><text x="360" y="50" text-anchor="middle" class="sstr3-cap">let s = "ca&#233;&#127919;" &#8212; clusters have different widths in memory</text><g transform="translate(60,80)"><rect x="0" y="0" width="90" height="60" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="45" y="38" text-anchor="middle" class="sstr3-t sstr3-glyph">c</text><text x="45" y="80" text-anchor="middle" class="sstr3-label">1 byte</text><rect x="130" y="0" width="90" height="60" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="175" y="38" text-anchor="middle" class="sstr3-t sstr3-glyph">a</text><text x="175" y="80" text-anchor="middle" class="sstr3-label">1 byte</text><rect x="260" y="0" width="110" height="60" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/><text x="315" y="38" text-anchor="middle" class="sstr3-t sstr3-glyph">&#233;</text><text x="315" y="80" text-anchor="middle" class="sstr3-label">2&#8211;3 bytes</text><rect x="380" y="0" width="130" height="60" rx="8" fill="#FFE9E2" stroke="#F05138" stroke-width="1.5"/><text x="445" y="38" text-anchor="middle" class="sstr3-t sstr3-glyph">&#127919;</text><text x="445" y="80" text-anchor="middle" class="sstr3-label">4 bytes</text></g><g transform="translate(60,80)"><circle cx="45" cy="-12" r="4" fill="#F05138"/><text x="45" y="-22" text-anchor="middle" class="sstr3-label">startIndex</text><line x1="62" y1="-12" x2="155" y2="-12" stroke="#F05138" stroke-width="1.5" marker-end="url(#sstr3-arr)"/><line x1="192" y1="-12" x2="290" y2="-12" stroke="#F05138" stroke-width="1.5" marker-end="url(#sstr3-arr)"/><line x1="338" y1="-12" x2="425" y2="-12" stroke="#F05138" stroke-width="1.5" marker-end="url(#sstr3-arr)"/></g><text x="360" y="210" text-anchor="middle" class="sstr3-cap">Each step asks the previous cluster how wide it is. You cannot jump.</text><rect x="60" y="226" width="600" height="48" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/><text x="78" y="246" class="sstr3-t sstr3-mn">let third = s[2]</text><text x="78" y="266" class="sstr3-t sstr3-bad">does not compile &#8212; String is not Int-subscriptable</text><rect x="60" y="284" width="600" height="40" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="78" y="308" class="sstr3-t sstr3-mn">let third = s[s.index(s.startIndex, offsetBy: 2)]</text></svg>
+      <br>
+      So two things follow. First, <code>count</code> is <strong>O(n)</strong>: to count the characters, Swift must walk the whole string and segment it into clusters. Second, <code>String</code> is deliberately <strong>not</strong> subscriptable by <code>Int</code>. You cannot write <code>s[2]</code>. Instead you index with a <code>String.Index</code>, which represents a real position reached by walking from a known one.
+      <br><br>
+      <pre><code>let s = "ca&#233;&#127919;"&#10;// let third = s[2]            // compile error&#10;let i = s.index(s.startIndex, offsetBy: 2)&#10;print(s[i])                    // "&#233;"&#10;print(s.count)                 // 4  &#8212; computed in O(n)</code></pre>
+      This feels hostile at first, especially coming from languages where <code>s[2]</code> is free. But it is honest. An <code>Int</code> subscript on a Unicode string is a lie in any language that offers it cheaply, because the integer indexes code units, not characters. Swift refuses to hand us a fast answer to the wrong question. Dart, by contrast, gives us O(1) indexing precisely because it indexes UTF-16 code units — which is why <code>"&#127919;".length</code> is 2 in Dart, while <code>"&#127919;".count</code> is 1 in Swift. One number is fast; the other is correct.
+
+  - id: the-four-views
+    title: "The four views of a string"
+    summary: |
+      Swift does not pretend the encoding does not exist. It just refuses to make it the default. When we genuinely need bytes or code units — for a network protocol, a file format, a C API — we ask for the appropriate <em>view</em>. The same string offers four of them, each a <code>Collection</code> at a different granularity.
+      <br><br>
+      <strong>1.</strong> The <code>Character</code> collection — the string itself, one grapheme cluster per element.<br>
+      <strong>2.</strong> <code>unicodeScalars</code> — the individual Unicode scalar values (code points, excluding surrogates).<br>
+      <strong>3.</strong> <code>utf16</code> — UTF-16 code units, the same granularity Dart's <code>.length</code> exposes.<br>
+      <strong>4.</strong> <code>utf8</code> — UTF-8 code units, which are simply the bytes.
+      <br><br>
+      For plain ASCII all four counts agree. For anything interesting they diverge, and the divergence is the whole point.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="The four views of the flag of Japan string showing differing counts across Character, unicodeScalars, utf16 and utf8"><style>.sstr2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sstr2-title{font-size:16px;font-weight:600}.sstr2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;fill:#1e293b}.sstr2-label{font-size:12px;fill:#475569}.sstr2-cap{font-size:11px;fill:#64748b}.sstr2-num{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:22px;font-weight:600}</style><text x="360" y="28" text-anchor="middle" class="sstr2-t sstr2-title">Four Views of let s = "&#127471;&#127477;"</text><text x="360" y="50" text-anchor="middle" class="sstr2-cap">the same string, measured four ways</text><g><rect x="40" y="72" width="300" height="58" rx="10" fill="#FFE9E2" stroke="#F05138" stroke-width="2"/><text x="60" y="98" class="sstr2-t sstr2-label">s.count</text><text x="60" y="118" class="sstr2-t sstr2-cap">Characters (grapheme clusters)</text><text x="320" y="112" text-anchor="end" class="sstr2-t sstr2-num" fill="#F05138">1</text></g><g><rect x="380" y="72" width="300" height="58" rx="10" fill="#e9d5ff" stroke="#9333ea" stroke-width="2"/><text x="400" y="98" class="sstr2-t sstr2-label">s.unicodeScalars.count</text><text x="400" y="118" class="sstr2-t sstr2-cap">Unicode scalar values</text><text x="660" y="112" text-anchor="end" class="sstr2-t sstr2-num" fill="#9333ea">2</text></g><g><rect x="40" y="148" width="300" height="58" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="60" y="174" class="sstr2-t sstr2-label">s.utf16.count</text><text x="60" y="194" class="sstr2-t sstr2-cap">UTF-16 code units</text><text x="320" y="188" text-anchor="end" class="sstr2-t sstr2-num" fill="#f59e0b">4</text></g><g><rect x="380" y="148" width="300" height="58" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="2"/><text x="400" y="174" class="sstr2-t sstr2-label">s.utf8.count</text><text x="400" y="194" class="sstr2-t sstr2-cap">UTF-8 code units (bytes)</text><text x="660" y="188" text-anchor="end" class="sstr2-t sstr2-num" fill="#10b981">8</text></g><line x1="40" y1="228" x2="680" y2="228" stroke="#cbd5e1" stroke-width="1"/><text x="40" y="252" class="sstr2-t sstr2-label">The flag is one grapheme cluster, built from two regional-indicator</text><text x="40" y="272" class="sstr2-t sstr2-label">scalars (&#127471; + &#127477;). Each scalar is above U+FFFF, so each needs a</text><text x="40" y="292" class="sstr2-t sstr2-label">UTF-16 surrogate pair (4 units total) and four UTF-8 bytes (8 bytes total).</text><text x="40" y="324" class="sstr2-t sstr2-cap">Pick the view that matches your question: people see Characters; protocols speak bytes.</text></svg>
+      <br>
+      <pre><code>let s = "&#127471;&#127477;"   // flag of Japan&#10;print(s.count)                  // 1&#10;print(s.unicodeScalars.count)   // 2&#10;print(s.utf16.count)            // 4&#10;print(s.utf8.count)             // 8</code></pre>
+      One string, four honest answers. The skill is knowing which question you are actually asking. "How many characters will the user see?" is <code>count</code>. "How many bytes must I send?" is <code>utf8.count</code>. They are not the same number, and Swift makes you say which one you mean.
+
+  - id: canonical-equivalence
+    title: "Canonical equivalence — when different bytes are equal"
+    summary: |
+      Now for the feature that most languages get quietly wrong. Recall the two spellings of "&#233;": the single scalar U+00E9, and the pair "e" + U+0301. They look identical. Are they equal?
+      <br><br>
+      In Swift, yes. The <code>==</code> operator on <code>String</code> compares by <strong>Unicode canonical equivalence</strong>, not by raw bytes. Two strings are equal if they mean the same thing to Unicode, even when their underlying <code>utf8</code> bytes differ.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Canonical equivalence in Swift: composed e-acute and decomposed e plus combining accent are equal under double-equals despite different UTF-8 bytes"><style>.sstr4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sstr4-title{font-size:16px;font-weight:600}.sstr4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sstr4-label{font-size:12px;fill:#475569}.sstr4-cap{font-size:11px;fill:#64748b}.sstr4-glyph{font-size:34px}.sstr4-eq{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:26px;font-weight:600;fill:#10b981}</style><text x="360" y="28" text-anchor="middle" class="sstr4-t sstr4-title">Canonical Equivalence &#8212; Two Spellings, One Meaning</text><g><rect x="50" y="56" width="260" height="150" rx="12" fill="#FFE9E2" stroke="#F05138" stroke-width="2"/><text x="180" y="82" text-anchor="middle" class="sstr4-t sstr4-label">composed (NFC)</text><text x="180" y="128" text-anchor="middle" class="sstr4-t sstr4-glyph">&#233;</text><text x="180" y="160" text-anchor="middle" class="sstr4-t sstr4-mn">1 scalar: U+00E9</text><text x="180" y="182" text-anchor="middle" class="sstr4-t sstr4-cap">utf8 bytes: C3 A9</text></g><g><rect x="410" y="56" width="260" height="150" rx="12" fill="#e9d5ff" stroke="#9333ea" stroke-width="2"/><text x="540" y="82" text-anchor="middle" class="sstr4-t sstr4-label">decomposed (NFD)</text><text x="540" y="128" text-anchor="middle" class="sstr4-t sstr4-glyph">e&#769;</text><text x="540" y="160" text-anchor="middle" class="sstr4-t sstr4-mn">2 scalars: U+0065 U+0301</text><text x="540" y="182" text-anchor="middle" class="sstr4-t sstr4-cap">utf8 bytes: 65 CC 81</text></g><text x="360" y="140" text-anchor="middle" class="sstr4-eq">==</text><rect x="120" y="232" width="480" height="40" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/><text x="360" y="257" text-anchor="middle" class="sstr4-t sstr4-mn">a == b  &#8594;  true   (even though a.utf8 != b.utf8)</text><text x="360" y="300" text-anchor="middle" class="sstr4-t sstr4-cap">Swift compares by Unicode canonical equivalence, not raw bytes. Most languages get this wrong.</text></svg>
+      <br>
+      <pre><code>let composed   = "\u{00E9}"          // &#233;&#10;let decomposed = "e\u{0301}"         // e + combining acute&#10;&#10;print(composed == decomposed)        // true&#10;print(composed.count)                // 1&#10;print(decomposed.count)              // 1&#10;print(Array(composed.utf8))          // [195, 169]&#10;print(Array(decomposed.utf8))        // [101, 204, 129]</code></pre>
+      Same meaning, same character count, different bytes — and still equal. This is the correct behaviour, and it is rare. In most languages, two strings that look the same on screen can compare as unequal because one came from a Mac filesystem (which favours decomposed forms) and the other from a web form (which favours composed forms). Swift spares us that entire class of bug by default. The cost, of course, is that <code>==</code> on strings is not a byte comparison and cannot be O(1) in the general case — yet another correctness-over-speed trade, made on purpose.
+
+  - id: utf8-backing-and-the-string-revolution
+    title: "UTF-8 backing and the String revolution"
+    summary: |
+      What lives underneath all this? Since Swift 5, the native storage for a <code>String</code> is <strong>UTF-8</strong>. This was a substantial piece of engineering known informally as the "String revolution", driven on the standard-library side by Michael Ilseman and the Swift team, and it shipped in 2019.
+      <br><br>
+      It was not always so. Earlier Swift could back a string with UTF-16, largely so that bridging to <code>NSString</code> on Apple platforms — which is UTF-16 internally — could be cheap. But the centre of gravity for Swift shifted. Server-side Swift, Linux, and the web all speak UTF-8. The web is overwhelmingly UTF-8. Most text in the wild, especially ASCII-heavy content like JSON, HTML, and source code, is far more compact in UTF-8 than in UTF-16. So UTF-8 won on memory and on interoperability, and Swift moved its native representation accordingly.
+      <br><br>
+      <pre><code>let s = "hello"&#10;// Backed by UTF-8 in contiguous memory.&#10;s.withContiguousStorageIfAvailable { _ in /* fast path */ }&#10;Array(s.utf8)   // [104, 101, 108, 108, 111]</code></pre>
+      There is a second optimisation worth knowing: the <strong>small-string optimisation</strong>. A short string (on a 64-bit platform, up to fifteen UTF-8 bytes) is stored inline inside the <code>String</code> value itself, with no heap allocation at all. Names, keys, short identifiers, and the like never touch the heap. Only when a string grows past that inline budget does Swift allocate backing storage and switch on copy-on-write. For the countless tiny strings a real program juggles, this is a quiet but large win.
+
+  - id: practical-takeaways
+    title: "Practical takeaways and trivia"
+    summary: |
+      Let's pull it together into a working mental model.
+      <br><br>
+      <strong>Reach for the right view.</strong> For anything a person reads — truncating a label, counting characters, reversing text — work with <code>Character</code> values and <code>count</code>. For protocols, hashing, and storage, use <code>utf8</code>. Use <code>utf16</code> mainly when interoperating with APIs that speak code units, such as ranges handed to you by Cocoa text systems. Reach for <code>unicodeScalars</code> when you care about code points specifically, for example classifying or normalising.
+      <br><br>
+      <strong>Bridging to NSString.</strong> On Apple platforms <code>String</code> bridges to <code>NSString</code>, but their world views differ: <code>NSString</code>'s <code>length</code> and integer indices are UTF-16 code units, exactly like Dart's <code>.length</code>. When you take an <code>NSRange</code> from a UIKit or AppKit text component and want to apply it to a Swift <code>String</code>, convert through the <code>utf16</code> view and <code>String.Index</code> so you do not slice through a character.
+      <br><br>
+      <pre><code>// Wrong mental model: "char at integer position".&#10;// Right model: index by walking, measure by the right view.&#10;let s = "Re&#769;sume&#769;"&#10;print(s.count)               // 6 Characters&#10;print(s.unicodeScalars.count)// 8 scalars&#10;print(s.utf8.count)          // 10 bytes</code></pre>
+      <strong>The cross-language picture.</strong> Where Swift bakes grapheme-cluster correctness into the core type, other languages bolt it on. Dart needs the <code>package:characters</code> library to count grapheme clusters; without it, <code>"&#128512;".length</code> is 2 because Dart counts UTF-16 code units. JavaScript has the same UTF-16 default and reaches for <code>Intl.Segmenter</code>. Python 3 counts Unicode scalars, so <code>len("&#128512;")</code> is 1 there but <code>len("&#127471;&#127477;")</code> is 2 — closer to Swift's scalar view than to its character view. Swift is unusual in making the human-perceived character the default unit of the language's own string type.
+      <br><br>
+      One last contrast to close the loop with the Dart episode. In Dart, <code>"&#127919;".length == 2</code> because the string is UTF-16 and the dart emoji is a surrogate pair. In Swift, <code>"&#127919;".count == 1</code> because the string is a collection of grapheme clusters. Neither is wrong. Dart optimises for a fast, predictable code-unit model and asks you to opt in to correctness; Swift optimises for correctness and asks you to opt in to speed. Knowing which model you are standing in is the whole game.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on Swift's String model: grapheme clusters, the O(n) count, the four views, canonical equivalence, and UTF-8 backing."
+  questions:
+    - question: "What is the Element type when you iterate a Swift String?"
+      options:
+        - "UInt8 (a byte)"
+        - "Character (an extended grapheme cluster)"
+        - "Unicode.Scalar (a code point)"
+        - "UInt16 (a UTF-16 code unit)"
+      correctIndex: 1
+      explanation: "A Swift String is a Collection whose Element is Character, where each Character is an extended grapheme cluster — what a human perceives as a single character. Bytes, scalars, and UTF-16 units are available through the utf8, unicodeScalars, and utf16 views instead."
+
+    - question: "What does \"🎯\".count return in Swift, and how does that compare with Dart?"
+      options:
+        - "2 in Swift, 2 in Dart"
+        - "1 in Swift; in Dart \"🎯\".length is 2"
+        - "1 in both"
+        - "2 in Swift; 1 in Dart"
+      correctIndex: 1
+      explanation: "Swift counts grapheme clusters, so \"🎯\".count is 1. Dart strings are UTF-16 and .length counts code units, so the dart emoji — a surrogate pair — gives \"🎯\".length == 2. Same character, different model."
+
+    - question: "Why is String.count an O(n) operation in Swift?"
+      options:
+        - "Because String is stored as a linked list"
+        - "Because grapheme clusters are variable width, so Swift must walk the string to segment it"
+        - "Because count decodes the string from disk each time"
+        - "It is actually O(1); the question is mistaken"
+      correctIndex: 1
+      explanation: "Grapheme clusters have variable width — one may be a single byte, the next eight. There is no formula mapping character index to memory offset, so Swift walks the whole string and segments it into clusters to count, which is O(n)."
+
+    - question: "Why can't you write s[2] on a Swift String?"
+      options:
+        - "Integer subscripting exists but is deprecated"
+        - "String is not Int-subscriptable; you index with a String.Index obtained by walking from a known index"
+        - "You can, and it returns the third byte"
+        - "Only mutable strings can be subscripted by Int"
+      correctIndex: 1
+      explanation: "Because characters are variable width, an Int subscript would be O(n) and would invite confusion between characters and code units. Swift instead indexes with String.Index, e.g. s[s.index(s.startIndex, offsetBy: 2)], which reflects the real cost of reaching a position."
+
+    - question: "For the flag-of-Japan string \"🇯🇵\", which set of counts is correct?"
+      options:
+        - "count 1, unicodeScalars 2, utf16 4, utf8 8"
+        - "count 2, unicodeScalars 2, utf16 2, utf8 2"
+        - "count 1, unicodeScalars 1, utf16 2, utf8 4"
+        - "count 4, unicodeScalars 4, utf16 4, utf8 8"
+      correctIndex: 0
+      explanation: "The flag is one grapheme cluster (count 1) built from two regional-indicator scalars (unicodeScalars 2). Each scalar is above U+FFFF, so each takes a UTF-16 surrogate pair (utf16 4) and four UTF-8 bytes (utf8 8)."
+
+    - question: "Are composed \"é\" (U+00E9) and decomposed \"e\" + U+0301 equal under == in Swift?"
+      options:
+        - "No, because their UTF-8 bytes differ"
+        - "Yes, because == compares by Unicode canonical equivalence"
+        - "No, because they have different counts"
+        - "Only if you normalise them first"
+      correctIndex: 1
+      explanation: "Swift's == compares strings by Unicode canonical equivalence, so the two spellings are equal even though composed gives utf8 bytes [195, 169] and decomposed gives [101, 204, 129]. Both also report a count of 1. This is correctness that most languages get wrong by default."
+
+    - question: "What is the native backing storage of a Swift String since Swift 5, and what is the small-string optimisation?"
+      options:
+        - "UTF-16, with short strings stored on the heap"
+        - "UTF-8, with short strings stored inline in the String value with no heap allocation"
+        - "ASCII only, falling back to UTF-32 for emoji"
+        - "UTF-32, with all strings heap-allocated"
+      correctIndex: 1
+      explanation: "Since Swift 5 the native backing is UTF-8 (the 'String revolution', led on the standard-library side by Michael Ilseman). The small-string optimisation stores short strings — up to fifteen UTF-8 bytes on 64-bit — inline in the String value itself, avoiding any heap allocation. Earlier Swift could store UTF-16 to make NSString bridging cheap."
+---
+
+{/* All content lives in frontmatter topics and quiz. Episode 1 of Swift: Data Foundations. 4 inline SVG diagrams. */}

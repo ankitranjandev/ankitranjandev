@@ -1,0 +1,155 @@
+---
+title: "Swift: The Platform — From a Secret Project to ABI Stability"
+description: "Before we write a single line of Swift, let's understand where it came from, how the compiler turns our code into native machine instructions, and why ARC — not a garbage collector — manages our memory."
+category: "Swift"
+color: "#F05138"
+subject: "Swift: The Platform"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: a-secret-project
+    title: "A secret project, 2010"
+    summary: |
+      Every language has an origin story, and Swift's begins quietly. In July 2010, a compiler engineer at Apple named Chris Lattner started sketching a new language in his spare time. He told almost no one. For the first year, much of the work happened in the evenings and on weekends, and even most of Apple didn't know it existed.
+
+      That name matters, because Lattner was not a newcomer. While a graduate student at the University of Illinois around the turn of the millennium, he had created <strong>LLVM</strong> — a compiler infrastructure that would go on to power Clang, Rust, and a great deal of the modern toolchain. By 2010 he understood compilers as well as almost anyone alive. So when he set out to design a language, he was building on a foundation he had laid himself a decade earlier.
+
+      The goal was ambitious. Apple's platforms ran on Objective-C, a language from the early 1980s that bolted Smalltalk-style messaging onto C. It was powerful and battle-tested, but it carried four decades of baggage: header files, manual memory rituals, square-bracket message syntax, and the ever-present danger of null pointers. Lattner wanted something <strong>safe, fast, and expressive</strong> — a language that felt modern but could still call into every existing Objective-C framework on day one.
+
+      The little bird in Swift's logo hints at the ambition: light, quick, and meant to fly. But in 2010, it was still a secret.
+
+  - id: the-reveal
+    title: "The reveal — WWDC 2014"
+    summary: |
+      On 2 June 2014, Apple's Worldwide Developers Conference was rolling through the usual announcements when Craig Federighi put a single word on the screen: <strong>Swift</strong>. The room, expecting incremental news, was genuinely stunned. Apple had built an entire programming language in near-total secrecy and was shipping it to millions of developers.
+
+      The pitch was memorable: Swift was "Objective-C without the C." It kept the rich Cocoa and Cocoa Touch frameworks but threw away the C inheritance that made Objective-C feel ancient. The demo that won the crowd was <strong>Playgrounds</strong> — type a line of code, see the result instantly in the margin, watch a graph draw itself as values changed. For a community used to compile-run-debug cycles, watching code come alive as you typed felt like magic.
+
+      Swift 1.0 shipped that September alongside Xcode 6. It was, frankly, a moving target. The syntax churned from release to release — collection types changed, error handling was redesigned, and code written in one version often refused to compile in the next. Early adopters jokingly measured a project's age by how many migration assistants it had survived. But the direction was clear, and the momentum was real.
+
+      Within a few years Swift would top "most loved language" surveys and become the default for new Apple development. Not bad for a project that started as one engineer's evening hobby.
+
+  - id: open-source-2015
+    title: "Going open source, 2015"
+    summary: |
+      A language locked inside one company can only go so far. On <strong>3 December 2015</strong>, Apple did something many thought it never would: it open-sourced Swift under the Apache 2.0 licence (with a runtime library exception), launched <code>Swift.org</code>, and put the entire compiler, standard library, and core libraries on GitHub.
+
+      Crucially, the release included <strong>Linux support</strong>. For the first time, Swift could run on servers and machines that had nothing to do with Apple. The Swift Package Manager arrived to handle dependencies, and a community formed around server-side frameworks like Vapor. Today Swift also targets Windows, WebAssembly, and even tiny embedded systems.
+
+      Open-sourcing brought something just as important as portability: a transparent design process. Changes to the language now flow through <strong>Swift Evolution</strong>, a public proposal system. Every feature gets a number — you'll see references like SE-0296 throughout this series — a written rationale, and an open review period where anyone can argue for or against it. When we discuss async/await or opaque types later, we're really discussing community-reviewed proposals, not decisions handed down from behind a curtain.
+
+      So Swift stopped being "Apple's language" and started becoming a language that Apple happens to lead.
+
+  - id: the-compiler-pipeline
+    title: "How the compiler thinks"
+    summary: |
+      So what actually happens when we hit build? Our <code>.swift</code> files don't run directly — they are translated, in stages, all the way down to the native machine code our CPU understands. Let's trace that journey.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" style="max-width: 100%; height: auto;" role="img" aria-label="The Swift compiler pipeline: source files are parsed into an AST, type-checked by Sema, lowered to SIL, then to LLVM IR, then to native machine code"><defs><marker id="m-pipe-sp" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L9,5 L0,10 Z" fill="#94a3b8"/></marker></defs><style>.sp4-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp4-box { font: bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp4-sub { font: 11px "SF Mono", Menlo, Monaco, monospace; fill: #64748b; }.sp4-cap { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }.sp4-r { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; }.sp4-hi { fill: #FFE9E2; stroke: #F05138; stroke-width: 2; }</style><text x="360" y="28" text-anchor="middle" class="sp4-title">From .swift to Machine Code</text><g transform="translate(20, 70)"><rect x="0" y="0" width="100" height="64" rx="8" class="sp4-r"/><text x="50" y="28" text-anchor="middle" class="sp4-box">Source</text><text x="50" y="48" text-anchor="middle" class="sp4-sub">.swift</text><line x1="100" y1="32" x2="116" y2="32" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-pipe-sp)"/><rect x="116" y="0" width="100" height="64" rx="8" class="sp4-r"/><text x="166" y="28" text-anchor="middle" class="sp4-box">Parse</text><text x="166" y="48" text-anchor="middle" class="sp4-sub">AST</text><line x1="216" y1="32" x2="232" y2="32" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-pipe-sp)"/><rect x="232" y="0" width="100" height="64" rx="8" class="sp4-r"/><text x="282" y="28" text-anchor="middle" class="sp4-box">Sema</text><text x="282" y="48" text-anchor="middle" class="sp4-sub">type-check</text><line x1="332" y1="32" x2="348" y2="32" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-pipe-sp)"/><rect x="348" y="0" width="100" height="64" rx="8" class="sp4-hi"/><text x="398" y="28" text-anchor="middle" class="sp4-box">SIL</text><text x="398" y="48" text-anchor="middle" class="sp4-sub">Swift IR</text><line x1="448" y1="32" x2="464" y2="32" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-pipe-sp)"/><rect x="464" y="0" width="100" height="64" rx="8" class="sp4-r"/><text x="514" y="28" text-anchor="middle" class="sp4-box">LLVM</text><text x="514" y="48" text-anchor="middle" class="sp4-sub">IR</text><line x1="564" y1="32" x2="580" y2="32" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-pipe-sp)"/><rect x="580" y="0" width="100" height="64" rx="8" class="sp4-r"/><text x="630" y="28" text-anchor="middle" class="sp4-box">Machine</text><text x="630" y="48" text-anchor="middle" class="sp4-sub">code</text></g><text x="360" y="180" text-anchor="middle" class="sp4-cap">SIL — the Swift Intermediate Language — is the stage that makes Swift special.</text><text x="360" y="202" text-anchor="middle" class="sp4-cap">It runs the safety checks and high-level optimisations before LLVM takes over.</text></svg>
+
+      The first stages are familiar from any compiler: the <strong>parser</strong> turns text into an abstract syntax tree, and <strong>Sema</strong> (semantic analysis) type-checks it, resolving every <code>var</code>, every call, and every generic placeholder. If you've ever fought the type-checker, this is the stage you were fighting.
+
+      Then comes the part that sets Swift apart: <strong>SIL</strong>, the Swift Intermediate Language. Most compilers hand off to LLVM right after type-checking, but Swift inserts its own high-level intermediate representation in between. SIL is where Swift proves that every variable is initialised before use (definite initialisation), enforces exclusive access to memory, and performs Swift-specific optimisations like eliminating unnecessary retain and release calls. Only after SIL has done its work does the code descend into <strong>LLVM IR</strong> and, finally, the native instructions for your particular chip.
+
+      That extra layer is why Swift can give such precise diagnostics and still produce fast binaries. The language understands itself before it ever speaks to LLVM.
+
+  - id: aot-and-abi
+    title: "Native code and the ABI stability story"
+    summary: |
+      Here's a question worth pausing on: where does Swift run? Unlike Java or Dart, there is no virtual machine sitting underneath your app in production. Swift is compiled <strong>ahead of time</strong> into native machine code that the CPU executes directly. There is a <em>runtime</em> — a library that handles reference counting, type metadata, and dynamic casts — but it is a support library, not an interpreter.
+
+      For Swift's first five years, that runtime was a headache. Because the language was still changing, every app had to <strong>bundle its own copy</strong> of the Swift libraries inside the app package — several megabytes per app — so it wouldn't break when the OS updated. This is the "ABI" problem: the Application Binary Interface, the low-level contract for how compiled code lays out data and calls functions, wasn't yet stable.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Before Swift 5 each app bundled its own copy of the Swift runtime libraries; from Swift 5 the runtime ships inside the operating system and is shared by all apps"><style>.sp5-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp5-h { font: bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp5-l { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }.sp5-s { font: 11px "SF Mono", Menlo, Monaco, monospace; fill: #64748b; }.sp5-app { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; }.sp5-rt-old { fill: #fee2e2; stroke: #dc2626; stroke-width: 1.5; }.sp5-rt-new { fill: #FFE9E2; stroke: #F05138; stroke-width: 2; }.sp5-os { fill: #d1fae5; stroke: #10b981; stroke-width: 2; }</style><text x="360" y="26" text-anchor="middle" class="sp5-title">Why apps stopped shipping the Swift runtime</text><text x="180" y="58" text-anchor="middle" class="sp5-h">Before Swift 5</text><g transform="translate(40, 72)"><rect x="0" y="0" width="130" height="120" rx="8" class="sp5-app"/><text x="65" y="22" text-anchor="middle" class="sp5-l">App A</text><rect x="14" y="34" width="102" height="74" rx="6" class="sp5-rt-old"/><text x="65" y="66" text-anchor="middle" class="sp5-s">Swift libs</text><text x="65" y="84" text-anchor="middle" class="sp5-s">~5 MB copy</text></g><g transform="translate(190, 72)"><rect x="0" y="0" width="130" height="120" rx="8" class="sp5-app"/><text x="65" y="22" text-anchor="middle" class="sp5-l">App B</text><rect x="14" y="34" width="102" height="74" rx="6" class="sp5-rt-old"/><text x="65" y="66" text-anchor="middle" class="sp5-s">Swift libs</text><text x="65" y="84" text-anchor="middle" class="sp5-s">~5 MB copy</text></g><text x="180" y="232" text-anchor="middle" class="sp5-s">Every app carries its own runtime.</text><line x1="360" y1="60" x2="360" y2="250" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4"/><text x="545" y="58" text-anchor="middle" class="sp5-h">Swift 5+ (ABI stable)</text><g transform="translate(405, 72)"><rect x="0" y="0" width="120" height="70" rx="8" class="sp5-app"/><text x="60" y="40" text-anchor="middle" class="sp5-l">App A</text></g><g transform="translate(545, 72)"><rect x="0" y="0" width="120" height="70" rx="8" class="sp5-app"/><text x="60" y="40" text-anchor="middle" class="sp5-l">App B</text></g><line x1="465" y1="142" x2="465" y2="166" stroke="#10b981" stroke-width="2"/><line x1="605" y1="142" x2="605" y2="166" stroke="#10b981" stroke-width="2"/><g transform="translate(405, 168)"><rect x="0" y="0" width="260" height="60" rx="8" class="sp5-os"/><text x="130" y="26" text-anchor="middle" class="sp5-h">Operating System</text><text x="130" y="46" text-anchor="middle" class="sp5-s">Swift runtime built in — shared</text></g><text x="535" y="252" text-anchor="middle" class="sp5-s">Apps are smaller and share one runtime.</text></svg>
+
+      That changed with <strong>Swift 5 in March 2019</strong>, which delivered <strong>ABI stability</strong>. The Swift runtime became part of the operating system itself — iOS, macOS, and the rest now ship with Swift built in. Apps no longer bundle their own copy; they link against the one in the OS, so they got smaller and launched faster. Module stability followed, letting pre-compiled libraries work across compiler versions. Swift had finally grown up: a binary compiled today will keep working with the system libraries of tomorrow.
+
+  - id: arc-not-gc
+    title: "Memory: ARC, not a garbage collector"
+    summary: |
+      Most modern languages manage memory with a tracing garbage collector — a background process that periodically scans for objects nobody is using and frees them. Swift takes a different path: <strong>Automatic Reference Counting</strong>, or ARC.
+
+      The idea is simple. Every class instance carries a count of how many references point to it. When you assign it somewhere, the count goes up; when a reference goes away, the count goes down. The instant the count hits zero, the object is deallocated and its <code>deinit</code> runs. The twist is in the word <em>automatic</em>: you don't write these increments by hand. The compiler inserts the retain and release calls for you, at compile time, in exactly the right places.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 270" style="max-width: 100%; height: auto;" role="img" aria-label="A retain count timeline: creating an object sets the count to 1, a second reference raises it to 2, releasing references lowers it, and at zero the object is deallocated"><defs><marker id="m-arc-sp" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#475569"/></marker></defs><style>.sp6-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp6-code { font: 12px "SF Mono", Menlo, Monaco, monospace; fill: #1e293b; }.sp6-n { font: bold 15px "SF Mono", Menlo, Monaco, monospace; fill: #F05138; }.sp6-cap { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #475569; }.sp6-zero { font: bold 15px "SF Mono", Menlo, Monaco, monospace; fill: #dc2626; }.sp6-dot { fill: #F05138; }</style><text x="360" y="26" text-anchor="middle" class="sp6-title">Retain Count Over an Object's Life</text><line x1="60" y1="180" x2="660" y2="180" stroke="#94a3b8" stroke-width="2" marker-end="url(#m-arc-sp)"/><g><circle cx="120" cy="150" r="5" class="sp6-dot"/><text x="120" y="135" text-anchor="middle" class="sp6-n">1</text><text x="120" y="205" text-anchor="middle" class="sp6-code">let a = Obj()</text></g><g><circle cx="270" cy="120" r="5" class="sp6-dot"/><text x="270" y="105" text-anchor="middle" class="sp6-n">2</text><text x="270" y="205" text-anchor="middle" class="sp6-code">let b = a</text></g><g><circle cx="430" cy="150" r="5" class="sp6-dot"/><text x="430" y="135" text-anchor="middle" class="sp6-n">1</text><text x="430" y="205" text-anchor="middle" class="sp6-code">b out of scope</text></g><g><circle cx="590" cy="180" r="5" fill="#dc2626"/><text x="590" y="165" text-anchor="middle" class="sp6-zero">0</text><text x="590" y="205" text-anchor="middle" class="sp6-code">a out of scope</text></g><polyline points="120,150 270,120 430,150 590,180" fill="none" stroke="#F05138" stroke-width="2" stroke-dasharray="3 3"/><text x="590" y="232" text-anchor="middle" class="sp6-zero">deinit runs — freed</text></svg>
+
+      ARC has real advantages. Deallocation is <strong>deterministic</strong>: an object dies the moment its last reference disappears, not whenever a collector next decides to run. There are no garbage-collection pauses, which matters enormously for smooth scrolling and animation. The cost is paid elsewhere — in the traffic of retain and release calls, and in one notorious failure mode: if two objects hold strong references to each other, their counts never reach zero and they leak. Breaking those <strong>reference cycles</strong> with <code>weak</code> and <code>unowned</code> is a skill we'll develop in the value-types and closures episodes.
+
+      This model isn't new to Swift, by the way. Objective-C gained ARC back in 2011, automating what programmers had previously done by hand with explicit <code>retain</code> and <code>release</code> messages. Swift simply inherited a proven idea and made it the default.
+
+  - id: the-shape-of-swift
+    title: "The shape of Swift today"
+    summary: |
+      We've travelled from a secret 2010 project to a native-compiled, ABI-stable language with its own intermediate representation and deterministic memory management. Let's place the milestones on a single line, because the rest of this series sits on top of them.
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="A timeline of Swift milestones from 2010 to 2024: secret start, the 2014 reveal, open source in 2015, Swift 3 in 2016, ABI stability in 2019, concurrency in 2021, and data-race safety in Swift 6 in 2024"><style>.sp7-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp7-year { font: bold 13px "SF Mono", Menlo, Monaco, monospace; fill: #F05138; }.sp7-ev { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #1e293b; }.sp7-sub { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: #64748b; }.sp7-dot { fill: #F05138; stroke: #fff; stroke-width: 2; }</style><text x="360" y="26" text-anchor="middle" class="sp7-title">Fourteen Years of Swift</text><line x1="50" y1="150" x2="680" y2="150" stroke="#94a3b8" stroke-width="2.5"/><g><circle cx="70" cy="150" r="7" class="sp7-dot"/><text x="70" y="92" text-anchor="middle" class="sp7-year">2010</text><text x="70" y="110" text-anchor="middle" class="sp7-ev">Secret</text><text x="70" y="126" text-anchor="middle" class="sp7-sub">Lattner starts</text></g><g><circle cx="172" cy="150" r="7" class="sp7-dot"/><text x="172" y="180" text-anchor="middle" class="sp7-year">2014</text><text x="172" y="198" text-anchor="middle" class="sp7-ev">WWDC reveal</text><text x="172" y="214" text-anchor="middle" class="sp7-sub">Swift 1.0</text></g><g><circle cx="274" cy="150" r="7" class="sp7-dot"/><text x="274" y="92" text-anchor="middle" class="sp7-year">2015</text><text x="274" y="110" text-anchor="middle" class="sp7-ev">Open source</text><text x="274" y="126" text-anchor="middle" class="sp7-sub">Linux, GitHub</text></g><g><circle cx="376" cy="150" r="7" class="sp7-dot"/><text x="376" y="180" text-anchor="middle" class="sp7-year">2016</text><text x="376" y="198" text-anchor="middle" class="sp7-ev">Swift 3</text><text x="376" y="214" text-anchor="middle" class="sp7-sub">grand renaming</text></g><g><circle cx="478" cy="150" r="7" class="sp7-dot"/><text x="478" y="92" text-anchor="middle" class="sp7-year">2019</text><text x="478" y="110" text-anchor="middle" class="sp7-ev">Swift 5</text><text x="478" y="126" text-anchor="middle" class="sp7-sub">ABI stable</text></g><g><circle cx="580" cy="150" r="7" class="sp7-dot"/><text x="580" y="180" text-anchor="middle" class="sp7-year">2021</text><text x="580" y="198" text-anchor="middle" class="sp7-ev">Swift 5.5</text><text x="580" y="214" text-anchor="middle" class="sp7-sub">async/await</text></g><g><circle cx="668" cy="150" r="7" class="sp7-dot"/><text x="668" y="92" text-anchor="middle" class="sp7-year">2024</text><text x="668" y="110" text-anchor="middle" class="sp7-ev">Swift 6</text><text x="668" y="126" text-anchor="middle" class="sp7-sub">data-race safe</text></g></svg>
+
+      Each of those landmarks is a chapter waiting for us. The 2016 "grand renaming" of Swift 3 cleaned up the API guidelines and caused one last great migration. The 2019 ABI work we just saw made Swift dependable. In 2021, Swift 5.5 introduced <code>async</code>/<code>await</code> and actors — we'll devote a whole episode to them. And in 2024, Swift 6 turned on compile-time data-race safety, making whole categories of concurrency bug impossible.
+
+      Swift now runs far beyond the iPhone: on servers, on Linux and Windows, in the browser through WebAssembly, and on microcontrollers through embedded Swift. From here, the series builds upward — optionals and the type system, structs versus classes and value semantics, strings and Unicode, collections, protocols, and finally concurrency. Every one of those features rests on the foundation we've just laid: native code, SIL, and ARC. Alright then — let's start writing some Swift.
+quiz:
+  title: "Swift: The Platform Quiz"
+  description: "Test your understanding of Swift's history, its compiler pipeline, and how it manages memory."
+  questions:
+    - question: "Who began work on Swift in 2010, and what well-known project had they previously created?"
+      options:
+        - "Craig Federighi, creator of Cocoa"
+        - "Chris Lattner, creator of LLVM"
+        - "Tony Hoare, creator of ALGOL"
+        - "Dave Abrahams, creator of the C++ STL"
+      correctIndex: 1
+      explanation: "Chris Lattner started Swift in July 2010. He had earlier created the LLVM compiler infrastructure as a graduate student, which gave him deep expertise in language and compiler design."
+    - question: "When was Swift first revealed to the public?"
+      options:
+        - "At WWDC in June 2014"
+        - "When it was open-sourced in December 2015"
+        - "With the iPhone launch in 2007"
+        - "At WWDC in June 2010"
+      correctIndex: 0
+      explanation: "Swift was unveiled at Apple's WWDC on 2 June 2014, to a largely surprised audience. Swift 1.0 then shipped that September with Xcode 6."
+    - question: "What distinguishes SIL in the Swift compiler pipeline?"
+      options:
+        - "It is a virtual machine that interprets Swift at runtime"
+        - "It is Swift's own intermediate representation, used for safety checks and high-level optimisation before LLVM"
+        - "It is the syntax-highlighting layer in Xcode"
+        - "It is the network protocol used by Swift Package Manager"
+      correctIndex: 1
+      explanation: "SIL (Swift Intermediate Language) is a Swift-specific IR inserted between type-checking and LLVM. It performs checks like definite initialisation and Swift-specific optimisations before the code is lowered to LLVM IR and then native code."
+    - question: "How does Swift manage the memory of class instances?"
+      options:
+        - "A tracing garbage collector that runs periodically"
+        - "Manual malloc and free calls written by the programmer"
+        - "Automatic Reference Counting (ARC), with retain/release inserted by the compiler"
+        - "A virtual machine with a generational heap"
+      correctIndex: 2
+      explanation: "Swift uses Automatic Reference Counting. The compiler inserts retain and release calls at compile time; when an object's reference count reaches zero it is deallocated immediately and its deinit runs. It is not a tracing garbage collector."
+    - question: "What did ABI stability, delivered in Swift 5 (2019), change for apps?"
+      options:
+        - "Apps had to bundle a larger copy of the Swift runtime"
+        - "The Swift runtime moved into the OS, so apps no longer bundle their own copy"
+        - "Swift could no longer call Objective-C code"
+        - "Swift stopped compiling to native code and started using a VM"
+      correctIndex: 1
+      explanation: "Before Swift 5, each app bundled its own copy of the Swift libraries. ABI stability let the runtime ship as part of the operating system, so apps link against the shared one — making them smaller and faster to launch."
+    - question: "Why does Swift not suffer garbage-collection pauses?"
+      options:
+        - "Because it never frees memory at all"
+        - "Because deallocation is deterministic — an object is freed the moment its reference count reaches zero"
+        - "Because all memory is allocated on the stack"
+        - "Because the OS pauses other apps instead"
+      correctIndex: 1
+      explanation: "With ARC, an object is deallocated immediately when its last reference disappears, rather than whenever a background collector decides to run. This deterministic freeing avoids the unpredictable pauses associated with tracing garbage collectors."
+    - question: "What is the Swift Evolution process?"
+      options:
+        - "Apple's internal-only roadmap, kept secret like the original project"
+        - "A public proposal system (e.g. SE-0296) where language changes are written up and openly reviewed"
+        - "The automatic migration tool in Xcode"
+        - "The name of Swift's garbage collector"
+      correctIndex: 1
+      explanation: "Since Swift was open-sourced in 2015, language changes flow through Swift Evolution: numbered proposals (such as SE-0296 for async/await) with written rationale and open community review."
+---
+
+{/* Swift: The Platform. Episode 1 of the Swift series. History (Lattner/LLVM,
+    2014 reveal, 2015 open source), the compiler pipeline through SIL, ahead-of-time
+    native compilation and ABI stability, ARC vs garbage collection, and a milestone
+    timeline. 4 inline SVG diagrams. */}

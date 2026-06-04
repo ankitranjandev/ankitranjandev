@@ -1,0 +1,202 @@
+---
+title: "Generics in Swift — Constraints, Metadata, and the Generic Standard Library"
+description: "Generics let one piece of code work over many types with full type safety. And unlike Java, Swift keeps the type information alive at runtime rather than erasing it."
+category: "Swift"
+color: "#F05138"
+subject: "Swift: Type System"
+order: 3
+publishedAt: 2026-06-04
+summary: |
+  <strong>Generics</strong> let us write one algorithm that works over many types, with the compiler still checking every use.<br>
+  <code>func swap&lt;T&gt;(_ a: inout T, _ b: inout T)</code> replaces a pile of hand-written <code>swapInt</code>, <code>swapString</code>, <code>swapDouble</code> functions.<br>
+  Constraints like <code>&lt;T: Comparable&gt;</code> unlock operations on <code>T</code>; <code>where</code> clauses refine them further.<br>
+  The standard library is generic to its core — <code>Array&lt;Element&gt;</code>, <code>Dictionary&lt;Key, Value&gt;</code>, <code>Optional&lt;Wrapped&gt;</code>, <code>Result&lt;Success, Failure&gt;</code>.<br>
+  <strong>Swift generics are not type-erased.</strong> The compiler emits one shared body that receives type metadata and witness tables at runtime, and may specialise hot paths into concrete copies:<br>
+  <pre><code>func max&lt;T: Comparable&gt;(_ a: T, _ b: T) -&gt; T {&#10;    a &gt; b ? a : b&#10;}&#10;// One body. Type of T arrives at runtime as metadata.&#10;// The optimiser may also stamp out a concrete max-for-Int.</code></pre>
+topics:
+  - id: the-duplication-problem
+    title: "The duplication problem — one algorithm, many types"
+    summary: |
+      Let's start with a tiny task: swapping two values. In Swift, before generics enter the picture, we might reach for something like this.
+      <br><br>
+      <pre><code>func swapInts(_ a: inout Int, _ b: inout Int) {&#10;    let temp = a&#10;    a = b&#10;    b = temp&#10;}&#10;&#10;func swapStrings(_ a: inout String, _ b: inout String) {&#10;    let temp = a&#10;    a = b&#10;    b = temp&#10;}&#10;&#10;func swapDoubles(_ a: inout Double, _ b: inout Double) {&#10;    let temp = a&#10;    a = b&#10;    b = temp&#10;}</code></pre>
+      Look at those three functions. The bodies are identical. The only thing that changes is the type name in the signature. Every new type we want to swap means another copy-paste, another place to fix a bug, another function to keep in sync. That's the duplication problem in miniature.
+      <br><br>
+      So what's the algorithm here, really? "Take two storage locations of the same type, exchange their contents." Nothing about that depends on whether the values are integers or strings. The shape of the code is the same for every type. We're just lacking a way to say "any type" without giving up the compiler's checks.
+      <br><br>
+      Generics are that way. We write the body once, with a placeholder standing in for the concrete type, and the caller supplies the real type at each call site.
+      <br><br>
+      <pre><code>func swap&lt;T&gt;(_ a: inout T, _ b: inout T) {&#10;    let temp = a&#10;    a = b&#10;    b = temp&#10;}&#10;&#10;var x = 1, y = 2&#10;swap(&amp;x, &amp;y)         // T is Int&#10;&#10;var s = "a", t = "b"&#10;swap(&amp;s, &amp;t)         // T is String</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Three hand-written swap functions collapsing into one generic swap function"><defs><marker id="sgen1-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#C7411F"/></marker></defs><style>.sgen1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sgen1-title{font-size:16px;font-weight:600}.sgen1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sgen1-label{font-size:12px;fill:#475569}.sgen1-note{font-size:12px;fill:#64748b;font-style:italic}.sgen1-good{font-size:13px;fill:#059669;font-weight:600}</style><text x="360" y="26" text-anchor="middle" class="sgen1-t sgen1-title">One algorithm, written three times — then once</text><rect x="30" y="50" width="200" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="44" y="78" class="sgen1-t sgen1-mn">swapInts(&amp;a, &amp;b)</text><rect x="30" y="104" width="200" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="44" y="132" class="sgen1-t sgen1-mn">swapStrings(&amp;a, &amp;b)</text><rect x="30" y="158" width="200" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="44" y="186" class="sgen1-t sgen1-mn">swapDoubles(&amp;a, &amp;b)</text><text x="130" y="226" text-anchor="middle" class="sgen1-t sgen1-note">Identical bodies, different types</text><line x1="245" y1="126" x2="335" y2="126" stroke="#C7411F" stroke-width="2.5" marker-end="url(#sgen1-arr)"/><rect x="350" y="86" width="320" height="80" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="8"/><text x="510" y="118" text-anchor="middle" class="sgen1-t sgen1-mn">func swap&lt;T&gt;(_ a: inout T,</text><text x="510" y="140" text-anchor="middle" class="sgen1-t sgen1-mn">_ b: inout T)</text><text x="510" y="200" text-anchor="middle" class="sgen1-t sgen1-good">Written once. Works for every type T.</text></svg>
+      <br><br>
+      A nice piece of trivia: this exact function ships in the Swift standard library as <code>swap(_:_:)</code>, and the generic <code>&lt;T&gt;</code> swap was one of the canonical examples in Apple's very first <em>The Swift Programming Language</em> book back in 2014. It is the "hello, world" of generics for a reason — it shows, in five lines, why writing the same algorithm by hand for each type is a waste.
+
+  - id: generic-functions-and-type-parameters
+    title: "Generic functions and type parameters"
+    summary: |
+      That <code>&lt;T&gt;</code> after the function name is a <strong>type parameter</strong>. It's a placeholder, a stand-in for a real type that the caller will decide. The letter <code>T</code> is just a convention (it stands for "Type"); we could call it anything, and for clarity we often do — <code>Element</code>, <code>Key</code>, <code>Value</code>.
+      <br><br>
+      Here's a slightly meatier example: finding the index of the first value in an array that matches a target.
+      <br><br>
+      <pre><code>func firstIndex&lt;T: Equatable&gt;(of value: T, in array: [T]) -&gt; Int? {&#10;    for (index, element) in array.enumerated() {&#10;        if element == value {&#10;            return index&#10;        }&#10;    }&#10;    return nil&#10;}&#10;&#10;let names = ["Anna", "Bo", "Cleo"]&#10;firstIndex(of: "Bo", in: names)   // Optional(1), T is String&#10;firstIndex(of: 7, in: [3, 7, 9])  // Optional(1), T is Int</code></pre>
+      Notice we never wrote <code>firstIndex&lt;String&gt;(...)</code> at the call site. We just passed a <code>String</code> and an array of strings, and Swift worked out that <code>T</code> must be <code>String</code>. This is <strong>type inference</strong> filling in the type parameter for us. The compiler looks at the arguments, sees what types they are, and binds <code>T</code> accordingly — once, consistently, for that whole call.
+      <br><br>
+      That consistency matters. Because both parameters use the same <code>T</code>, the compiler insists they agree. We cannot pass a <code>String</code> as the value and an array of <code>Int</code> as the haystack. Reusing the same type parameter is how we say "these must be the same type", and the compiler holds us to it.
+      <br><br>
+      And here's the question that leads us straight into the next idea. How did <code>element == value</code> even compile? Comparing two arbitrary values of an unknown type <code>T</code> with <code>==</code> shouldn't be allowed — not every type supports equality. The answer is that little <code>: Equatable</code> hanging off the type parameter. Without it, the function wouldn't build. Let's look at what that is.
+
+  - id: constraints
+    title: "Constraints — telling the compiler what T can do"
+    summary: |
+      Here's the catch with an unconstrained type parameter. If all the compiler knows is "some type <code>T</code>", then it cannot let us do much with a value of that type. We can move it around, store it, return it. But we cannot add it, compare it, or call methods on it, because <code>T</code> might be a type that doesn't support any of that.
+      <br><br>
+      <pre><code>func largest&lt;T&gt;(_ values: [T]) -&gt; T? {&#10;    var result = values.first&#10;    for value in values {&#10;        if value &gt; result! {  // error: T might not support &gt;&#10;            result = value&#10;        }&#10;    }&#10;    return result&#10;}</code></pre>
+      The compiler is right to complain. What if <code>T</code> is some type with no notion of order? A <strong>constraint</strong> is how we promise the compiler that <code>T</code> supports a particular capability — and, in exchange, the compiler lets us use that capability inside the function.
+      <br><br>
+      <pre><code>func largest&lt;T: Comparable&gt;(_ values: [T]) -&gt; T? {&#10;    var result = values.first&#10;    for value in values {&#10;        if value &gt; result! {  // fine: Comparable guarantees &gt;&#10;            result = value&#10;        }&#10;    }&#10;    return result&#10;}&#10;&#10;largest([3, 1, 4, 1, 5])              // Optional(5)&#10;largest(["pear", "fig", "kiwi"])      // Optional("pear")</code></pre>
+      Think of a constraint as a gate. Only types that satisfy it are allowed through to fill in <code>T</code>, and once inside, the constraint unlocks the operations we promised.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="A constraint funnel where only types conforming to Comparable pass through to be usable as T"><defs><marker id="sgen4-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.sgen4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sgen4-title{font-size:16px;font-weight:600}.sgen4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sgen4-gate{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;fill:#C7411F;font-weight:600}.sgen4-pass{font-size:12px;fill:#059669;font-weight:600}.sgen4-fail{font-size:12px;fill:#dc2626;font-weight:600}.sgen4-note{font-size:11px;fill:#64748b;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="sgen4-t sgen4-title">A constraint is a gate: only conforming types pass</text><rect x="30" y="60" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="90" y="85" text-anchor="middle" class="sgen4-t sgen4-mn">Int</text><rect x="30" y="110" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="90" y="135" text-anchor="middle" class="sgen4-t sgen4-mn">String</text><rect x="30" y="160" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="90" y="185" text-anchor="middle" class="sgen4-t sgen4-mn">Date</text><rect x="30" y="210" width="120" height="40" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="90" y="235" text-anchor="middle" class="sgen4-t sgen4-mn">(some struct)</text><line x1="155" y1="80" x2="270" y2="130" stroke="#475569" stroke-width="1.5" marker-end="url(#sgen4-arr)"/><line x1="155" y1="130" x2="270" y2="142" stroke="#475569" stroke-width="1.5" marker-end="url(#sgen4-arr)"/><line x1="155" y1="180" x2="270" y2="154" stroke="#475569" stroke-width="1.5" marker-end="url(#sgen4-arr)"/><line x1="155" y1="230" x2="265" y2="170" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5 4"/><polygon points="280,90 420,90 380,150 380,200 320,200 320,150" fill="#FFE9E2" stroke="#F05138" stroke-width="2"/><text x="350" y="125" text-anchor="middle" class="sgen4-t sgen4-gate">T: Comparable</text><text x="350" y="225" text-anchor="middle" class="sgen4-t sgen4-note">the gate</text><line x1="380" y1="145" x2="470" y2="145" stroke="#475569" stroke-width="2" marker-end="url(#sgen4-arr)"/><rect x="480" y="100" width="210" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="8"/><text x="585" y="130" text-anchor="middle" class="sgen4-t sgen4-mn">usable as T</text><text x="585" y="155" text-anchor="middle" class="sgen4-t sgen4-pass">can call a &lt; b, max(a, b)</text><text x="585" y="176" text-anchor="middle" class="sgen4-t sgen4-note">the constraint unlocks operations</text><text x="360" y="282" text-anchor="middle" class="sgen4-t sgen4-fail">A non-conforming type is rejected at compile time.</text><text x="360" y="302" text-anchor="middle" class="sgen4-t sgen4-note">Without any constraint, you can barely touch a T at all.</text></svg>
+      <br><br>
+      We can require more than one capability at once by combining constraints with <code>&amp;</code>.
+      <br><br>
+      <pre><code>func describe&lt;T: Comparable &amp; CustomStringConvertible&gt;(_ a: T, _ b: T) {&#10;    let bigger = a &gt; b ? a : b&#10;    print("The larger is \(bigger.description)")&#10;}</code></pre>
+      And for richer requirements — especially ones that talk about the <em>associated</em> types we'll meet shortly — we reach for a <code>where</code> clause. A <code>where</code> clause lets us add conditions that a bare <code>: SomeProtocol</code> can't express.
+      <br><br>
+      <pre><code>func sum&lt;S: Sequence&gt;(_ values: S) -&gt; Int&#10;    where S.Element: Numeric, S.Element == Int {&#10;    values.reduce(0, +)&#10;}&#10;&#10;sum([1, 2, 3])          // 6&#10;sum(1...10)             // 55, works on a Range too</code></pre>
+      The shorthand <code>&lt;T: Comparable&gt;</code> and the longer <code>where T: Comparable</code> mean the same thing; the <code>where</code> form simply has room for conditions about associated types and equality relationships. The rule of thumb: simple "this type conforms to that protocol" goes inline, anything about <code>Element</code> or type equality goes in a <code>where</code> clause.
+
+  - id: generic-types
+    title: "Generic types — building Stack, and a generic standard library"
+    summary: |
+      Functions aren't the only things that can be generic. Types can be too. Let's build the classic example, a stack — a last-in, first-out collection — that holds elements of any single type.
+      <br><br>
+      <pre><code>struct Stack&lt;Element&gt; {&#10;    private var items: [Element] = []&#10;&#10;    mutating func push(_ item: Element) {&#10;        items.append(item)&#10;    }&#10;&#10;    mutating func pop() -&gt; Element? {&#10;        items.popLast()&#10;    }&#10;&#10;    var top: Element? { items.last }&#10;    var count: Int { items.count }&#10;}&#10;&#10;var numbers = Stack&lt;Int&gt;()&#10;numbers.push(1)&#10;numbers.push(2)&#10;numbers.pop()             // Optional(2)&#10;&#10;var words = Stack&lt;String&gt;()&#10;words.push("hi")</code></pre>
+      The type parameter <code>Element</code> sits right after the type name, and from then on it's a real type we can use for stored properties, parameters, and return types. A <code>Stack&lt;Int&gt;</code> and a <code>Stack&lt;String&gt;</code> are genuinely different types — you cannot accidentally push a string onto an integer stack, and the compiler proves it.
+      <br><br>
+      Here's the part that surprises people coming from older languages. Once you notice generic types, you start seeing them everywhere in Swift — because the standard library is generic right down to its foundations. The everyday types you use without thinking are all generic.
+      <br><br>
+      <pre><code>// Every one of these is a generic type:&#10;Array&lt;Element&gt;            //  [Int]   is sugar for Array&lt;Int&gt;&#10;Dictionary&lt;Key, Value&gt;    //  [K: V]  is sugar for Dictionary&lt;K, V&gt;&#10;Set&lt;Element&gt;&#10;Optional&lt;Wrapped&gt;         //  Int?    is sugar for Optional&lt;Int&gt;&#10;Result&lt;Success, Failure&gt;</code></pre>
+      That little <code>?</code> for optionals? It's syntactic sugar for <code>Optional&lt;Wrapped&gt;</code>, an ordinary generic enum. The square brackets for arrays and dictionaries? Sugar for <code>Array&lt;Element&gt;</code> and <code>Dictionary&lt;Key, Value&gt;</code>. There is no special magic compiler type for "list" the way some languages have. Swift's collections are written in Swift, as generic types, using the very same tools available to us. When we write our own <code>Stack&lt;Element&gt;</code>, we are building exactly the kind of thing the standard library is built from.
+
+  - id: associated-types
+    title: "Associated types — the input on the other side"
+    summary: |
+      Generic types put their type parameter in angle brackets up front: <code>Stack&lt;Element&gt;</code>. Protocols play the same game, but from the other direction. A protocol can't take a type parameter in angle brackets. Instead it declares an <strong>associated type</strong> — a placeholder that each conforming type must fill in.
+      <br><br>
+      The canonical example is <code>Sequence</code>, the protocol behind every for-in loop in Swift.
+      <br><br>
+      <pre><code>protocol Sequence {&#10;    associatedtype Element&#10;    func makeIterator() -&gt; ...&#10;}&#10;&#10;extension Array: Sequence {&#10;    // Element is inferred from how Array uses it&#10;}</code></pre>
+      The difference is one of direction. With a generic struct, <em>the caller</em> chooses the type — we write <code>Stack&lt;Int&gt;</code> and pick <code>Int</code> ourselves. With an associated type, <em>the conforming type</em> chooses. When <code>Array&lt;Int&gt;</code> conforms to <code>Sequence</code>, it fixes <code>Element</code> to <code>Int</code>; when <code>String</code> conforms, its <code>Element</code> is <code>Character</code>. The protocol just says "there will be an <code>Element</code>"; each adopter decides what it is.
+      <br><br>
+      That's why you write <code>some Sequence</code> rather than <code>Sequence&lt;Int&gt;</code> in older Swift — the protocol had no slot to put the <code>Int</code> in. You constrained the associated type indirectly through a <code>where</code> clause.
+      <br><br>
+      <pre><code>func total&lt;S&gt;(_ seq: S) -&gt; Int where S: Sequence, S.Element == Int {&#10;    seq.reduce(0, +)&#10;}</code></pre>
+      That's verbose. So Swift 5.7 introduced <strong>primary associated types</strong> (SE-0346), which let a protocol promote one or more associated types into angle brackets, just like a generic type's parameter.
+      <br><br>
+      <pre><code>// The declaration now reads:&#10;protocol Sequence&lt;Element&gt; { associatedtype Element; ... }&#10;&#10;// Which gives us this lovely shorthand:&#10;func total(_ seq: some Sequence&lt;Int&gt;) -&gt; Int {&#10;    seq.reduce(0, +)&#10;}&#10;&#10;let xs: some Collection&lt;Int&gt; = [1, 2, 3]</code></pre>
+      So <code>Collection&lt;Int&gt;</code> finally reads the way you'd hope — "a collection of <code>Int</code>" — even though under the hood it's still an associated type, not a type parameter. It's a piece of syntax that closed a long-standing readability gap between protocols and generic types.
+
+  - id: the-runtime-model
+    title: "The runtime model — metadata, witness tables, and specialisation"
+    summary: |
+      Now for the part that makes Swift's generics genuinely distinctive. The question every generics system has to answer is: when the program actually runs, what happens to the type? There are roughly three schools of thought, and Swift picks a fourth path between them.
+      <br><br>
+      <strong>Java erases.</strong> A <code>List&lt;String&gt;</code> and a <code>List&lt;Integer&gt;</code> compile down to the same raw <code>List</code>; the type argument is thrown away after the compiler has finished checking. At runtime there is no <code>String</code> in there at all, which is why you cannot ask <code>list instanceof List&lt;String&gt;</code> in Java.
+      <br><br>
+      <strong>C++ stamps out copies.</strong> A template is a recipe, and the compiler bakes a separate, fully concrete function or class for every type you ever use it with. <code>std::vector&lt;int&gt;</code> and <code>std::vector&lt;double&gt;</code> become two distinct compiled bodies. Fast, but it can lead to serious code bloat when many types are involved.
+      <br><br>
+      <strong>Swift keeps the type, and shares the code.</strong> By default the compiler emits <em>one</em> shared implementation of a generic function. It works for any type because the type's information — its size, how to copy it, how it conforms to a protocol — is passed in <em>at runtime</em> as <strong>type metadata</strong> and <strong>protocol witness tables</strong>. The witness table is essentially a lookup of "here is how this concrete type satisfies that protocol's requirements". So there's no erasure: the type really is present at runtime.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="Swift generics at runtime: one shared implementation taking type metadata, with optional specialisation into concrete versions"><defs><marker id="sgen2-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs><style>.sgen2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sgen2-title{font-size:16px;font-weight:600}.sgen2-h{font-size:13px;font-weight:600;fill:#1e293b}.sgen2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sgen2-label{font-size:12px;fill:#475569}.sgen2-note{font-size:11px;fill:#64748b;font-style:italic}</style><text x="360" y="26" text-anchor="middle" class="sgen2-t sgen2-title">How Swift runs one generic — two strategies</text><text x="200" y="56" text-anchor="middle" class="sgen2-t sgen2-h">Default: one shared body + metadata</text><rect x="40" y="70" width="320" height="64" fill="#FFE9E2" stroke="#F05138" stroke-width="2" rx="8"/><text x="200" y="97" text-anchor="middle" class="sgen2-t sgen2-mn">func max&lt;T: Comparable&gt;(...)</text><text x="200" y="120" text-anchor="middle" class="sgen2-t sgen2-label">one compiled function</text><rect x="40" y="160" width="150" height="56" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="115" y="184" text-anchor="middle" class="sgen2-t sgen2-label">type metadata</text><text x="115" y="202" text-anchor="middle" class="sgen2-t sgen2-note">size, layout of T</text><rect x="210" y="160" width="150" height="56" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6"/><text x="285" y="184" text-anchor="middle" class="sgen2-t sgen2-label">witness table</text><text x="285" y="202" text-anchor="middle" class="sgen2-t sgen2-note">how T conforms</text><line x1="115" y1="134" x2="115" y2="158" stroke="#475569" stroke-width="1.5" marker-end="url(#sgen2-arr)"/><line x1="285" y1="134" x2="285" y2="158" stroke="#475569" stroke-width="1.5" marker-end="url(#sgen2-arr)"/><text x="200" y="244" text-anchor="middle" class="sgen2-t sgen2-note">Passed in at runtime — no code duplication</text><line x1="380" y1="150" x2="420" y2="150" stroke="#475569" stroke-width="2" marker-end="url(#sgen2-arr)"/><text x="560" y="56" text-anchor="middle" class="sgen2-t sgen2-h">Optimisation: specialisation</text><rect x="430" y="70" width="250" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="555" y="95" text-anchor="middle" class="sgen2-t sgen2-mn">max for Int</text><rect x="430" y="118" width="250" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="555" y="143" text-anchor="middle" class="sgen2-t sgen2-mn">max for Double</text><rect x="430" y="166" width="250" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="555" y="191" text-anchor="middle" class="sgen2-t sgen2-mn">max for String</text><text x="555" y="234" text-anchor="middle" class="sgen2-t sgen2-note">Hot paths inlined into concrete copies</text><text x="360" y="300" text-anchor="middle" class="sgen2-t sgen2-label">Java erases the type entirely. C++ always makes a copy per type.</text><text x="360" y="324" text-anchor="middle" class="sgen2-t sgen2-label">Swift keeps the type at runtime, then specialises only where it pays off.</text></svg>
+      <br><br>
+      But passing metadata around has a cost. So Swift adds an escape hatch: <strong>specialisation</strong>. When the optimiser can see exactly which type a generic is being used with — and it often can, especially with <code>@inlinable</code> code — it stamps out a concrete, C++-style copy with the type baked in. A hot <code>max&lt;T&gt;</code> call on <code>Int</code> can become a tight, metadata-free <code>max</code>-for-<code>Int</code>. So you get the flexibility and small binary of a shared body by default, with the speed of a concrete copy where it actually matters.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="Comparison table of how Swift generics, Java type erasure, and C++ templates handle type information, code size, and runtime checks"><style>.sgen3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sgen3-title{font-size:16px;font-weight:600}.sgen3-h{font-size:13px;font-weight:600;fill:#ffffff}.sgen3-row{font-size:12px;fill:#475569;font-weight:600}.sgen3-cell{font-size:12px;fill:#1e293b}.sgen3-note{font-size:11px;fill:#64748b}</style><text x="360" y="26" text-anchor="middle" class="sgen3-t sgen3-title">Three answers to "where do the types go?"</text><rect x="30" y="44" width="180" height="40" fill="#475569" rx="6"/><text x="120" y="69" text-anchor="middle" class="sgen3-t sgen3-h">Aspect</text><rect x="220" y="44" width="155" height="40" fill="#F05138" rx="6"/><text x="297" y="69" text-anchor="middle" class="sgen3-t sgen3-h">Swift generics</text><rect x="385" y="44" width="155" height="40" fill="#9333ea" rx="6"/><text x="462" y="69" text-anchor="middle" class="sgen3-t sgen3-h">Java erasure</text><rect x="550" y="44" width="140" height="40" fill="#0369a1" rx="6"/><text x="620" y="69" text-anchor="middle" class="sgen3-t sgen3-h">C++ templates</text><rect x="30" y="92" width="660" height="48" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="200" y="121" text-anchor="end" class="sgen3-t sgen3-row">Type at runtime?</text><text x="297" y="121" text-anchor="middle" class="sgen3-t sgen3-cell">Kept (metadata)</text><text x="462" y="121" text-anchor="middle" class="sgen3-t sgen3-cell">Erased to Object</text><text x="620" y="121" text-anchor="middle" class="sgen3-t sgen3-cell">Baked in</text><rect x="30" y="146" width="660" height="48" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="200" y="175" text-anchor="end" class="sgen3-t sgen3-row">Code copies</text><text x="297" y="175" text-anchor="middle" class="sgen3-t sgen3-cell">One shared body</text><text x="462" y="175" text-anchor="middle" class="sgen3-t sgen3-cell">One shared body</text><text x="620" y="175" text-anchor="middle" class="sgen3-t sgen3-cell">One per type</text><rect x="30" y="200" width="660" height="48" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="200" y="229" text-anchor="end" class="sgen3-t sgen3-row">Risk</text><text x="297" y="229" text-anchor="middle" class="sgen3-t sgen3-cell">Witness overhead</text><text x="462" y="229" text-anchor="middle" class="sgen3-t sgen3-cell">Lost type info</text><text x="620" y="229" text-anchor="middle" class="sgen3-t sgen3-cell">Code bloat</text><rect x="30" y="254" width="660" height="48" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="200" y="283" text-anchor="end" class="sgen3-t sgen3-row">Speed escape hatch</text><text x="297" y="283" text-anchor="middle" class="sgen3-t sgen3-cell">Specialisation</text><text x="462" y="283" text-anchor="middle" class="sgen3-t sgen3-cell">JIT inlining</text><text x="620" y="283" text-anchor="middle" class="sgen3-t sgen3-cell">Always specialised</text><text x="360" y="332" text-anchor="middle" class="sgen3-t sgen3-note">Swift sits in between: it keeps the type yet shares code, then specialises hot paths.</text></svg>
+      <br><br>
+      So Swift sits in the middle. It doesn't erase like Java, so the type survives at runtime and you keep full type information. It doesn't blindly copy like C++, so a generic used with a hundred types doesn't necessarily blow up your binary a hundredfold. And when performance demands it, the optimiser quietly produces the concrete copy anyway.
+
+  - id: power-features-and-trivia
+    title: "Power features — conditional conformance and variadic generics"
+    summary: |
+      With the core in place, let's look at two of the more advanced corners, both of which you rely on constantly even if you never write them by hand.
+      <br><br>
+      <strong>Conditional conformance</strong> (SE-0143, Swift 4.1) lets a generic type conform to a protocol only when its type parameter does. The textbook example: an array is itself <code>Equatable</code> exactly when its elements are.
+      <br><br>
+      <pre><code>extension Array: Equatable where Element: Equatable {&#10;    // == compares element by element&#10;}&#10;&#10;[1, 2, 3] == [1, 2, 3]            // true — Int is Equatable&#10;&#10;// [SomeNonEquatable] == [...]    // won't compile — and rightly so</code></pre>
+      This is why <code>[Int]</code> can be compared with <code>==</code> but an array of a type that isn't itself comparable cannot. The conformance is conditional on the element. The same trick gives you <code>[T]</code> being <code>Hashable</code> when <code>T</code> is, <code>Optional&lt;T&gt;</code> being <code>Equatable</code> when <code>T</code> is, and so on, all the way through the standard library.
+      <br><br>
+      <strong>Variadic generics</strong> (SE-0393, Swift 5.9) tackle a problem that plagued Swift for years: how do you write a function generic over an <em>arbitrary number</em> of type parameters? Before 5.9, the standard library was littered with hand-written overloads — a <code>zip</code> for two sequences, the tuple <code>==</code> defined separately for arity 2, 3, 4, 5, 6 — because there was no way to say "a tuple of any number of types".
+      <br><br>
+      <pre><code>// A parameter pack: zero or more type parameters at once&#10;func tie&lt;each T&gt;(_ values: repeat each T) -&gt; (repeat each T) {&#10;    (repeat each values)&#10;}&#10;&#10;tie(1, "two", 3.0)        // (Int, String, Double)&#10;tie(true)                 // (Bool)</code></pre>
+      The <code>each T</code> declares a <em>parameter pack</em> — a placeholder for a whole sequence of type parameters — and <code>repeat</code> expands over it. One function now covers every arity, replacing what used to be a stack of copy-pasted overloads.
+      <br><br>
+      Step back and it all connects. SwiftUI's <code>View</code> hierarchy is generic from top to bottom — a <code>VStack</code> is generic over its <code>Content</code>, and the result builder that assembles your view tree leans on these exact features. The standard library you reach for every day — <code>Array</code>, <code>Dictionary</code>, <code>Optional</code>, <code>Result</code> — is generic to its core. Generics aren't a niche feature you opt into. In Swift, they are the material the language itself is made from.
+
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions covering generic functions, constraints, generic types, associated types, the runtime model, and Swift's power features."
+  questions:
+    - question: "What problem do generics primarily solve?"
+      options:
+        - "They make every program run faster"
+        - "They let one piece of code work over many types while keeping full type safety"
+        - "They remove the need for protocols"
+        - "They replace the need for the standard library"
+      correctIndex: 1
+      explanation: "Generics resolve the tension between code reuse and type safety. Instead of writing swapInts, swapStrings, and swapDoubles by hand, we write one swap<T> and the compiler still checks every call. Without generics we would either duplicate the algorithm per type or give up type safety."
+    - question: "In `func firstIndex<T: Equatable>(of value: T, in array: [T])`, how does T get its concrete type at a call site?"
+      options:
+        - "We must always write it explicitly, e.g. firstIndex<String>"
+        - "It defaults to Any"
+        - "Type inference binds T from the types of the arguments passed"
+        - "It is decided at runtime by the witness table"
+      correctIndex: 2
+      explanation: "The caller binds T. Type inference looks at the arguments — pass a String and a [String] and the compiler infers T == String. Because both parameters share the same T, the compiler also enforces that they agree."
+    - question: "Why does an unconstrained `<T>` let you do very little with a value of type T?"
+      options:
+        - "Because T is always Optional"
+        - "Because the compiler only knows it is 'some type' and cannot assume any operations like > or =="
+        - "Because unconstrained generics are deprecated"
+        - "Because T is erased at compile time"
+      correctIndex: 1
+      explanation: "With no constraint, the compiler knows nothing about T beyond its existence, so it cannot let you compare, add, or call methods on it. A constraint such as <T: Comparable> promises a capability and, in return, the compiler lets you use it inside the function."
+    - question: "Which of these standard-library types is NOT generic?"
+      options:
+        - "Array<Element>"
+        - "Optional<Wrapped>"
+        - "Dictionary<Key, Value>"
+        - "All of them are generic"
+      correctIndex: 3
+      explanation: "All of them are generic. Array<Element>, Dictionary<Key, Value>, Set<Element>, Optional<Wrapped>, and Result<Success, Failure> are generic types. The square brackets and the ? are just syntactic sugar — [Int] is Array<Int>, and Int? is Optional<Int>."
+    - question: "How does an associated type on a protocol differ from a type parameter on a generic struct?"
+      options:
+        - "There is no difference; they are two names for the same thing"
+        - "With a generic struct the caller picks the type; with an associated type the conforming type picks it"
+        - "Associated types can only be Int"
+        - "Type parameters exist only at runtime, associated types only at compile time"
+      correctIndex: 1
+      explanation: "Direction is the difference. With Stack<Element> the caller writes Stack<Int> and chooses Element. With Sequence's associatedtype Element, each conforming type decides — Array fixes Element to its element type, String fixes it to Character. SE-0346's primary associated types later allowed Collection<Int> shorthand."
+    - question: "How are Swift generics handled at runtime by default?"
+      options:
+        - "Erased to Object, like Java"
+        - "A separate concrete copy is always generated per type, like C++"
+        - "One shared implementation receives type metadata and protocol witness tables at runtime"
+        - "They are interpreted, never compiled"
+      correctIndex: 2
+      explanation: "By default Swift emits a single shared body that takes the type's metadata (size, layout) and protocol witness tables (how it conforms) at runtime. The type is not erased. The optimiser may also specialise hot generics into concrete copies for speed, putting Swift between Java's erasure and C++'s per-type copies."
+    - question: "What does conditional conformance (SE-0143) allow, using Array as the example?"
+      options:
+        - "Array conforms to every protocol unconditionally"
+        - "Array is Equatable only when its Element is Equatable"
+        - "Array can never be Equatable"
+        - "Array conformances are decided at runtime"
+      correctIndex: 1
+      explanation: "Conditional conformance lets a generic type conform to a protocol only when its parameter does. Array is Equatable exactly when Element is Equatable, so [Int] == [Int] compiles but an array of a non-equatable element type does not. Variadic generics (SE-0393, Swift 5.9) are the related feature that lets a single function be generic over an arbitrary number of type parameters."
+---
+
+{/* Episode: Generics in Swift. Part of the Swift: Type System series.
+    7 topics covering the duplication problem, generic functions and type parameters,
+    constraints, generic types and the generic standard library, associated types,
+    the runtime model (metadata, witness tables, specialisation), and power features
+    (conditional conformance, variadic generics). 4 inline SVG diagrams. */}

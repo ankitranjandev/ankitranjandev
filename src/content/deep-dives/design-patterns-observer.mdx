@@ -1,0 +1,235 @@
+---
+title: "The Observer Pattern in Dart — Listeners, ChangeNotifier, and Reactive State"
+description: "One thing changes, and many things must react. That's the observer pattern — and it's the engine underneath ChangeNotifier, ValueNotifier, and Streams. Learn it once, and the whole of Flutter state management stops being mysterious."
+category: "Design Patterns"
+color: "#9333ea"
+subject: "Patterns: State"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: the-problem-observers-solve
+    title: "The problem — being told instead of asking"
+    summary: |
+      One value changes, and a dozen things need to know. The counter goes up, and the label must redraw, the badge must update, the analytics must fire. So how do all those things find out?
+      <br><br>
+      The naive answer is to keep asking. You loop, you check, you compare against the last value you saw. "Changed yet? Changed yet?" That's called <strong>polling</strong>, and it's wasteful. Most of the time the answer is no, and every one of those checks was work done for nothing.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="Polling versus observing: polling repeatedly asks whether the value changed and wastes work, while observing pushes an update only when the value actually changes" style="max-width: 100%; height: auto;"><style>.ob2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ob2-title{font-size:16px;font-weight:600}.ob2-h{font-size:14px;font-weight:600}.ob2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.ob2-label{font-size:12px;fill:#64748b}.ob2-bad{font-size:13px;font-weight:600;fill:#dc2626}.ob2-good{font-size:13px;font-weight:600;fill:#10b981}</style><text x="360" y="30" text-anchor="middle" class="ob2-t ob2-title">Pulling wastes work. Pushing tells you exactly once.</text><rect x="30" y="56" width="320" height="244" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="82" text-anchor="middle" class="ob2-t ob2-bad">Polling — keep asking</text><rect x="58" y="100" width="100" height="40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="108" y="125" text-anchor="middle" class="ob2-t ob2-h">Observer</text><rect x="222" y="100" width="100" height="40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="272" y="125" text-anchor="middle" class="ob2-t ob2-h">Subject</text><line x1="158" y1="113" x2="222" y2="113" stroke="#dc2626" stroke-width="1.5" marker-end="url(#ob2-r)"/><text x="190" y="108" text-anchor="middle" class="ob2-t ob2-mn">changed?</text><line x1="222" y1="130" x2="158" y2="130" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ob2-g)"/><text x="190" y="153" text-anchor="middle" class="ob2-t ob2-mn">no</text><line x1="158" y1="170" x2="222" y2="170" stroke="#dc2626" stroke-width="1.5" marker-end="url(#ob2-r)"/><text x="190" y="165" text-anchor="middle" class="ob2-t ob2-mn">changed?</text><line x1="222" y1="187" x2="158" y2="187" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ob2-g)"/><text x="190" y="210" text-anchor="middle" class="ob2-t ob2-mn">no</text><line x1="158" y1="227" x2="222" y2="227" stroke="#dc2626" stroke-width="1.5" marker-end="url(#ob2-r)"/><text x="190" y="222" text-anchor="middle" class="ob2-t ob2-mn">changed?</text><line x1="222" y1="244" x2="158" y2="244" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ob2-g)"/><text x="190" y="267" text-anchor="middle" class="ob2-t ob2-mn">still no...</text><text x="190" y="290" text-anchor="middle" class="ob2-t ob2-label">Most checks are wasted.</text><rect x="370" y="56" width="320" height="244" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="82" text-anchor="middle" class="ob2-t ob2-good">Observing — get told</text><rect x="398" y="120" width="100" height="40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="448" y="145" text-anchor="middle" class="ob2-t ob2-h">Observer</text><rect x="562" y="120" width="100" height="40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="612" y="145" text-anchor="middle" class="ob2-t ob2-h">Subject</text><line x1="498" y1="134" x2="562" y2="134" stroke="#10b981" stroke-width="1.5" marker-end="url(#ob2-g)"/><text x="530" y="129" text-anchor="middle" class="ob2-t ob2-mn">register</text><line x1="562" y1="186" x2="498" y2="186" stroke="#10b981" stroke-width="2.5" marker-end="url(#ob2-g)"/><text x="530" y="206" text-anchor="middle" class="ob2-t ob2-mn">notify() &#8212; value changed!</text><text x="530" y="248" text-anchor="middle" class="ob2-t ob2-label">Silence until something</text><text x="530" y="266" text-anchor="middle" class="ob2-t ob2-label">actually happens.</text><defs><marker id="ob2-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker><marker id="ob2-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      The observer pattern flips it around. Instead of everyone asking, the thing that owns the data does the telling. You register your interest once, then you wait. When the value actually changes, you get a call. Nothing in between.
+      <br><br>
+      That's the whole idea — pull becomes push. And it turns out to be one of the most important patterns in app development. Get this one and Flutter state management stops being mysterious.
+
+  - id: subject-and-observers
+    title: "The shape of the pattern — subject and observers"
+    summary: |
+      There are only two roles here. Get them straight and the rest falls into place.
+      <br><br>
+      <strong>The subject</strong> owns the state and keeps a list of everyone who cares about it.
+      <br><br>
+      <strong>The observers</strong> are those interested parties. Each one registers with the subject, and from then on the subject calls it back whenever something changes.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="The observer pattern structure: a subject holds a list of observers and notifies each one when its state changes" style="max-width: 100%; height: auto;"><style>.ob1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ob1-title{font-size:16px;font-weight:600}.ob1-h{font-size:14px;font-weight:600}.ob1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.ob1-label{font-size:12px;fill:#64748b}.ob1-cap{font-size:12px;fill:#64748b}</style><text x="360" y="30" text-anchor="middle" class="ob1-t ob1-title">One subject, many observers</text><rect x="44" y="78" width="210" height="210" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="8"/><text x="149" y="106" text-anchor="middle" class="ob1-t ob1-h">Subject</text><text x="149" y="124" text-anchor="middle" class="ob1-t ob1-label">holds the state</text><rect x="64" y="142" width="170" height="126" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.5" rx="6"/><text x="149" y="162" text-anchor="middle" class="ob1-t ob1-mn">_observers</text><rect x="80" y="176" width="138" height="24" fill="#ede9fe" stroke="#a78bfa" stroke-width="1" rx="4"/><text x="149" y="192" text-anchor="middle" class="ob1-t ob1-mn">&#8594; Observer A</text><rect x="80" y="206" width="138" height="24" fill="#ede9fe" stroke="#a78bfa" stroke-width="1" rx="4"/><text x="149" y="222" text-anchor="middle" class="ob1-t ob1-mn">&#8594; Observer B</text><rect x="80" y="236" width="138" height="24" fill="#ede9fe" stroke="#a78bfa" stroke-width="1" rx="4"/><text x="149" y="252" text-anchor="middle" class="ob1-t ob1-mn">&#8594; Observer C</text><rect x="500" y="78" width="176" height="54" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="588" y="103" text-anchor="middle" class="ob1-t ob1-h">Observer A</text><text x="588" y="121" text-anchor="middle" class="ob1-t ob1-label">rebuilds UI</text><rect x="500" y="153" width="176" height="54" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="588" y="178" text-anchor="middle" class="ob1-t ob1-h">Observer B</text><text x="588" y="196" text-anchor="middle" class="ob1-t ob1-label">logs the change</text><rect x="500" y="228" width="176" height="54" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="588" y="253" text-anchor="middle" class="ob1-t ob1-h">Observer C</text><text x="588" y="271" text-anchor="middle" class="ob1-t ob1-label">saves to disk</text><line x1="254" y1="172" x2="500" y2="105" stroke="#9333ea" stroke-width="2" marker-end="url(#ob1-arr)"/><line x1="254" y1="183" x2="500" y2="180" stroke="#9333ea" stroke-width="2" marker-end="url(#ob1-arr)"/><line x1="254" y1="194" x2="500" y2="255" stroke="#9333ea" stroke-width="2" marker-end="url(#ob1-arr)"/><text x="377" y="120" text-anchor="middle" class="ob1-t ob1-label">notify()</text><text x="340" y="345" text-anchor="middle" class="ob1-t ob1-cap">One change fans out to every observer. The subject never knows what they do with it.</text><defs><marker id="ob1-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      Look at the arrows. They all point one way — out from the subject. The subject holds references to its observers, but the observers don't know about each other. One rebuilds a widget, one writes a log, one saves to disk, and none of them has any idea the others exist.
+      <br><br>
+      <strong>That's the whole point: loose coupling.</strong> The subject depends on nothing but a list of callbacks. Want a fourth observer next week? Add it. You never touch the subject. The thing that changed and the things that react to it have been pulled apart, and that separation is what keeps a big app from turning into a tangle.
+
+  - id: building-it-from-scratch
+    title: "Building one from scratch"
+    summary: |
+      The fastest way to trust a pattern is to build the smallest version of it yourself. So let's write an observable counter by hand. You need three things: a list to hold the observers, a way to add to it, and a way to fire.
+      <br><br>
+      <pre><code>typedef Listener = void Function();
+
+      class Counter {
+        int _value = 0;
+        final List&lt;Listener&gt; _listeners = [];
+
+        int get value =&gt; _value;
+
+        void addListener(Listener fn) =&gt; _listeners.add(fn);
+        void removeListener(Listener fn) =&gt; _listeners.remove(fn);
+
+        void increment() {
+          _value++;
+          _notify();
+        }
+
+        void _notify() {
+          for (final fn in _listeners) {
+            fn();
+          }
+        }
+      }</code></pre>
+      That's the entire pattern. A list of callbacks, and a loop that runs them. Nothing more.
+      <br><br>
+      Notice the observer is just a function — a <code>void Function()</code>. We met first-class functions a few episodes back, and this is where they pay off. The subject doesn't need an interface or a base class to call into. A plain function is enough.
+      <br><br>
+      Using it looks like this:
+      <br><br>
+      <pre><code>final counter = Counter();
+
+      counter.addListener(() =&gt; print('Label sees ${counter.value}'));
+      counter.addListener(() =&gt; print('Badge sees ${counter.value}'));
+
+      counter.increment();
+      // Label sees 1
+      // Badge sees 1</code></pre>
+      One call to <code>increment</code>, two reactions. Nobody asked whether the value changed — they were told. And if this shape looks familiar, it should. It's almost exactly what Flutter ships in its core library. Let's go meet it.
+
+  - id: change-notifier
+    title: "ChangeNotifier — the built-in subject"
+    summary: |
+      Good news: you don't have to write that counter by hand. Flutter already did. <code>ChangeNotifier</code> lives in <code>package:flutter/foundation.dart</code>, and it's the same idea with the rough edges filed off. It keeps the listener list, hands you <code>addListener</code> and <code>removeListener</code>, and gives you <code>notifyListeners()</code> to fire.
+      <br><br>
+      <pre><code>import 'package:flutter/foundation.dart';
+
+      class CartModel extends ChangeNotifier {
+        final List&lt;String&gt; _items = [];
+
+        List&lt;String&gt; get items =&gt; List.unmodifiable(_items);
+
+        void add(String item) {
+          _items.add(item);
+          notifyListeners();   // tell everyone the cart changed
+        }
+      }</code></pre>
+      You extend <code>ChangeNotifier</code>, mutate your own state, and call <code>notifyListeners()</code> when something worth announcing happens. That's the contract. The subject decides <em>when</em> a change matters — adding an item counts, reading the list doesn't.
+      <br><br>
+      On the other side, a widget listens. You rarely call <code>addListener</code> yourself in UI code. Instead you hand the notifier to a builder that does it for you:
+      <br><br>
+      <pre><code>ListenableBuilder(
+        listenable: cart,
+        builder: (context, child) =&gt; Text('${cart.items.length} items'),
+      )</code></pre>
+      Every time the cart calls <code>notifyListeners()</code>, the builder reruns and the text updates. The widget asked for nothing. It was told, and it redrew. That's the observer pattern wearing a Flutter costume.
+
+  - id: valuenotifier-and-streams
+    title: "ValueNotifier and Streams — the same idea, narrower and wider"
+    summary: |
+      Once you can spot the pattern, you start seeing it everywhere in Dart. <code>ChangeNotifier</code> is the general case. It has two cousins, one on each side.
+      <br><br>
+      <strong>ValueNotifier&lt;T&gt;</strong> is the narrow one — a subject that wraps exactly one value. You assign to <code>.value</code>, and it notifies for you. But only if the new value is actually different by <code>==</code>.
+      <br><br>
+      <pre><code>final count = ValueNotifier&lt;int&gt;(0);
+      count.value = 1;   // notifies
+      count.value = 1;   // no change, no notification</code></pre>
+      <strong>Stream</strong> is the wide one — built for a <em>sequence</em> of values arriving over time, with proper support for async, errors, and completion. You met Streams in the async section. Now you can name what they really are: the observer pattern for data that keeps coming.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 372" role="img" aria-label="The same observer pattern appears three times in Dart and Flutter: ChangeNotifier, ValueNotifier, and Stream, mapped across register, notify, data, and typical use" style="max-width: 100%; height: auto;"><style>.ob3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ob3-title{font-size:16px;font-weight:600}.ob3-hd{font-size:13px;font-weight:700;fill:#ffffff}.ob3-role{font-size:12px;font-weight:600;fill:#475569}.ob3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.ob3-sub{font-size:11px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="ob3-t ob3-title">The same pattern, three times over</text><rect x="20" y="48" width="150" height="44" fill="#1e293b" rx="6"/><text x="95" y="76" text-anchor="middle" class="ob3-t ob3-hd">Role</text><rect x="174" y="48" width="172" height="44" fill="#9333ea" rx="6"/><text x="260" y="76" text-anchor="middle" class="ob3-t ob3-hd">ChangeNotifier</text><rect x="350" y="48" width="172" height="44" fill="#10b981" rx="6"/><text x="436" y="76" text-anchor="middle" class="ob3-t ob3-hd">ValueNotifier</text><rect x="526" y="48" width="172" height="44" fill="#f59e0b" rx="6"/><text x="612" y="76" text-anchor="middle" class="ob3-t ob3-hd">Stream</text><rect x="20" y="98" width="678" height="58" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="95" y="132" text-anchor="middle" class="ob3-t ob3-role">Register</text><text x="260" y="132" text-anchor="middle" class="ob3-t ob3-mn">addListener(fn)</text><text x="436" y="132" text-anchor="middle" class="ob3-t ob3-mn">addListener(fn)</text><text x="612" y="132" text-anchor="middle" class="ob3-t ob3-mn">stream.listen(fn)</text><rect x="20" y="160" width="678" height="58" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="95" y="194" text-anchor="middle" class="ob3-t ob3-role">Notify</text><text x="260" y="194" text-anchor="middle" class="ob3-t ob3-mn">notifyListeners()</text><text x="436" y="194" text-anchor="middle" class="ob3-t ob3-mn">.value = next</text><text x="612" y="194" text-anchor="middle" class="ob3-t ob3-mn">sink.add(next)</text><rect x="20" y="222" width="678" height="58" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="95" y="256" text-anchor="middle" class="ob3-t ob3-role">Carries data?</text><text x="260" y="250" text-anchor="middle" class="ob3-t ob3-sub">No — read fields</text><text x="260" y="266" text-anchor="middle" class="ob3-t ob3-sub">off the object</text><text x="436" y="256" text-anchor="middle" class="ob3-t ob3-sub">Yes — one value</text><text x="436" y="272" text-anchor="middle" class="ob3-t ob3-mn">.value</text><text x="612" y="256" text-anchor="middle" class="ob3-t ob3-sub">Yes — a sequence</text><text x="612" y="272" text-anchor="middle" class="ob3-t ob3-sub">of events over time</text><rect x="20" y="284" width="678" height="58" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4"/><text x="95" y="318" text-anchor="middle" class="ob3-t ob3-role">Typical use</text><text x="260" y="318" text-anchor="middle" class="ob3-t ob3-sub">a whole model</text><text x="436" y="318" text-anchor="middle" class="ob3-t ob3-sub">one piece of state</text><text x="612" y="318" text-anchor="middle" class="ob3-t ob3-sub">async data feeds</text><text x="360" y="360" text-anchor="middle" class="ob3-t ob3-sub">Learn it once and you have read all three.</text></svg>
+      <br><br>
+      Three names, one pattern. The trick is to pick the narrowest one that fits:
+      <br>• One value on screen? Reach for <code>ValueNotifier</code>.
+      <br>• A model with several fields? <code>ChangeNotifier</code>.
+      <br>• A feed of incoming events — sockets, sensors, database queries? <code>Stream</code>.
+
+  - id: the-listener-leak
+    title: "The leak — listeners that outlive their observers"
+    summary: |
+      Here's the one rule that bites everyone at least once. When an observer registers, the subject now holds a reference to it. That reference is real, and the garbage collector respects it. So what happens when the observer's job is done but it never unregisters?
+      <br><br>
+      It can't be collected. The widget left the screen, but the notifier is still holding its callback — and through that callback, the whole <code>State</code> object stays in memory. Do this on a long-lived or global notifier and you've got a leak that grows every single time the screen opens.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 336" role="img" aria-label="The observer memory leak: a subject's listener list keeps a removed widget alive so the garbage collector cannot free it, until removeListener in dispose cuts the reference" style="max-width: 100%; height: auto;"><style>.ob4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ob4-title{font-size:16px;font-weight:600}.ob4-h{font-size:14px;font-weight:600}.ob4-bad{font-size:13px;font-weight:600;fill:#dc2626}.ob4-good{font-size:13px;font-weight:600;fill:#10b981}.ob4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.ob4-label{font-size:12px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="ob4-t ob4-title">The subject keeps your widget alive</text><rect x="30" y="50" width="320" height="262" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="76" text-anchor="middle" class="ob4-t ob4-bad">Forgot to remove</text><rect x="100" y="92" width="180" height="48" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="190" y="112" text-anchor="middle" class="ob4-t ob4-h">Subject</text><text x="190" y="130" text-anchor="middle" class="ob4-t ob4-mn">_observers: [State]</text><line x1="190" y1="140" x2="190" y2="196" stroke="#dc2626" stroke-width="2" marker-end="url(#ob4-r)"/><text x="278" y="172" text-anchor="middle" class="ob4-t ob4-label">still holds</text><rect x="100" y="198" width="180" height="62" fill="#ffffff" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 3" rx="6"/><text x="190" y="222" text-anchor="middle" class="ob4-t ob4-h">State object</text><text x="190" y="240" text-anchor="middle" class="ob4-t ob4-label">gone from the tree</text><text x="190" y="290" text-anchor="middle" class="ob4-t ob4-bad">GC can't free it</text><rect x="370" y="50" width="320" height="262" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="76" text-anchor="middle" class="ob4-t ob4-good">dispose() removes it</text><rect x="440" y="92" width="180" height="48" fill="#f3e8ff" stroke="#9333ea" stroke-width="2" rx="6"/><text x="530" y="112" text-anchor="middle" class="ob4-t ob4-h">Subject</text><text x="530" y="130" text-anchor="middle" class="ob4-t ob4-mn">_observers: [ ]</text><line x1="530" y1="140" x2="530" y2="196" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4"/><line x1="512" y1="160" x2="548" y2="176" stroke="#dc2626" stroke-width="2.5"/><line x1="548" y1="160" x2="512" y2="176" stroke="#dc2626" stroke-width="2.5"/><text x="618" y="172" text-anchor="middle" class="ob4-t ob4-mn">removeListener</text><rect x="440" y="198" width="180" height="62" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="222" text-anchor="middle" class="ob4-t ob4-h">State object</text><text x="530" y="240" text-anchor="middle" class="ob4-t ob4-label">no references left</text><text x="530" y="290" text-anchor="middle" class="ob4-t ob4-good">GC reclaims it</text><defs><marker id="ob4-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker></defs></svg>
+      <br><br>
+      <strong>The fix:</strong> register and unregister come in pairs. Whatever you start in <code>initState</code>, you tear down in <code>dispose</code>. Flutter hands you the exact place to put it.
+      <br><br>
+      <pre><code>@override
+      void initState() {
+        super.initState();
+        widget.cart.addListener(_onCartChanged);
+      }
+
+      @override
+      void dispose() {
+        widget.cart.removeListener(_onCartChanged);
+        super.dispose();
+      }</code></pre>
+      <strong>One more half.</strong> For a <code>ChangeNotifier</code> you created, also call <code>dispose()</code> on the notifier itself when you're done with it, so its own listener list is released. And the builder widgets — <code>ListenableBuilder</code>, <code>ValueListenableBuilder</code> — do all of this for you. That's the real reason to reach for them instead of wiring listeners by hand.
+
+  - id: backbone-of-state-management
+    title: "Why this is the backbone of Flutter state management"
+    summary: |
+      Step back, and the whole landscape snaps into focus. Every Flutter state-management approach is the observer pattern with different ergonomics bolted on top. Every single one.
+      <br><br>
+      <strong>setState</strong> is the pattern at its smallest — the widget's <code>Element</code> is the observer, and calling <code>setState</code> marks it dirty so it rebuilds.
+      <br><br>
+      <strong>Provider</strong> wraps a <code>ChangeNotifier</code> and uses an <code>InheritedWidget</code> to deliver it down the tree, so descendants can observe it without being handed the object by hand.
+      <br><br>
+      <strong>Riverpod and Bloc</strong> lean on <code>Stream</code>-shaped notifications under the surface.
+      <br><br>
+      Different names, different conveniences, one engine.
+      <br><br>
+      <pre><code>// The same loop, every time:
+      // 1. something observes a subject
+      // 2. the subject's state changes
+      // 3. the subject notifies
+      // 4. the observer rebuilds</code></pre>
+      So when you sit down to pick a state-management library, you're not choosing a new idea. You're choosing how much ceremony you want around an idea you already understand. That's the payoff of learning the pattern before the packages — every one of them suddenly reads like a variation on a theme you've already seen. The step into <code>Provider</code> from here is a short one.
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on the observer pattern and the Dart and Flutter tools built on it — polling, notification, ChangeNotifier, ValueNotifier, Streams, and the listener leak."
+  questions:
+    - question: "What core problem does the observer pattern solve?"
+      options:
+        - "It makes function calls run faster"
+        - "It lets interested parties be told when state changes, instead of repeatedly asking"
+        - "It stops two objects from ever referencing each other"
+        - "It guarantees state changes happen on a background isolate"
+      correctIndex: 1
+      explanation: "The observer pattern inverts pull into push. Rather than polling — repeatedly checking whether a value has changed — observers register once and the subject calls them back only when a change actually occurs. That eliminates the wasted work of constant checking."
+    - question: "In the observer pattern, which way do the references point?"
+      options:
+        - "Observers hold references to the subject; the subject knows nothing about them"
+        - "The subject holds references to its observers and calls them back"
+        - "Observers hold references to each other"
+        - "Neither side holds a reference; they communicate through a global variable"
+      correctIndex: 1
+      explanation: "The subject keeps the list of observers and calls each one when it notifies. The observers do not need to know about one another, which is what gives the pattern its loose coupling. This same reference — subject to observer — is also what causes the memory leak when an observer forgets to unregister."
+    - question: "In a hand-written observable, what is the minimum an observer needs to be?"
+      options:
+        - "A subclass of an abstract Observer base class"
+        - "An object implementing a specific interface"
+        - "Just a function — the subject only needs something it can call back"
+        - "A StatefulWidget"
+      correctIndex: 2
+      explanation: "Because functions are first-class in Dart, an observer can be a plain `void Function()`. The subject stores a list of callbacks and invokes them on change. No interface or base class is required, though larger frameworks layer richer types on top."
+    - question: "When does `ValueNotifier` skip notifying its listeners?"
+      options:
+        - "When the new value is equal to the old value by `==`"
+        - "When there are more than ten listeners"
+        - "It never skips — every assignment notifies"
+        - "Only when the value is null"
+      correctIndex: 0
+      explanation: "Assigning to `ValueNotifier.value` notifies only if the new value differs from the current one by `==`. Setting it to a value equal to what it already holds is a no-op, so listeners are not called. This avoids needless rebuilds when nothing really changed."
+    - question: "How do `ChangeNotifier`, `ValueNotifier`, and `Stream` relate?"
+      options:
+        - "They are unrelated APIs that happen to share a package"
+        - "They are three implementations of the observer pattern, suited to a model, a single value, and a sequence of events"
+        - "ValueNotifier and Stream are deprecated in favour of ChangeNotifier"
+        - "Only Stream is an observer; the other two are pull-based"
+      correctIndex: 1
+      explanation: "All three are the observer pattern. ChangeNotifier suits a model with several fields, ValueNotifier wraps a single value, and Stream handles a sequence of values arriving over time with async support. You register, the subject notifies, the observer reacts — the same loop each time."
+    - question: "Why can forgetting `removeListener` cause a memory leak?"
+      options:
+        - "Listeners are stored on disk and never deleted"
+        - "The subject keeps a reference to the observer, so the garbage collector cannot reclaim it"
+        - "Dart has no garbage collector"
+        - "Each listener allocates a new isolate that stays alive"
+      correctIndex: 1
+      explanation: "While an observer is registered, the subject holds a reference to its callback, and through that callback to the observer itself. The garbage collector cannot free anything still referenced. If the observer leaves the screen but never unregisters, it stays in memory — a leak that grows on a long-lived subject."
+    - question: "Where does the observer pattern appear in Flutter state management?"
+      options:
+        - "Only in third-party packages, never in the framework itself"
+        - "Nowhere — Flutter uses polling internally"
+        - "Throughout: setState, Provider, Riverpod, and Bloc are all variations on observe-notify-rebuild"
+        - "Only when you explicitly write a ChangeNotifier"
+      correctIndex: 2
+      explanation: "The pattern is the engine under all of it. setState marks an Element dirty so it rebuilds; Provider delivers a ChangeNotifier through the tree; Riverpod and Bloc lean on Stream-shaped notifications. Each library is the same observe-notify-rebuild loop with different ergonomics around it."
+---
+
+{/* Design Patterns, Episode 1: The Observer Pattern. Part of the Patterns: State series.
+    First episode of the Design Patterns section. 7 topics covering the polling problem,
+    subject/observer structure, a hand-built observable, ChangeNotifier, ValueNotifier and
+    Streams, the listener leak, and the link to Flutter state management. 4 inline SVG diagrams. */}

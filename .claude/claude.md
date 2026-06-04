@@ -1,5 +1,21 @@
 # Dart Deep Dive Series — Project Brief for Claude Code
 
+## Companion series: Swift Deep Dive
+
+A parallel Swift deep-dive series now lives in the same `deepDives` collection
+(`category: "Swift"`, `color: "#F05138"`). It follows the identical format —
+7 topics, 7 quiz questions, 3–5 inline SVGs per episode — but leans harder into
+history and trivia (Lattner/LLVM, the 2014 WWDC reveal, open-sourcing in 2015,
+ABI stability, Tony Hoare's "billion-dollar mistake", Dave Abrahams' POP talk).
+Swift learning path (subjects, in order): "Swift: The Platform", "Swift: Data
+Foundations", "Swift: Primitive Computation", "Swift: Collections", "Swift: Type
+System", "Swift: Concurrency". SVG palette swaps Dart blue for Swift orange
+(#F05138 fill / #C7411F stroke / #FFE9E2 light). All other rules below apply
+unchanged. Note: cairosvg renders blank when the root `<svg>` keeps its
+`style="max-width:100%;height:auto;"` attribute — keep that attribute in the MDX
+(browsers need it), but inject explicit `width`/`height` into a temp copy when
+verifying with cairosvg.
+
 ## What this is
 
 A 10+ episode Dart programming deep-dive series published on an Astro website

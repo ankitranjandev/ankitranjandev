@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ankitranjan.dev
 
 Personal blog of Ankit Ranjan, built with Astro 5, Tailwind CSS v4, and deployed to Cloudflare Pages.

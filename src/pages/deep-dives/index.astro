@@ -34,6 +34,10 @@ const categoryMeta: Record<string, { color: string; description: string }> = {
     color: '#0175C2',
     description: 'Master the Dart programming language from first principles to advanced features.'
   },
+  'Swift': {
+    color: '#F05138',
+    description: 'Master Swift from its origins and compiler internals to value semantics, protocols, and modern concurrency.'
+  },
   'Design Patterns': {
     color: '#9333ea',
     description: 'Battle-tested solutions to common software design problems.'
@@ -57,6 +61,13 @@ const subjectOrder: Record<string, number> = {
   'Dart: Collections': 4,
   'Dart: Type System': 5,
   'Dart: Async': 6,
+  // Swift learning path
+  'Swift: The Platform': 1,
+  'Swift: Data Foundations': 2,
+  'Swift: Primitive Computation': 3,
+  'Swift: Collections': 4,
+  'Swift: Type System': 5,
+  'Swift: Concurrency': 6,
   // Flutter learning path
   'Flutter: Foundations': 1,
   'Flutter: Widgets': 2,
@@ -184,6 +195,7 @@ const subjectOrder: Record<string, number> = {
       // Get category metadata colors
       const categoryColors: Record<string, string> = {
         'Dart': '#0175C2',
+        'Swift': '#F05138',
         'Design Patterns': '#9333ea',
         'Flutter': '#02569B',
         'System Design': '#dc2626',

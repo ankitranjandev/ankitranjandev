@@ -51,7 +51,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
       "@id": canonicalURL
     },
     "articleSection": "Deep Dives",
-    "keywords": ["Dart", "Flutter", entry.data.title]
+    "keywords": [entry.data.category, entry.data.subject, entry.data.title]
   })} />
 
   <!-- Breadcrumb Schema for SEO -->

@@ -9,210 +9,31 @@ publishedAt: 2026-06-04
 topics:
   - id: three-trees
     title: "The three trees of Flutter"
-    summary: |
-      Flutter's UI system is built on three parallel tree structures. Understanding them is the key to writing performant Flutter code.
-      <br><br>
-      <strong>1. Widget Tree</strong> — The immutable blueprint you write in code. Widgets describe <em>what</em> the UI should look like. They're cheap to create and tear down.
-      <br><br>
-      <strong>2. Element Tree</strong> — The mutable backbone that manages widget lifecycle. Elements are long-lived and track the widget-to-render relationship.
-      <br><br>
-      <strong>3. RenderObject Tree</strong> — The actual layout and painting engine. RenderObjects know their size, position, and how to paint themselves.
-      <br><br>
-      <pre><code>// You write this (Widget Tree):
-Container(
-  child: Text('Hello'),
-)
-
-// Flutter creates this (Element Tree):
-// ContainerElement → TextElement
-
-// Which manages this (RenderObject Tree):
-// RenderDecoratedBox → RenderParagraph</code></pre>
-      When you call <code>setState()</code>, Flutter doesn't rebuild everything. It walks the element tree, compares old and new widgets, and only updates what changed.
+    summary: "Flutter's UI system is built on three parallel tree structures. Understanding them is the key to writing performant Flutter code.<br><br><strong>1. Widget Tree</strong> — The immutable blueprint you write in code. Widgets describe <em>what</em> the UI should look like. They're cheap to create and tear down.<br><br><strong>2. Element Tree</strong> — The mutable backbone that manages widget lifecycle. Elements are long-lived and track the widget-to-render relationship.<br><br><strong>3. RenderObject Tree</strong> — The actual layout and painting engine. RenderObjects know their size, position, and how to paint themselves.<br><br><pre><code>// You write this (Widget Tree)&#58;&#10;Container(&#10;  child&#58; Text('Hello'),&#10;)&#10;&#10;// Flutter creates this (Element Tree)&#58;&#10;// ContainerElement → TextElement&#10;&#10;// Which manages this (RenderObject Tree)&#58;&#10;// RenderDecoratedBox → RenderParagraph</code></pre>When you call <code>setState()</code>, Flutter doesn't rebuild everything. It walks the element tree, compares old and new widgets, and only updates what changed."
 
   - id: widget-lifecycle
     title: "Widget lifecycle — why immutability matters"
-    summary: |
-      Widgets are immutable. Once created, they never change. This sounds limiting, but it's actually Flutter's superpower.
-      <br><br>
-      <pre><code>class MyWidget extends StatelessWidget {
-  final String title;  // final = can't change
-
-  const MyWidget({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(title);
-  }
-}</code></pre>
-      When state changes, Flutter doesn't mutate the old widget. It creates a brand new widget and compares it to the old one. This comparison is fast because widgets are simple data objects.
-      <br><br>
-      <strong>The rebuild cycle:</strong>
-      <br><br>
-      1. State changes (e.g., <code>setState()</code>)
-      <br>2. Flutter calls <code>build()</code> to get new widgets
-      <br>3. Element tree compares new widgets to old ones
-      <br>4. Only changed RenderObjects are updated
-      <br>5. Changed regions are repainted
-      <br><br>
-      This is why <code>const</code> constructors matter. A <code>const</code> widget is identical to another <code>const</code> widget with the same parameters — Flutter can skip the comparison entirely.
+    summary: "Widgets are immutable. Once created, they never change. This sounds limiting, but it's actually Flutter's superpower.<br><br><pre><code>class MyWidget extends StatelessWidget {&#10;  final String title;  // final = can't change&#10;&#10;  const MyWidget({required this.title});&#10;&#10;  @override&#10;  Widget build(BuildContext context) {&#10;    return Text(title);&#10;  }&#10;}</code></pre>When state changes, Flutter doesn't mutate the old widget. It creates a brand new widget and compares it to the old one. This comparison is fast because widgets are simple data objects.<br><br><strong>The rebuild cycle:</strong><br><br>1. State changes (e.g., <code>setState()</code>)<br>2. Flutter calls <code>build()</code> to get new widgets<br>3. Element tree compares new widgets to old ones<br>4. Only changed RenderObjects are updated<br>5. Changed regions are repainted<br><br>This is why <code>const</code> constructors matter. A <code>const</code> widget is identical to another <code>const</code> widget with the same parameters — Flutter can skip the comparison entirely."
 
   - id: elements-explained
     title: "Elements — the bridge between widgets and rendering"
-    summary: |
-      Elements are the unsung heroes of Flutter. They're what makes the framework efficient.
-      <br><br>
-      <pre><code>// Simplified Element lifecycle
-abstract class Element {
-  Widget? _widget;
-  RenderObject? _renderObject;
-
-  void mount(Widget widget) {
-    _widget = widget;
-    _renderObject = widget.createRenderObject();
-  }
-
-  void update(Widget newWidget) {
-    // Compare and update, don't recreate
-    if (widget.runtimeType == newWidget.runtimeType) {
-      _widget = newWidget;
-      _renderObject?.updateFromWidget(newWidget);
-    }
-  }
-}</code></pre>
-      <strong>Key insight:</strong> Elements are long-lived. When you rebuild, Flutter reuses existing elements and their render objects whenever possible. This is why changing a <code>Text</code> widget's string doesn't create a new text renderer — the element updates the existing one.
-      <br><br>
-      <strong>StatefulWidget elements</strong> hold onto your <code>State</code> object. The state survives widget rebuilds as long as the element stays in the tree. This is why state persists across hot reload.
+    summary: "Elements are the unsung heroes of Flutter. They're what makes the framework efficient.<br><br><pre><code>// Simplified Element lifecycle&#10;abstract class Element {&#10;  Widget? _widget;&#10;  RenderObject? _renderObject;&#10;&#10;  void mount(Widget widget) {&#10;    _widget = widget;&#10;    _renderObject = widget.createRenderObject();&#10;  }&#10;&#10;  void update(Widget newWidget) {&#10;    // Compare and update, don't recreate&#10;    if (widget.runtimeType == newWidget.runtimeType) {&#10;      _widget = newWidget;&#10;      _renderObject?.updateFromWidget(newWidget);&#10;    }&#10;  }&#10;}</code></pre><strong>Key insight:</strong> Elements are long-lived. When you rebuild, Flutter reuses existing elements and their render objects whenever possible. This is why changing a <code>Text</code> widget's string doesn't create a new text renderer — the element updates the existing one.<br><br><strong>StatefulWidget elements</strong> hold onto your <code>State</code> object. The state survives widget rebuilds as long as the element stays in the tree. This is why state persists across hot reload."
 
   - id: renderobjects
     title: "RenderObjects — layout and painting"
-    summary: |
-      RenderObjects do the heavy lifting: calculating sizes, positions, and painting pixels.
-      <br><br>
-      <pre><code>// Simplified RenderObject
-abstract class RenderObject {
-  void layout(Constraints constraints) {
-    // Calculate size based on constraints
-    size = performLayout(constraints);
-  }
-
-  void paint(PaintingContext context, Offset offset) {
-    // Draw to canvas
-  }
-}</code></pre>
-      <strong>The layout protocol:</strong>
-      <br><br>
-      1. Parent passes constraints down (min/max width and height)
-      <br>2. Child calculates its size within those constraints
-      <br>3. Child reports size back to parent
-      <br>4. Parent positions child
-      <br><br>
-      This is why <code>Column</code> children need bounded height in a <code>ListView</code> — unbounded constraints propagate down, and some widgets don't know how to handle them.
-      <br><br>
-      <strong>Painting</strong> happens in a separate pass after layout. Flutter uses a layered compositing system with <code>RepaintBoundary</code> to isolate regions. Animating something inside a <code>RepaintBoundary</code> doesn't repaint its siblings.
+    summary: "RenderObjects do the heavy lifting: calculating sizes, positions, and painting pixels.<br><br><pre><code>// Simplified RenderObject&#10;abstract class RenderObject {&#10;  void layout(Constraints constraints) {&#10;    // Calculate size based on constraints&#10;    size = performLayout(constraints);&#10;  }&#10;&#10;  void paint(PaintingContext context, Offset offset) {&#10;    // Draw to canvas&#10;  }&#10;}</code></pre><strong>The layout protocol:</strong><br><br>1. Parent passes constraints down (min/max width and height)<br>2. Child calculates its size within those constraints<br>3. Child reports size back to parent<br>4. Parent positions child<br><br>This is why <code>Column</code> children need bounded height in a <code>ListView</code> — unbounded constraints propagate down, and some widgets don't know how to handle them.<br><br><strong>Painting</strong> happens in a separate pass after layout. Flutter uses a layered compositing system with <code>RepaintBoundary</code> to isolate regions. Animating something inside a <code>RepaintBoundary</code> doesn't repaint its siblings."
 
   - id: keys-explained
     title: "Keys — helping Flutter identify widgets"
-    summary: |
-      When Flutter compares widget trees, it matches by position and type. Keys let you override this behaviour.
-      <br><br>
-      <pre><code>// Without keys — Flutter matches by position
-Column(children: [
-  Text('A'),  // position 0
-  Text('B'),  // position 1
-])
-
-// If you swap them:
-Column(children: [
-  Text('B'),  // position 0 — Flutter thinks A changed to B
-  Text('A'),  // position 1 — Flutter thinks B changed to A
-])</code></pre>
-      With keys, Flutter matches by key instead of position:
-      <br><br>
-      <pre><code>Column(children: [
-  Text('A', key: ValueKey('a')),
-  Text('B', key: ValueKey('b')),
-])
-
-// Swapped — Flutter knows these are the same widgets, just reordered
-Column(children: [
-  Text('B', key: ValueKey('b')),
-  Text('A', key: ValueKey('a')),
-])</code></pre>
-      <strong>When to use keys:</strong>
-      <br><br>
-      • Reordering lists (<code>ListView</code>, <code>Column</code> with dynamic children)
-      <br>• Preserving state when widgets move in the tree
-      <br>• Forcing widget recreation with <code>UniqueKey()</code>
-      <br><br>
-      <strong>Key types:</strong> <code>ValueKey</code> (by value), <code>ObjectKey</code> (by identity), <code>UniqueKey</code> (always unique), <code>GlobalKey</code> (access across tree).
+    summary: "When Flutter compares widget trees, it matches by position and type. Keys let you override this behaviour.<br><br><pre><code>// Without keys — Flutter matches by position&#10;Column(children&#58; [&#10;  Text('A'),  // position 0&#10;  Text('B'),  // position 1&#10;])&#10;&#10;// If you swap them&#58;&#10;Column(children&#58; [&#10;  Text('B'),  // position 0 — Flutter thinks A changed to B&#10;  Text('A'),  // position 1 — Flutter thinks B changed to A&#10;])</code></pre>With keys, Flutter matches by key instead of position:<br><br><pre><code>Column(children&#58; [&#10;  Text('A', key&#58; ValueKey('a')),&#10;  Text('B', key&#58; ValueKey('b')),&#10;])&#10;&#10;// Swapped — Flutter knows these are the same widgets, just reordered&#10;Column(children&#58; [&#10;  Text('B', key&#58; ValueKey('b')),&#10;  Text('A', key&#58; ValueKey('a')),&#10;])</code></pre><strong>When to use keys:</strong><br><br>• Reordering lists (<code>ListView</code>, <code>Column</code> with dynamic children)<br>• Preserving state when widgets move in the tree<br>• Forcing widget recreation with <code>UniqueKey()</code><br><br><strong>Key types:</strong> <code>ValueKey</code> (by value), <code>ObjectKey</code> (by identity), <code>UniqueKey</code> (always unique), <code>GlobalKey</code> (access across tree)."
 
   - id: build-context
     title: "BuildContext — your position in the tree"
-    summary: |
-      Every <code>build()</code> method receives a <code>BuildContext</code>. It's not magic — it's just a reference to the widget's element in the tree.
-      <br><br>
-      <pre><code>@override
-Widget build(BuildContext context) {
-  // context IS the Element for this widget
-  // It knows where you are in the tree
-
-  // Walk up to find ancestors
-  final scaffold = Scaffold.of(context);
-  final theme = Theme.of(context);
-  final mediaQuery = MediaQuery.of(context);
-
-  return Container();
-}</code></pre>
-      <code>Theme.of(context)</code> walks up the element tree looking for a <code>Theme</code> widget and returns its data. This is how inherited widgets work.
-      <br><br>
-      <strong>Common gotcha:</strong> Using context before the widget is mounted:
-      <br><br>
-      <pre><code>class MyWidget extends StatefulWidget {
-  @override
-  _MyWidgetState createState() => _MyWidgetState();
-}
-
-class _MyWidgetState extends State&lt;MyWidget&gt; {
-  late final theme = Theme.of(context);  // ERROR! Too early
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Safe to use context here
-    final theme = Theme.of(context);
-  }
-}</code></pre>
+    summary: "Every <code>build()</code> method receives a <code>BuildContext</code>. It's not magic — it's just a reference to the widget's element in the tree.<br><br><pre><code>@override&#10;Widget build(BuildContext context) {&#10;  // context IS the Element for this widget&#10;  // It knows where you are in the tree&#10;&#10;  // Walk up to find ancestors&#10;  final scaffold = Scaffold.of(context);&#10;  final theme = Theme.of(context);&#10;  final mediaQuery = MediaQuery.of(context);&#10;&#10;  return Container();&#10;}</code></pre><code>Theme.of(context)</code> walks up the element tree looking for a <code>Theme</code> widget and returns its data. This is how inherited widgets work.<br><br><strong>Common gotcha:</strong> Using context before the widget is mounted:<br><br><pre><code>class MyWidget extends StatefulWidget {&#10;  @override&#10;  _MyWidgetState createState() =&gt; _MyWidgetState();&#10;}&#10;&#10;class _MyWidgetState extends State&lt;MyWidget&gt; {&#10;  late final theme = Theme.of(context);  // ERROR! Too early&#10;&#10;  @override&#10;  void didChangeDependencies() {&#10;    super.didChangeDependencies();&#10;    // Safe to use context here&#10;    final theme = Theme.of(context);&#10;  }&#10;}</code></pre>"
 
   - id: performance-mental-model
     title: "Performance mental model"
-    summary: |
-      Now that we understand the three trees, we can reason about performance:
-      <br><br>
-      <strong>Rebuilds are cheap</strong> — Creating widget objects is fast. Don't fear <code>setState()</code>.
-      <br><br>
-      <strong>Relayouts are moderate</strong> — Recalculating sizes takes more work. Avoid changing constraints frequently.
-      <br><br>
-      <strong>Repaints are expensive</strong> — Drawing pixels is the costliest operation. Use <code>RepaintBoundary</code> to isolate animations.
-      <br><br>
-      <pre><code>// Good: Only Text rebuilds, painting is isolated
-RepaintBoundary(
-  child: AnimatedBuilder(
-    animation: controller,
-    builder: (context, child) => Transform.rotate(
-      angle: controller.value * 2 * pi,
-      child: child,  // child doesn't rebuild!
-    ),
-    child: const ExpensiveWidget(),
-  ),
-)</code></pre>
-      <strong>Optimisation checklist:</strong>
-      <br><br>
-      • Use <code>const</code> constructors wherever possible
-      <br>• Push state down — rebuild small subtrees, not the whole page
-      <br>• Extract expensive builds into separate widgets
-      <br>• Use <code>RepaintBoundary</code> around animations
-      <br>• Profile with DevTools before optimising blindly
+    summary: "Now that we understand the three trees, we can reason about performance:<br><br><strong>Rebuilds are cheap</strong> — Creating widget objects is fast. Don't fear <code>setState()</code>.<br><br><strong>Relayouts are moderate</strong> — Recalculating sizes takes more work. Avoid changing constraints frequently.<br><br><strong>Repaints are expensive</strong> — Drawing pixels is the costliest operation. Use <code>RepaintBoundary</code> to isolate animations.<br><br><pre><code>// Good&#58; Only Text rebuilds, painting is isolated&#10;RepaintBoundary(&#10;  child&#58; AnimatedBuilder(&#10;    animation&#58; controller,&#10;    builder&#58; (context, child) =&gt; Transform.rotate(&#10;      angle&#58; controller.value * 2 * pi,&#10;      child&#58; child,  // child doesn't rebuild!&#10;    ),&#10;    child&#58; const ExpensiveWidget(),&#10;  ),&#10;)</code></pre><strong>Optimisation checklist:</strong><br><br>• Use <code>const</code> constructors wherever possible<br>• Push state down — rebuild small subtrees, not the whole page<br>• Extract expensive builds into separate widgets<br>• Use <code>RepaintBoundary</code> around animations<br>• Profile with DevTools before optimising blindly"
 
   - id: ai-prompts-flutter-internals
     title: "AI prompts — understanding Flutter internals"

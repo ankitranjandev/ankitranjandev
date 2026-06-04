@@ -1,0 +1,166 @@
+---
+title: "Kotlin Classes — Data, Sealed, and Objects"
+description: "How Kotlin models the world: concise constructors and real properties, data classes that generate their own equals and copy, sealed hierarchies for exhaustive state, the object keyword that replaces static, and delegation as a first-class tool."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Object Model"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: classes-and-constructors
+    title: "Classes and the primary constructor"
+    summary: |
+      A Java class that just holds a name and an age needs a field declaration, a constructor that assigns each field, and usually a pair of accessors — a dozen lines of mechanical code. Kotlin collapses all of that into the class header itself, using the <strong>primary constructor</strong>.
+      <br><br>
+      <pre><code>class Person(val name: String, var age: Int)</code></pre>
+      That single line declares a class, a constructor taking two arguments, and two properties — <code>name</code> (read-only, because <code>val</code>) and <code>age</code> (mutable, because <code>var</code>). There is no body because none is needed. When you do need setup logic that runs at construction, an <code>init</code> block handles it, and it can see the constructor parameters:
+      <br><br>
+      <pre><code>class Person(val name: String, var age: Int) {&#10;    init {&#10;        require(age &gt;= 0) { "age cannot be negative" }&#10;    }&#10;}</code></pre>
+      A class can also declare <strong>secondary constructors</strong> with the <code>constructor</code> keyword for alternative ways to build it, but in practice Kotlin's <strong>default and named arguments</strong> usually make them unnecessary — instead of three overloaded constructors, you write one primary constructor with default values. This is the same conciseness pillar from the flagship episode, applied to object construction: say what the class <em>is</em>, and let the compiler write the ceremony.
+
+  - id: properties-not-fields
+    title: "Properties, not fields"
+    summary: |
+      A subtle but important difference from Java: in Kotlin you declare <strong>properties</strong>, never raw fields. <code>val name: String</code> is not a field — it is a property with a generated getter (and, for <code>var</code>, a setter). You always interact with a property through its accessors, even when you write what looks like direct access.
+      <br><br>
+      This means you can give a property custom accessor logic without changing how callers use it — no need to refactor a public field into a getter later, the Java tax that gave the world endless boilerplate getters "just in case."
+      <br><br>
+      <pre><code>class Rectangle(val width: Int, val height: Int) {&#10;    // A computed property — no stored value, just a getter&#10;    val area: Int&#10;        get() = width * height&#10;&#10;    var label: String = ""&#10;        set(value) {&#10;            field = value.trim()   // 'field' is the backing field&#10;        }&#10;}&#10;&#10;val r = Rectangle(3, 4)&#10;println(r.area)    // 12 — looks like a field, runs the getter</code></pre>
+      The special identifier <code>field</code> inside an accessor refers to the <strong>backing field</strong> — the actual storage behind the property. Kotlin only generates a backing field when a property needs one (when an accessor actually references <code>field</code>); a purely computed property like <code>area</code> stores nothing at all. This "everything is a property" model is what lets Kotlin classes stay so small while remaining flexible.
+
+  - id: data-classes
+    title: "Data classes"
+    summary: |
+      Many classes exist only to hold data — a request, a response, a row, a coordinate. For these, writing <code>equals()</code>, <code>hashCode()</code>, and <code>toString()</code> by hand is tedious and a frequent source of bugs (forget one field in <code>equals</code> and you get baffling behaviour). The <code>data</code> modifier tells the compiler to generate them all from the primary-constructor properties.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 230" role="img" aria-label="What a data class generates from its properties" style="max-width: 100%; height: auto;"><defs><marker id="dc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7F52FF"/></marker></defs><style>.dc-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.dc-title{font-size:16px;font-weight:600}.dc-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700;fill:#1e293b}.dc-gen{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#7F52FF;font-weight:600}.dc-label{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="dc-t dc-title">One line in, five things out</text><rect x="40" y="46" width="300" height="60" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="2"/><text x="60" y="82" class="dc-t dc-code">data class Point(</text><text x="60" y="100" class="dc-t dc-code">&#160;&#160;val x: Int, val y: Int)</text><line x1="340" y1="76" x2="395" y2="76" stroke="#7F52FF" stroke-width="2" marker-end="url(#dc-arr)"/><g><text x="410" y="58" class="dc-t dc-gen">equals() / hashCode()</text><text x="410" y="82" class="dc-t dc-gen">toString()</text><text x="410" y="106" class="dc-t dc-gen">copy(...)</text><text x="410" y="130" class="dc-t dc-gen">component1(), component2()</text></g><text x="360" y="170" text-anchor="middle" class="dc-t dc-label">equals/hashCode compare by value · toString prints fields · copy clones with changes</text><text x="360" y="194" text-anchor="middle" class="dc-t dc-label">componentN enables destructuring: val (x, y) = point</text></svg>
+      <br><br>
+      <pre><code>data class Point(val x: Int, val y: Int)&#10;&#10;val a = Point(1, 2)&#10;val b = Point(1, 2)&#10;println(a == b)            // true — value equality, not reference&#10;println(a)                 // Point(x=1, y=2)&#10;val c = a.copy(y = 99)     // Point(x=1, y=99) — clone with one change&#10;val (x, y) = a             // destructuring via componentN()</code></pre>
+      Two generated members deserve a note. <code>copy()</code> is the workhorse of immutable data: rather than mutating a <code>Point</code>, you make a near-identical copy with a few fields changed — the foundation of immutable state in modern Kotlin UIs. And <code>componentN()</code> functions enable <strong>destructuring</strong>, letting you unpack an object into several variables at once.
+      <br><br>
+      A few rules keep data classes honest: they must have at least one primary-constructor parameter, and the generated <code>equals</code>/<code>hashCode</code>/<code>toString</code> consider <em>only</em> the properties declared in the primary constructor — anything declared in the class body is ignored by them. They also cannot be <code>abstract</code> or <code>sealed</code>. They are a tool for plain data, and they are superb at it.
+
+  - id: objects-and-companions
+    title: "object and companion object — Kotlin has no static"
+    summary: |
+      Kotlin removed a keyword every Java programmer knows: there is no <code>static</code>. The reasoning is that <code>static</code> members sit awkwardly outside the object model — they are not part of any instance, cannot implement interfaces cleanly, and complicate inheritance. Kotlin replaces <code>static</code> with something more principled: the <code>object</code> keyword.
+      <br><br>
+      An <strong>object declaration</strong> defines a class <em>and</em> its single instance in one go — a <strong>singleton</strong>, baked into the language so you never write the tricky thread-safe singleton boilerplate again.
+      <br><br>
+      <pre><code>object AppConfig {&#10;    val version = "1.0.0"&#10;    fun describe() = "App v$version"&#10;}&#10;&#10;AppConfig.describe()   // access the one instance directly</code></pre>
+      When you want members tied to a <em>class</em> rather than to instances — the role <code>static</code> played — you nest a <strong>companion object</strong> inside the class. Members of the companion are accessed through the class name, just like static members, but the companion is a real object: it can implement interfaces, hold state, and be passed around.
+      <br><br>
+      <pre><code>class User private constructor(val name: String) {&#10;    companion object {&#10;        // a factory function — the idiomatic replacement for static methods&#10;        fun create(name: String): User = User(name.trim())&#10;    }&#10;}&#10;&#10;val u = User.create("  Ankit  ")   // looks static, but it's a companion call</code></pre>
+      A common pattern combines the two ideas: a <code>private</code> constructor plus a companion <strong>factory function</strong>, giving you full control over how instances are made. Objects also appear as <strong>anonymous objects</strong> (<code>object : Listener { ... }</code>), Kotlin's replacement for Java's anonymous inner classes.
+
+  - id: sealed-classes
+    title: "Sealed classes: closed hierarchies"
+    summary: |
+      Often a value is one of a fixed, known set of shapes. A network result is <em>Loading</em>, <em>Success</em>, or <em>Error</em>. A UI event is one of a handful of kinds. An <code>enum</code> can model a fixed set of <em>constants</em>, but what if each case needs to carry different data — a success holds a payload, an error holds a message? That is what a <strong>sealed class</strong> (or sealed interface) is for.
+      <br><br>
+      "Sealed" means the set of direct subclasses is <strong>known and closed</strong> at compile time — they must all be declared in the same module. The compiler therefore knows every possible case, which it uses to make <code>when</code> <strong>exhaustive</strong> without an <code>else</code>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="A sealed Result hierarchy enabling exhaustive when" style="max-width: 100%; height: auto;"><defs><marker id="se-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.se-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.se-title{font-size:16px;font-weight:600}.se-box{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:700;fill:#fff}.se-sub{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;font-weight:600;fill:#1e293b}.se-label{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="se-t se-title">A sealed hierarchy is closed — the compiler knows every case</text><rect x="280" y="44" width="160" height="44" rx="8" fill="#7F52FF"/><text x="360" y="71" text-anchor="middle" class="se-t se-box">sealed Result</text><line x1="320" y1="88" x2="170" y2="128" stroke="#94a3b8" stroke-width="2" marker-end="url(#se-arr)"/><line x1="360" y1="88" x2="360" y2="128" stroke="#94a3b8" stroke-width="2" marker-end="url(#se-arr)"/><line x1="400" y1="88" x2="550" y2="128" stroke="#94a3b8" stroke-width="2" marker-end="url(#se-arr)"/><rect x="90" y="130" width="160" height="50" rx="8" fill="#c4b5fd"/><text x="170" y="151" text-anchor="middle" class="se-t se-sub">object Loading</text><text x="170" y="170" text-anchor="middle" class="se-t se-label">no data</text><rect x="280" y="130" width="160" height="50" rx="8" fill="#c4b5fd"/><text x="360" y="151" text-anchor="middle" class="se-t se-sub">Success(data)</text><text x="360" y="170" text-anchor="middle" class="se-t se-label">carries a payload</text><rect x="470" y="130" width="160" height="50" rx="8" fill="#c4b5fd"/><text x="550" y="151" text-anchor="middle" class="se-t se-sub">Error(message)</text><text x="550" y="170" text-anchor="middle" class="se-t se-label">carries a message</text><text x="360" y="218" text-anchor="middle" class="se-t se-label">when(result) over a sealed type needs no else — add a case and the compiler flags every when.</text></svg>
+      <br><br>
+      <pre><code>sealed interface Result&lt;out T&gt; {&#10;    data object Loading : Result&lt;Nothing&gt;&#10;    data class Success&lt;T&gt;(val data: T) : Result&lt;T&gt;&#10;    data class Error(val message: String) : Result&lt;Nothing&gt;&#10;}&#10;&#10;fun render(result: Result&lt;User&gt;) = when (result) {&#10;    Result.Loading -&gt; showSpinner()&#10;    is Result.Success -&gt; showUser(result.data)   // smart-cast&#10;    is Result.Error -&gt; showError(result.message)&#10;    // no else needed — all cases covered&#10;}</code></pre>
+      The real payoff is maintenance. If you later add a fourth case — say <code>Empty</code> — every <code>when</code> that handled <code>Result</code> without an <code>else</code> immediately fails to compile, pointing you to exactly the places that must handle the new state. This turns a whole class of "forgot to handle that case" runtime bugs into compile errors. (Notice <code>Nothing</code> from the Type System episode doing real work here, and the <code>out T</code> variance making <code>Loading</code> usable as any <code>Result</code>.)
+
+  - id: delegation
+    title: "Delegation: enums, interfaces, and by"
+    summary: |
+      Two more pieces complete Kotlin's object model. First, <strong>enum classes</strong> — like Java's, but able to carry properties and methods on each constant:
+      <br><br>
+      <pre><code>enum class Planet(val gravity: Double) {&#10;    EARTH(9.81), MARS(3.71), MOON(1.62);&#10;    fun weight(mass: Double) = mass * gravity&#10;}</code></pre>
+      Second, and more distinctively, Kotlin makes <strong>delegation</strong> a first-class language feature through the <code>by</code> keyword — a direct nod to the design principle "favour composition over inheritance." <strong>Class delegation</strong> lets one class implement an interface by forwarding the work to another object, with zero boilerplate:
+      <br><br>
+      <pre><code>interface Logger { fun log(msg: String) }&#10;&#10;class ConsoleLogger : Logger {&#10;    override fun log(msg: String) = println(msg)&#10;}&#10;&#10;// Service IS-A Logger, but delegates all Logger methods to 'impl'&#10;class Service(impl: Logger) : Logger by impl</code></pre>
+      <strong>Property delegation</strong> applies the same idea to a single property: the property's get/set are handled by a delegate object. The standard library ships several, and they are everywhere in real code — <code>by lazy { }</code> computes a value once on first access, <code>by Delegates.observable { }</code> fires a callback on every change, and <code>by map</code> backs a property with a map entry:
+      <br><br>
+      <pre><code>val config: Config by lazy { loadConfig() }   // computed once, on first use&#10;var name: String by Delegates.observable("") { _, old, new -&gt;&#10;    println("name: $old -&gt; $new")&#10;}</code></pre>
+      Finally, a design decision worth knowing: in Kotlin, classes and members are <strong>final by default</strong>. To allow inheritance or overriding you must explicitly mark them <code>open</code>. This directly follows Joshua Bloch's advice in <em>Effective Java</em> — "design and document for inheritance, or else prohibit it" — making the safe choice the default and forcing you to opt in to the fragile one. It is the same philosophy as null-safety and immutability: Kotlin nudges you toward the robust option and asks you to be deliberate about the risky one.
+
+  - id: ai-prompts-classes
+    title: "AI prompts — modelling with classes"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — data class or regular class:</strong>
+      <pre><code>For each of these types, tell me whether it should be a data class,&#10;a regular class, an enum, or a sealed type, and why:&#10;[list your types]&#10;Flag any where value equality or copy() would be wrong.</code></pre>
+      <br>
+      <strong>Prompt 2 — model state with a sealed type:</strong>
+      <pre><code>I have a screen with these states: [loading, content, empty, error...].&#10;Model them as a sealed interface with the right data on each case,&#10;and show an exhaustive when that renders each one.</code></pre>
+      <br>
+      <strong>Prompt 3 — replace static and singletons:</strong>
+      <pre><code>This Java/Kotlin code uses static members or a hand-written singleton:&#10;[paste code]&#10;Rewrite it idiomatically using object and companion object, including&#10;a factory function if appropriate.</code></pre>
+      <br>
+      <strong>Prompt 4 — apply delegation:</strong>
+      <pre><code>Review this class for places where Kotlin delegation would remove&#10;boilerplate:&#10;[paste code]&#10;Consider class delegation (by) for interfaces and property delegates&#10;like lazy or observable.</code></pre>
+
+quiz:
+  title: "Kotlin Classes — Quiz"
+  description: "Seven questions on constructors and properties, data classes, objects and companions, sealed hierarchies, and delegation."
+  questions:
+    - question: "What does `class Person(val name: String, var age: Int)` declare?"
+      options:
+        - "Only a constructor, with no properties"
+        - "A class with a primary constructor and two properties: name (read-only) and age (mutable)"
+        - "Two separate classes"
+        - "An abstract class"
+      correctIndex: 1
+      explanation: "The primary constructor declares the constructor and its properties in the class header. val name creates a read-only property, var age a mutable one — both initialised from the constructor arguments. No class body is needed."
+    - question: "In Kotlin, what does the identifier `field` refer to inside a property accessor?"
+      options:
+        - "The class itself"
+        - "The backing field — the actual storage behind the property"
+        - "A static variable"
+        - "The parameter passed to the constructor"
+      correctIndex: 1
+      explanation: "Kotlin exposes properties, not raw fields. Inside a custom getter or setter, `field` refers to the backing field — the real storage. Kotlin only generates a backing field when an accessor actually uses `field`; a purely computed property stores nothing."
+    - question: "Which of these does a data class NOT automatically generate?"
+      options:
+        - "equals() and hashCode()"
+        - "toString()"
+        - "copy()"
+        - "A database persistence layer"
+      correctIndex: 3
+      explanation: "A data class generates equals(), hashCode(), toString(), copy(), and componentN() functions from its primary-constructor properties. It does not generate any persistence or serialization layer — that's the job of separate libraries."
+    - question: "Why does Kotlin have no `static` keyword?"
+      options:
+        - "Because it cannot run on the JVM"
+        - "It replaces static with the object model: object declarations (singletons) and companion objects, which are real objects"
+        - "Because static is unnecessary in any language"
+        - "Static members are declared with @Static instead"
+      correctIndex: 1
+      explanation: "Kotlin drops static in favour of a cleaner object model. An object declaration defines a singleton; a companion object holds class-level members accessed via the class name. Unlike statics, both are real objects that can implement interfaces and hold state."
+    - question: "What key advantage does a sealed class give over a regular open class?"
+      options:
+        - "It runs faster at runtime"
+        - "Its set of subclasses is closed and known at compile time, enabling exhaustive when without else"
+        - "It uses less memory"
+        - "It can be subclassed from any module"
+      correctIndex: 1
+      explanation: "A sealed type's direct subclasses are all known at compile time, so the compiler can verify a when over it is exhaustive — no else needed. Add a new case later and every such when stops compiling until you handle it, turning missed cases into compile errors."
+    - question: "What does the `by` keyword do in `class Service(impl: Logger) : Logger by impl`?"
+      options:
+        - "Marks the class as abstract"
+        - "Delegates the implementation of the Logger interface to the impl object"
+        - "Creates a copy of impl"
+        - "Makes Logger a sealed interface"
+      correctIndex: 1
+      explanation: "This is class delegation. Service declares it implements Logger, and `by impl` makes the compiler forward all Logger methods to the impl object automatically — composition over inheritance, with no boilerplate forwarding methods."
+    - question: "Why are Kotlin classes final by default?"
+      options:
+        - "To make them impossible to test"
+        - "Following the 'design for inheritance or prohibit it' principle — you must opt in with `open` to allow subclassing"
+        - "Because final classes compile faster"
+        - "It is a bug that will be fixed"
+      correctIndex: 1
+      explanation: "Kotlin makes classes and members final by default, requiring an explicit `open` to allow inheritance or overriding. This follows Joshua Bloch's Effective Java advice to design and document for inheritance or else prohibit it — making the safe choice the default and the fragile one deliberate."
+---
+
+{/* Episode 1 of Kotlin: Object Model. Covers the primary constructor and init,
+    properties vs fields and backing fields, data classes (equals/hashCode/copy/
+    componentN/destructuring), object declarations and companion objects (no static),
+    sealed classes/interfaces with exhaustive when, enum classes, delegation via by
+    (class and property delegates: lazy, observable), and final-by-default. Three
+    inline SVG diagrams. */}

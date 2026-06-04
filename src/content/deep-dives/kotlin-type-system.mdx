@@ -1,0 +1,178 @@
+---
+title: "Kotlin's Type System — Null Safety, Nothing, and Variance"
+description: "Why Kotlin has no primitives, what the strange types Unit and Nothing are for, how smart casts work, and how generic variance (in and out) keeps collections both safe and flexible."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Type System"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: everything-is-an-object
+    title: "Everything is an object"
+    summary: |
+      Java has a split personality. It has <strong>primitives</strong> — <code>int</code>, <code>double</code>, <code>boolean</code> — which are fast but not objects, and it has their boxed <strong>object</strong> counterparts — <code>Integer</code>, <code>Double</code>, <code>Boolean</code> — which can be null and live on the heap. Every Java developer has been bitten by the difference (autoboxing surprises, <code>NullPointerException</code> on an <code>Integer</code>, <code>==</code> comparing references instead of values).
+      <br><br>
+      Kotlin erases that split, at least from the programmer's point of view. In Kotlin there are no primitive types. <code>Int</code>, <code>Double</code>, and <code>Boolean</code> are ordinary classes with methods, and they sit in a single, unified type hierarchy. You can call <code>42.toString()</code> or <code>3.coerceAtLeast(5)</code> because <code>Int</code> is a real type.
+      <br><br>
+      Does that mean Kotlin is slow, boxing every number? No — and this is the clever part. The compiler quietly compiles <code>Int</code> down to a JVM primitive <code>int</code> wherever it safely can, and only falls back to the boxed <code>Integer</code> when it must (for example, a nullable <code>Int?</code>, or an <code>Int</code> used as a generic type argument). You get the clean mental model of "everything is an object" with most of the performance of primitives.
+      <br><br>
+      At the very top of this unified hierarchy sits <code>Any</code> — the root of all non-nullable types, Kotlin's equivalent of Java's <code>Object</code>. Every class you write implicitly extends <code>Any</code>, which is where <code>equals()</code>, <code>hashCode()</code>, and <code>toString()</code> come from. But <code>Any</code> is not quite the top. Above it sits something stranger.
+
+  - id: the-type-hierarchy
+    title: "Top and bottom: Any?, Unit, and Nothing"
+    summary: |
+      A well-designed type system has a <strong>top type</strong> (something every value is) and a <strong>bottom type</strong> (a subtype of everything). Kotlin has both, plus a curious little type in between that replaces Java's <code>void</code>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="Kotlin's type hierarchy from Any-nullable at the top to Nothing at the bottom" style="max-width: 100%; height: auto;"><defs><marker id="th-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.th-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.th-title{font-size:16px;font-weight:600}.th-type{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:14px;font-weight:700;fill:#fff}.th-label{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="th-t th-title">The type hierarchy — top to bottom</text><rect x="280" y="44" width="160" height="44" rx="8" fill="#7F52FF"/><text x="360" y="71" text-anchor="middle" class="th-t th-type">Any?</text><text x="455" y="70" class="th-t th-label">top type — every value is an Any?</text><line x1="330" y1="88" x2="220" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><line x1="390" y1="88" x2="500" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><rect x="140" y="122" width="160" height="44" rx="8" fill="#a78bfa"/><text x="220" y="149" text-anchor="middle" class="th-t th-type">Any</text><rect x="440" y="122" width="160" height="44" rx="8" fill="#94a3b8"/><text x="520" y="149" text-anchor="middle" class="th-t th-type">Null</text><line x1="220" y1="166" x2="170" y2="198" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><line x1="220" y1="166" x2="290" y2="198" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><rect x="90" y="200" width="160" height="44" rx="8" fill="#c4b5fd"/><text x="170" y="227" text-anchor="middle" class="th-t th-type" style="fill:#1e293b">String, Int…</text><rect x="270" y="200" width="160" height="44" rx="8" fill="#c4b5fd"/><text x="350" y="227" text-anchor="middle" class="th-t th-type" style="fill:#1e293b">Unit</text><text x="350" y="262" text-anchor="middle" class="th-t th-label">the "void" with one value</text><line x1="170" y1="244" x2="320" y2="284" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><line x1="350" y1="244" x2="350" y2="284" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><line x1="520" y1="166" x2="380" y2="284" stroke="#94a3b8" stroke-width="2" marker-end="url(#th-arr)"/><rect x="270" y="286" width="160" height="40" rx="8" fill="#1e293b"/><text x="350" y="311" text-anchor="middle" class="th-t th-type">Nothing</text><text x="455" y="310" class="th-t th-label">bottom type — subtype of everything</text></svg>
+      <br><br>
+      <strong><code>Any?</code></strong> is the true top type: every possible value, including <code>null</code>, is an <code>Any?</code>. Its non-nullable sibling <code>Any</code> is the root of all non-nullable types.
+      <br><br>
+      <strong><code>Unit</code></strong> is Kotlin's replacement for <code>void</code>. The difference is subtle but important: <code>void</code> means "no return type at all," whereas <code>Unit</code> is a real type that has exactly <em>one</em> value, also written <code>Unit</code>. The name comes from type theory and functional languages, where the "unit type" is the canonical type with a single inhabitant. Because <code>Unit</code> is a real value, it can be used as a generic type argument — which matters a lot when you write generic code like <code>Function&lt;Unit&gt;</code>. A function that "returns nothing useful" actually returns <code>Unit</code>; you just never write it.
+      <br><br>
+      <strong><code>Nothing</code></strong> is the bottom type, and it is genuinely mind-bending the first time you meet it. It has <em>no instances at all</em> — you can never hold a value of type <code>Nothing</code>. It is a subtype of every other type. What could such a thing possibly be for?
+
+  - id: the-power-of-nothing
+    title: "The surprising power of Nothing"
+    summary: |
+      <code>Nothing</code> is the type of an expression that <strong>never produces a value</strong> — because it always throws, or loops forever. A function declared to return <code>Nothing</code> is promising the compiler "control will never return from here normally."
+      <br><br>
+      <pre><code>fun fail(message: String): Nothing {&#10;    throw IllegalStateException(message)&#10;}</code></pre>
+      Why is that useful? Because <code>Nothing</code> is a subtype of everything, the compiler can slot a <code>Nothing</code>-returning call into <em>any</em> type context, and it understands that the code after it is unreachable. This is what makes the Elvis-with-throw idiom type-check so cleanly:
+      <br><br>
+      <pre><code>val name: String = user.name ?: fail("name is required")&#10;// If user.name is null, fail() throws — so after this line,&#10;// the compiler KNOWS name is a non-null String.</code></pre>
+      The standard library's <code>TODO()</code> function returns <code>Nothing</code> for the same reason — you can drop <code>TODO()</code> into a function of any return type while you stub it out, and it compiles.
+      <br><br>
+      <code>Nothing</code> also rescues type inference. What is the element type of an empty list? The library says <code>emptyList()</code> returns <code>List&lt;Nothing&gt;</code>, and because <code>Nothing</code> is a subtype of everything, that empty list is assignable to <code>List&lt;String&gt;</code>, <code>List&lt;Int&gt;</code>, anything. Likewise <code>null</code>'s own type is <code>Nothing?</code>. These oddities — <code>Unit</code> with one value, <code>Nothing</code> with none — are not academic trivia; they are load-bearing parts of how everyday Kotlin code infers types correctly.
+
+  - id: smart-casts
+    title: "Smart casts and exhaustive when"
+    summary: |
+      In Java, checking a type and then using it means writing the type twice: <code>if (x instanceof String) { String s = (String) x; ... }</code>. Kotlin finds this redundant. Once you check a type, the compiler <strong>smart casts</strong> the value for you.
+      <br><br>
+      <pre><code>fun describe(x: Any): String {&#10;    if (x is String) {&#10;        // x is smart-cast to String here — no cast needed&#10;        return "string of length ${x.length}"&#10;    }&#10;    return "not a string"&#10;}</code></pre>
+      The same flow analysis powers null handling (after <code>if (x != null)</code>, <code>x</code> is non-null) and pairs beautifully with <code>when</code>, Kotlin's vastly more powerful <code>switch</code>. A <code>when</code> can branch on types, ranges, and arbitrary conditions, smart-casting in each branch:
+      <br><br>
+      <pre><code>fun area(shape: Shape): Double = when (shape) {&#10;    is Circle -&gt; PI * shape.radius * shape.radius   // smart-cast to Circle&#10;    is Rectangle -&gt; shape.width * shape.height       // smart-cast to Rectangle&#10;}</code></pre>
+      When <code>when</code> is used as an <em>expression</em> (its result is assigned or returned), the compiler insists it be <strong>exhaustive</strong> — every possible case must be covered, or you must add an <code>else</code>. Combined with sealed classes (covered in the Object Model episode), this gives you compile-time proof that you have handled every variant of a type. The same caveat from null safety applies: smart casts only work on values the compiler knows cannot change between the check and the use — local <code>val</code>s, not mutable properties that another thread could alter.
+
+  - id: generics-and-erasure
+    title: "Generics and type erasure"
+    summary: |
+      Generics let you write one <code>Box</code> that works for any type, with full type safety:
+      <br><br>
+      <pre><code>class Box&lt;T&gt;(val value: T)&#10;val intBox = Box(42)        // T inferred as Int&#10;val strBox = Box("hello")   // T inferred as String</code></pre>
+      Kotlin runs on the JVM, and it inherits one of the JVM's most consequential design decisions: <strong>type erasure</strong>. At runtime, the type argument <code>T</code> is <em>erased</em> — a <code>Box&lt;Int&gt;</code> and a <code>Box&lt;String&gt;</code> are both just <code>Box</code>. The compiler uses the type information to check your code, then throws it away so the bytecode stays compatible with older Java.
+      <br><br>
+      This was a deliberate choice when generics were added to Java 5 in 2004: erasure preserved backward compatibility with pre-generics code, at the cost of losing type info at runtime. Kotlin lives with the consequence. You cannot, in ordinary code, ask "is this a <code>List&lt;String&gt;</code>?" at runtime — the <code>&lt;String&gt;</code> is gone.
+      <br><br>
+      <pre><code>fun &lt;T&gt; isType(value: Any): Boolean {&#10;    // return value is T   // ERROR: cannot check erased type&#10;    return false&#10;}</code></pre>
+      Kotlin offers an escape hatch for this — <code>reified</code> type parameters — which we will reach shortly. But first, the most important thing generics force you to think about: <strong>variance</strong>.
+
+  - id: variance-in-and-out
+    title: "Variance: in, out, and PECS"
+    summary: |
+      Here is a question that has confused programmers for decades. A <code>Cat</code> is an <code>Animal</code>. So is a <code>List&lt;Cat&gt;</code> a <code>List&lt;Animal&gt;</code>? It seems like it should be — but allowing it naively is unsafe, because if you could treat a list of cats as a list of animals, you could then add a <code>Dog</code> to it. This is the <strong>variance</strong> problem.
+      <br><br>
+      Kotlin solves it with two keywords you declare on the type parameter itself — <strong>declaration-site variance</strong>, which is cleaner than Java's wildcards (<code>? extends</code> / <code>? super</code>) scattered at every use.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="Covariance with out for producers and contravariance with in for consumers" style="max-width: 100%; height: auto;"><style>.va-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.va-title{font-size:16px;font-weight:600}.va-kw{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:20px;font-weight:700}.va-name{font-size:13px;font-weight:700;fill:#1e293b}.va-desc{font-size:11px;fill:#64748b}.va-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}</style><text x="360" y="24" text-anchor="middle" class="va-t va-title">Producer-out, Consumer-in (PECS)</text><rect x="30" y="46" width="320" height="180" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/><text x="190" y="78" text-anchor="middle" class="va-t va-kw" fill="#10b981">out T</text><text x="190" y="102" text-anchor="middle" class="va-t va-name">covariant — a PRODUCER</text><text x="190" y="128" text-anchor="middle" class="va-t va-desc">only returns T, never accepts it</text><text x="190" y="152" text-anchor="middle" class="va-t va-code">interface Source&lt;out T&gt;</text><text x="190" y="172" text-anchor="middle" class="va-t va-code">{ fun next(): T }</text><text x="190" y="202" text-anchor="middle" class="va-t va-desc">Source&lt;Cat&gt; IS-A Source&lt;Animal&gt;</text><rect x="370" y="46" width="320" height="180" rx="8" fill="#fdf4ff" stroke="#7F52FF" stroke-width="1.5"/><text x="530" y="78" text-anchor="middle" class="va-t va-kw" fill="#7F52FF">in T</text><text x="530" y="102" text-anchor="middle" class="va-t va-name">contravariant — a CONSUMER</text><text x="530" y="128" text-anchor="middle" class="va-t va-desc">only accepts T, never returns it</text><text x="530" y="152" text-anchor="middle" class="va-t va-code">interface Sink&lt;in T&gt;</text><text x="530" y="172" text-anchor="middle" class="va-t va-code">{ fun put(item: T) }</text><text x="530" y="202" text-anchor="middle" class="va-t va-desc">Sink&lt;Animal&gt; IS-A Sink&lt;Cat&gt;</text></svg>
+      <br><br>
+      <strong><code>out T</code></strong> (covariance) means the type only ever <em>produces</em> <code>T</code> — it appears in return positions, never as a parameter. A producer of cats is safely a producer of animals, so <code>Source&lt;Cat&gt;</code> is a subtype of <code>Source&lt;Animal&gt;</code>. This is why Kotlin's read-only <code>List&lt;out E&gt;</code> is covariant: you can pass a <code>List&lt;Cat&gt;</code> where a <code>List&lt;Animal&gt;</code> is expected, because you can only read from it.
+      <br><br>
+      <strong><code>in T</code></strong> (contravariance) means the type only ever <em>consumes</em> <code>T</code> — it appears in parameter positions. A thing that can accept any animal can certainly accept a cat, so <code>Sink&lt;Animal&gt;</code> is a subtype of <code>Sink&lt;Cat&gt;</code>. This is the direction <code>Comparable&lt;in T&gt;</code> goes.
+      <br><br>
+      The mnemonic from Joshua Bloch's <em>Effective Java</em> is <strong>PECS</strong>: "Producer Extends, Consumer Super" — in Kotlin terms, "Producer <code>out</code>, Consumer <code>in</code>." When a class neither only-produces nor only-consumes (like <code>MutableList</code>, which does both), it must be invariant: <code>MutableList&lt;Cat&gt;</code> is <em>not</em> a <code>MutableList&lt;Animal&gt;</code>, and that is exactly the safety the compiler is protecting. When you do not know or care about the argument, the <strong>star projection</strong> <code>List&lt;*&gt;</code> says "a list of something."
+
+  - id: reified-type-parameters
+    title: "Reified type parameters"
+    summary: |
+      Type erasure normally means a generic function cannot know its type argument at runtime. Kotlin punches a hole through this with a feature Java does not have: <code>reified</code> type parameters on <code>inline</code> functions.
+      <br><br>
+      Recall from the Functions episode that an <code>inline</code> function has its body copied into each call site at compile time. Because the body is inlined, the compiler knows the concrete type argument at every call — so it can substitute the real type directly into the generated code. Marking the type parameter <code>reified</code> unlocks that:
+      <br><br>
+      <pre><code>inline fun &lt;reified T&gt; Any.isA(): Boolean = this is T&#10;&#10;println("hi".isA&lt;String&gt;())   // true&#10;println(42.isA&lt;String&gt;())     // false&#10;&#10;// The classic use: type-safe JSON parsing with no Class&lt;T&gt; argument&#10;inline fun &lt;reified T&gt; String.fromJson(): T =&#10;    gson.fromJson(this, T::class.java)&#10;&#10;val user: User = jsonString.fromJson()   // T inferred, no boilerplate</code></pre>
+      Inside a <code>reified</code> function you can use <code>T</code> as if it were a real type: do <code>is T</code> checks, write <code>T::class</code>, create reflection references. This is why so many Kotlin libraries have such clean APIs — instead of forcing you to pass a <code>Class&lt;T&gt;</code> token around (as Java libraries must), they hide it behind a reified inline function. The limitation is the flip side of how it works: <code>reified</code> requires <code>inline</code>, so it cannot be used on regular functions or stored for later — the type is known only because the call was inlined.
+
+  - id: ai-prompts-type-system
+    title: "AI prompts — exploring the type system"
+    summary: |
+      Use these prompts with an AI assistant to deepen your understanding of Kotlin's type system.
+      <br><br>
+      <strong>Prompt 1 — Unit vs Nothing:</strong>
+      <pre><code>Explain the difference between Unit and Nothing in Kotlin with&#10;concrete examples. Show a function returning each, and explain&#10;why Nothing being a subtype of every type is useful for the&#10;Elvis-throw idiom and for inferring empty collection types.</code></pre>
+      <br>
+      <strong>Prompt 2 — Variance review:</strong>
+      <pre><code>Look at these generic classes and tell me whether each type&#10;parameter should be out, in, or invariant, and why:&#10;[paste your generic interfaces/classes]&#10;Apply the producer-out, consumer-in rule.</code></pre>
+      <br>
+      <strong>Prompt 3 — Erasure pitfalls:</strong>
+      <pre><code>Review this generic code for type-erasure problems:&#10;[paste code]&#10;Flag any runtime type checks on generic parameters, and show&#10;where a reified inline function would fix it.</code></pre>
+      <br>
+      <strong>Prompt 4 — Smart casts:</strong>
+      <pre><code>This code uses explicit casts and instanceof-style checks:&#10;[paste code]&#10;Rewrite it to rely on Kotlin smart casts and an exhaustive when,&#10;and point out anywhere a smart cast won't apply and why.</code></pre>
+
+quiz:
+  title: "Kotlin Type System — Quiz"
+  description: "Seven questions on Kotlin's unified types, Unit and Nothing, smart casts, type erasure, and generic variance."
+  questions:
+    - question: "Why does Kotlin have no primitive types like Java's int?"
+      options:
+        - "Because Kotlin cannot run on the JVM"
+        - "Types like Int are real classes in one unified hierarchy; the compiler still compiles them to JVM primitives where possible"
+        - "Because Kotlin numbers are always slower than Java's"
+        - "Because Kotlin stores all numbers as strings"
+      correctIndex: 1
+      explanation: "Kotlin presents Int, Double, Boolean, etc. as ordinary classes in a single type hierarchy, so they have methods and a clean mental model. Under the hood the compiler optimises them to JVM primitives wherever it safely can, falling back to boxed types only when needed (e.g. Int? or a generic argument)."
+    - question: "What is the key difference between Unit and Java's void?"
+      options:
+        - "Unit is faster than void"
+        - "Unit is a real type with exactly one value; void means there is no return type at all"
+        - "Unit can hold any value; void can hold none"
+        - "There is no difference"
+      correctIndex: 1
+      explanation: "void means 'no return type.' Unit is an actual type that has a single value (also written Unit). Because Unit is a real value, it can be used as a generic type argument — something void cannot do. A function that returns 'nothing useful' actually returns Unit."
+    - question: "What is special about the type Nothing?"
+      options:
+        - "It is the same as null"
+        - "It has no instances and is a subtype of every other type"
+        - "It can hold exactly one value"
+        - "It is the root of the type hierarchy"
+      correctIndex: 1
+      explanation: "Nothing has no instances at all and is a subtype of every type. It is the return type of expressions that never return normally (they throw or loop forever). Because it is a subtype of everything, a Nothing-returning call like fail() or TODO() fits into any type context, and the compiler treats following code as unreachable."
+    - question: "After `if (x is String)` succeeds, why can you use x as a String without an explicit cast?"
+      options:
+        - "Kotlin ignores types at runtime"
+        - "Because of smart casts: the compiler promotes x to String within that scope"
+        - "Because String is the default type"
+        - "You actually do need an explicit cast"
+      correctIndex: 1
+      explanation: "Kotlin's smart casts use flow analysis: once you check that x is a String (and x is a stable value like a local val), the compiler automatically treats x as String in that scope, so no redundant explicit cast is needed."
+    - question: "What does 'type erasure' mean on the JVM?"
+      options:
+        - "Generic type arguments are removed at runtime, so List<Int> and List<String> are both just List"
+        - "All types are deleted after compilation"
+        - "Kotlin erases unused variables"
+        - "Generics are not allowed in Kotlin"
+      correctIndex: 0
+      explanation: "Type erasure means the compiler uses generic type arguments for compile-time checking and then discards them, so at runtime List<Int> and List<String> are indistinguishable — both are just List. This was a backward-compatibility choice when Java added generics in 2004, and Kotlin inherits it."
+    - question: "Following the producer-out/consumer-in rule, which declaration is correct for a type that only RETURNS T?"
+      options:
+        - "interface Source<in T>"
+        - "interface Source<out T>"
+        - "interface Source<T> with no variance"
+        - "interface Source<* T>"
+      correctIndex: 1
+      explanation: "A type that only produces (returns) T is covariant and should be declared with out T. Then Source<Cat> is a subtype of Source<Animal>, which is safe because you can only read T out of it. A consumer that only accepts T would use in T."
+    - question: "What does the reified keyword require, and what does it enable?"
+      options:
+        - "It requires a sealed class and enables exhaustive when"
+        - "It requires an inline function and enables using the type argument T at runtime (e.g. is T, T::class)"
+        - "It requires a data class and enables copy()"
+        - "It requires the JVM and disables type erasure globally"
+      correctIndex: 1
+      explanation: "reified can only be used on a type parameter of an inline function. Because the function body is inlined at each call site, the compiler knows the concrete type and can substitute it — so inside the function you may use T as a real type (is T, T::class). This is how libraries avoid passing Class<T> tokens around."
+---
+
+{/* Episode 1 of Kotlin: Type System. Covers the unified hierarchy (no primitives),
+    Any?/Any, Unit and the bottom type Nothing, smart casts and exhaustive when,
+    generics and JVM type erasure, declaration-site variance (out/in, PECS, star
+    projection), and reified type parameters. Three inline SVG diagrams. */}

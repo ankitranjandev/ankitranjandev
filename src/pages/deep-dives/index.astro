@@ -47,6 +47,17 @@ const categoryMeta: Record<string, { color: string; description: string }> = {
     description: 'Architecture patterns for scalable, maintainable applications.'
   },
 };
+
+// Subject learning order (lower number = learn first)
+const subjectOrder: Record<string, number> = {
+  // Dart learning path
+  'Dart: The Platform': 1,
+  'Dart: Data Foundations': 2,
+  'Dart: Primitive Computation': 3,
+  'Dart: Collections': 4,
+  'Dart: Type System': 5,
+  'Dart: Async': 6,
+};
 ---
 
 <BaseLayout
@@ -89,7 +100,11 @@ const categoryMeta: Record<string, { color: string; description: string }> = {
 
     <!-- Category Panels -->
     {categories.map((category, idx) => {
-      const subjects = Object.keys(groupedByCategory[category]).sort();
+      const subjects = Object.keys(groupedByCategory[category]).sort((a, b) => {
+        const orderA = subjectOrder[a] ?? 999;
+        const orderB = subjectOrder[b] ?? 999;
+        return orderA - orderB;
+      });
       const meta = categoryMeta[category] || { color: '#0175C2', description: '' };
 
       return (

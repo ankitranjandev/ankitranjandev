@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import NoteCard from '@/components/NoteCard.astro';
+import SiteStats from '@/components/SiteStats.astro';
 import { sortByDate, filterDrafts } from '@/lib/utils';
 
 const allPosts = await getCollection('posts');
@@ -83,6 +84,11 @@ const socialLinks = [
             {label}
           </a>
         ))}
+      </div>
+
+      <!-- Site Stats -->
+      <div class="mt-8">
+        <SiteStats />
       </div>
     </section>
 

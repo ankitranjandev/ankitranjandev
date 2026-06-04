@@ -1,0 +1,39 @@
+# ankitranjan.dev
+
+> Senior Mobile Engineer portfolio and technical blog
+
+## About
+Ankit Ranjan is a Senior Mobile Engineer with 7+ years of experience building apps across Android, iOS, and Flutter. This site contains technical deep-dives, blog posts, and professional information.
+
+## Content
+
+### Deep Dives (Dart Programming Series)
+In-depth technical tutorials on Dart and Flutter fundamentals:
+- /deep-dives/dart-booleans/ - Booleans in Dart
+- /deep-dives/dart-integers/ - Integers in Dart
+- /deep-dives/dart-doubles/ - Doubles and IEEE 754
+- /deep-dives/dart-doubles-part2/ - Doubles Memory and Edge Cases
+- /deep-dives/dart-strings/ - Strings, Immutability, Unicode
+- /deep-dives/dart-collections/ - Lists, Sets, Maps
+- /deep-dives/dart-functions/ - Functions, Closures, Tear-offs
+
+### Blog
+Technical articles on Flutter, mobile development, and software engineering:
+- /blog/ - All blog posts
+
+### Notes
+Quick thoughts and observations:
+- /notes/ - All notes
+
+## Contact
+- Email: ankitranjan.dev@gmail.com
+- GitHub: https://github.com/ankitranjandev
+- X/Twitter: https://x.com/CubeRootX
+- LinkedIn: https://www.linkedin.com/in/ankit-ranjan-a874b6101
+- Substack: https://substack.com/@ankitranjandev
+
+## Technical Details
+- Built with: Astro
+- Hosted on: Cloudflare Pages
+- RSS Feed: /rss.xml
+- Sitemap: /sitemap-index.xml

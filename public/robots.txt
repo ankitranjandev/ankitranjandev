@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
+# AI Agents and LLMs
+# See /llms.txt for site context and content structure
+
 Sitemap: https://ankitranjan.dev/sitemap-index.xml

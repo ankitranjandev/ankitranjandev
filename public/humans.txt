@@ -1,0 +1,17 @@
+/* TEAM */
+Developer: Ankit Ranjan
+Role: Senior Mobile Engineer
+Location: India
+Contact: ankitranjan.dev@gmail.com
+GitHub: github.com/ankitranjandev
+X: x.com/CubeRootX
+
+/* SITE */
+Standards: HTML5, CSS3, JavaScript
+Framework: Astro
+Hosting: Cloudflare Pages
+Last updated: 2025
+
+/* THANKS */
+Astro - astro.build
+Cloudflare - cloudflare.com

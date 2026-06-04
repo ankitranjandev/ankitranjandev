@@ -1,0 +1,10 @@
+name = "analytics-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://ankitranjan.dev"
+
+# You'll need to add these secrets via wrangler:
+# wrangler secret put CF_API_TOKEN
+# wrangler secret put CF_ZONE_ID

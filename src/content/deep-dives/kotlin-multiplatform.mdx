@@ -1,0 +1,159 @@
+---
+title: "Kotlin Multiplatform — Share Logic, Keep Native Where It Matters"
+description: "How one Kotlin codebase targets Android, iOS, desktop, and the web. A deep dive into source sets, the expect/actual mechanism, what is worth sharing, and how Compose Multiplatform now extends sharing all the way to the UI."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Multiplatform"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: the-duplication-problem
+    title: "The same logic, written three times"
+    summary: |
+      Build a serious app today and you are likely building it more than once. An Android version in Kotlin, an iOS version in Swift, perhaps a web version in TypeScript. Each reimplements the same things: the networking, the data models, the validation rules, the business logic. Three teams, three bugs for every one mistake, three places to keep in sync. This duplication is one of the most expensive facts of modern app development.
+      <br><br>
+      <strong>Kotlin Multiplatform</strong> (KMP) attacks this with a specific philosophy, and it is worth contrasting it with the alternative you may know from the Dart/Flutter series. Flutter shares <em>everything</em>, including the UI, by shipping its own rendering engine and painting every pixel itself. KMP makes a different bet: share the <strong>logic</strong> — the parts that genuinely should behave identically everywhere — while letting each platform keep its <strong>native UI</strong>, native look, and native performance.
+      <br><br>
+      The result is that an iOS app built with KMP is still a real iOS app with SwiftUI on top; it just calls into shared Kotlin for its data and rules. You are not asking iOS developers to abandon their platform, only to stop rewriting the network layer. That pragmatism — share what should be shared, keep native what benefits from being native — is the same spirit that runs through the rest of Kotlin's design.
+
+  - id: history-and-stability
+    title: "From experiment to stable"
+    summary: |
+      Multiplatform was a long time coming, and its timeline tells you how seriously JetBrains treats stability. The underlying technology — <strong>Kotlin/Native</strong>, which compiles Kotlin to native binaries via the LLVM toolchain (introduced in the Foundations episode) — was announced around 2017. Multiplatform itself spent years labelled "experimental" and then "alpha," while the team hardened the tooling and the compiler.
+      <br><br>
+      Kotlin Multiplatform was finally declared <strong>Stable in November 2023</strong>, with Kotlin 1.9.20. That five-plus-year incubation mirrors the patient arc of Kotlin itself — announced in 2011, 1.0 only in 2016. JetBrains would rather ship late and stable than early and shaky.
+      <br><br>
+      Two developments cemented KMP's momentum. First, <strong>Google embraced it</strong>: at Google I/O 2024, Google announced official support for Kotlin Multiplatform for sharing business logic across Android and iOS, echoing the Android-first endorsement Kotlin received back in 2017. Second, JetBrains shipped <strong>Compose Multiplatform</strong>, extending the Jetpack Compose UI framework beyond Android to desktop, iOS, and the web — so teams that <em>do</em> want to share UI can, while those who prefer native UI still can. KMP stopped being a promising experiment and became a mainstream architecture choice.
+
+  - id: source-sets
+    title: "Source sets: common and platform code"
+    summary: |
+      A multiplatform project organises code into <strong>source sets</strong>. The most important is <code>commonMain</code> — code here is platform-agnostic Kotlin that compiles to <em>every</em> target. Alongside it sit platform-specific source sets like <code>androidMain</code>, <code>iosMain</code>, and <code>jvmMain</code>, which hold code that exists only for that platform.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 290" role="img" aria-label="A multiplatform project with shared commonMain code feeding platform-specific source sets" style="max-width: 100%; height: auto;"><defs><marker id="ss-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.ss-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ss-title{font-size:16px;font-weight:600}.ss-box{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700;fill:#fff}.ss-sub{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:600;fill:#1e293b}.ss-label{font-size:11px;fill:#64748b}</style><text x="360" y="22" text-anchor="middle" class="ss-t ss-title">Shared logic on top, platform code below</text><rect x="220" y="40" width="280" height="52" rx="8" fill="#7F52FF"/><text x="360" y="64" text-anchor="middle" class="ss-t ss-box">commonMain</text><text x="360" y="82" text-anchor="middle" class="ss-t ss-label" fill="#e9d5ff">models · networking · business logic</text><line x1="300" y1="92" x2="170" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#ss-arr)"/><line x1="360" y1="92" x2="360" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#ss-arr)"/><line x1="420" y1="92" x2="550" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#ss-arr)"/><rect x="60" y="138" width="200" height="48" rx="8" fill="#c4b5fd"/><text x="160" y="167" text-anchor="middle" class="ss-t ss-sub">androidMain</text><rect x="260" y="138" width="200" height="48" rx="8" fill="#c4b5fd"/><text x="360" y="167" text-anchor="middle" class="ss-t ss-sub">iosMain</text><rect x="460" y="138" width="200" height="48" rx="8" fill="#c4b5fd"/><text x="560" y="167" text-anchor="middle" class="ss-t ss-sub">jvmMain / jsMain</text><text x="160" y="210" text-anchor="middle" class="ss-t ss-label">→ JVM bytecode (.aar)</text><text x="360" y="210" text-anchor="middle" class="ss-t ss-label">→ native framework</text><text x="560" y="210" text-anchor="middle" class="ss-t ss-label">→ JVM / JavaScript</text><text x="360" y="250" text-anchor="middle" class="ss-t ss-label">commonMain is written once; each platform target compiles it plus its own source set.</text><text x="360" y="272" text-anchor="middle" class="ss-t ss-label">Compiles via Kotlin/JVM, Kotlin/Native (LLVM), and Kotlin/JS — the targets from the Foundations episode.</text></svg>
+      <br><br>
+      When you build for Android, the compiler combines <code>commonMain</code> with <code>androidMain</code> and produces JVM bytecode packaged as an Android library. When you build for iOS, it combines <code>commonMain</code> with <code>iosMain</code> and produces, via Kotlin/Native, a native framework that an Xcode project can import like any other. The shared module is written once; each platform target compiles it together with its own platform source set.
+      <br><br>
+      This is why the compilation targets from the Foundations episode matter so much: KMP <em>is</em> those targets working in concert. The same <code>commonMain</code> source flows through Kotlin/JVM for Android, Kotlin/Native for iOS, and Kotlin/JS or Kotlin/Wasm for the web.
+
+  - id: expect-actual
+    title: "expect and actual"
+    summary: |
+      Common code sometimes needs something the platform must provide — the current time, a random-number source, secure storage, a device ID. The shared module cannot implement these itself, but it needs to <em>refer</em> to them. Kotlin's mechanism for this is the <code>expect</code>/<code>actual</code> pair, KMP's signature feature.
+      <br><br>
+      In <code>commonMain</code> you declare what you <strong>expect</strong> to exist, with no body. In each platform source set you provide the <strong>actual</strong> implementation.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="An expect declaration in common code with actual implementations per platform" style="max-width: 100%; height: auto;"><defs><marker id="ea-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.ea-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.ea-title{font-size:16px;font-weight:600}.ea-h{font-size:12px;font-weight:700}.ea-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.ea-label{font-size:11px;fill:#64748b}</style><text x="360" y="22" text-anchor="middle" class="ea-t ea-title">expect (common) → actual (per platform)</text><rect x="210" y="40" width="300" height="58" rx="8" fill="#7F52FF"/><text x="360" y="63" text-anchor="middle" class="ea-t ea-h" fill="#fff">commonMain</text><text x="360" y="84" text-anchor="middle" class="ea-t ea-code" fill="#fff">expect fun platformName(): String</text><line x1="290" y1="98" x2="180" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#ea-arr)"/><line x1="430" y1="98" x2="540" y2="140" stroke="#94a3b8" stroke-width="2" marker-end="url(#ea-arr)"/><rect x="40" y="143" width="300" height="62" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="60" y="165" class="ea-t ea-h" fill="#7F52FF">androidMain</text><text x="58" y="188" class="ea-t ea-code">actual fun platformName() =</text><text x="58" y="202" class="ea-t ea-code">&#160;&#160;"Android " + Build.VERSION.SDK_INT</text><rect x="380" y="143" width="300" height="62" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="400" y="165" class="ea-t ea-h" fill="#7F52FF">iosMain</text><text x="398" y="188" class="ea-t ea-code">actual fun platformName() =</text><text x="398" y="202" class="ea-t ea-code">&#160;&#160;UIDevice.currentDevice.systemName()</text></svg>
+      <br><br>
+      <pre><code>// commonMain — the contract&#10;expect fun currentTimeMillis(): Long&#10;&#10;// androidMain — uses the JVM&#10;actual fun currentTimeMillis(): Long = System.currentTimeMillis()&#10;&#10;// iosMain — uses Apple's Foundation, via Kotlin/Native interop&#10;actual fun currentTimeMillis(): Long =&#10;    (NSDate().timeIntervalSince1970 * 1000).toLong()</code></pre>
+      The compiler enforces the contract: if a target is missing an <code>actual</code> for some <code>expect</code>, the build fails. It works for functions, classes, properties, and more. In practice, modern KMP often prefers plain interfaces and dependency injection over <code>expect</code>/<code>actual</code> for larger abstractions, reserving the mechanism for small, leaf-level platform primitives — but it remains the conceptual heart of how shared code reaches platform capabilities.
+
+  - id: what-to-share
+    title: "What to share, and what not to"
+    summary: |
+      KMP's value depends on drawing the sharing line in the right place. The sweet spot is the <strong>logic that should behave identically everywhere</strong>, and where bugs are most costly to duplicate:
+      <br><br>
+      • <strong>Data models</strong> — your domain types, serialisation, validation.<br>
+      • <strong>Networking</strong> — API clients (Ktor is the multiplatform HTTP client of choice).<br>
+      • <strong>Business logic</strong> — rules, calculations, state machines, use cases.<br>
+      • <strong>Local persistence</strong> — databases via multiplatform libraries like SQLDelight.<br>
+      • <strong>Even ViewModels</strong> — increasingly, presentation logic is shared too.<br><br>
+      A healthy ecosystem of multiplatform libraries has grown to support this: <strong>kotlinx.coroutines</strong> (the concurrency from the Concurrency episode runs on every target), <strong>kotlinx.serialization</strong>, <strong>Ktor</strong>, and <strong>SQLDelight</strong>. Because the shared layer is just Kotlin, all the language features from this series — null safety, sealed classes for state, Flow for streams — work uniformly across platforms.
+      <br><br>
+      What you typically do <em>not</em> share, unless you adopt Compose Multiplatform, is the UI and deeply platform-specific integrations (widgets, permissions, platform design languages). The guiding question is simple: "would I want this to differ per platform?" If the answer is no, it belongs in <code>commonMain</code>.
+
+  - id: compose-multiplatform
+    title: "Compose Multiplatform: sharing the UI too"
+    summary: |
+      For years, "share logic, keep native UI" was KMP's whole story. <strong>Compose Multiplatform</strong>, built by JetBrains on top of Google's Jetpack Compose, changed the menu by making shared UI an <em>option</em> rather than a requirement.
+      <br><br>
+      Jetpack Compose is Android's modern declarative UI toolkit — you describe the UI as functions of state (recall the lambdas-with-receiver and DSL ideas from the Functions episode; <code>Column { Text("hi") }</code> is exactly that pattern). Compose Multiplatform takes that same Kotlin UI code and renders it on desktop (JVM), iOS, and the web, in addition to Android.
+      <br><br>
+      <pre><code>// Shared UI — written once, runs on Android, iOS, desktop, web&#10;@Composable&#10;fun Greeting(name: String) {&#10;    Column {&#10;        Text("Hello, $name")&#10;        Button(onClick = { /* ... */ }) { Text("Tap me") }&#10;    }&#10;}</code></pre>
+      This puts KMP and Flutter on more comparable footing for teams that want a single UI codebase — but with a crucial difference in heritage: Compose Multiplatform <em>is</em> Compose, the same framework Android developers already use, so an Android team's existing skills and UI carry straight over. The choice is now a spectrum: share only logic and write native UIs; or share logic <em>and</em> UI with Compose. Either way, the shared core is ordinary Kotlin — every concept from this series applies, unchanged, on every platform you ship to.
+
+  - id: ai-prompts-multiplatform
+    title: "AI prompts — Kotlin Multiplatform"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — what to share:</strong>
+      <pre><code>Here is my app's architecture across Android and iOS:&#10;[describe your layers]&#10;Which parts should move into a shared commonMain module, and which&#10;should stay platform-specific? Explain the reasoning for each.</code></pre>
+      <br>
+      <strong>Prompt 2 — expect/actual design:</strong>
+      <pre><code>I need [current time / secure storage / device info / a UUID] in&#10;shared code. Show me how to model it with expect/actual across&#10;Android and iOS, and tell me whether an interface + DI would be&#10;a better fit here.</code></pre>
+      <br>
+      <strong>Prompt 3 — choosing libraries:</strong>
+      <pre><code>For a KMP module that does networking, JSON, local storage, and&#10;concurrency, which multiplatform libraries should I use and how do&#10;they fit together? (Consider Ktor, kotlinx.serialization, SQLDelight,&#10;kotlinx.coroutines.)</code></pre>
+      <br>
+      <strong>Prompt 4 — native UI vs Compose Multiplatform:</strong>
+      <pre><code>My team has existing native SwiftUI and Android Compose screens.&#10;Walk me through the trade-offs of (a) sharing only logic with native&#10;UIs vs (b) adopting Compose Multiplatform for shared UI, for our case:&#10;[describe team and app]</code></pre>
+
+quiz:
+  title: "Kotlin Multiplatform — Quiz"
+  description: "Seven questions on KMP's philosophy, source sets, expect/actual, what to share, and Compose Multiplatform."
+  questions:
+    - question: "How does Kotlin Multiplatform's philosophy differ from Flutter's by default?"
+      options:
+        - "KMP shares everything including UI; Flutter shares only logic"
+        - "KMP shares logic and lets each platform keep its native UI; Flutter ships its own engine and shares the UI too"
+        - "They are identical approaches"
+        - "KMP only works on Android"
+      correctIndex: 1
+      explanation: "By default KMP shares the logic (models, networking, business rules) while letting each platform keep its native UI and performance. Flutter instead ships its own rendering engine and shares the entire UI. KMP's bet is 'share what should be identical, keep native what benefits from being native.'"
+    - question: "When was Kotlin Multiplatform declared Stable?"
+      options:
+        - "2017, alongside Android support"
+        - "2020"
+        - "November 2023, with Kotlin 1.9.20"
+        - "It is still experimental"
+      correctIndex: 2
+      explanation: "KMP reached Stable in November 2023 (Kotlin 1.9.20) after a multi-year incubation through experimental and alpha stages — mirroring Kotlin's own patient path from its 2011 announcement to 1.0 in 2016. Google announced official KMP support for shared logic at Google I/O 2024."
+    - question: "What is the role of the commonMain source set?"
+      options:
+        - "It holds Android-only code"
+        - "It holds platform-agnostic Kotlin that compiles to every target"
+        - "It holds the iOS UI"
+        - "It holds generated code only"
+      correctIndex: 1
+      explanation: "commonMain contains the shared, platform-agnostic Kotlin — models, networking, business logic — that compiles to every target. Platform source sets like androidMain and iosMain hold code specific to one platform, and each target compiles commonMain together with its own source set."
+    - question: "What does the expect/actual mechanism do?"
+      options:
+        - "It marks code as deprecated"
+        - "It declares an API in common code (expect) that each platform must implement (actual)"
+        - "It runs tests across platforms"
+        - "It converts Kotlin to Swift"
+      correctIndex: 1
+      explanation: "In commonMain you write an `expect` declaration with no body — a contract for something the platform must provide. Each platform source set supplies the `actual` implementation. The compiler fails the build if any target is missing an actual for an expect."
+    - question: "Which of these is a good candidate to put in shared (common) code?"
+      options:
+        - "The platform's native navigation bar"
+        - "Networking, data models, and business logic"
+        - "iOS-specific permission dialogs"
+        - "Android XML layouts"
+      correctIndex: 1
+      explanation: "The sweet spot for sharing is logic that should behave identically everywhere and is costly to duplicate: data models, serialization, networking (e.g. Ktor), business rules, and local persistence (e.g. SQLDelight). Platform-specific UI and integrations typically stay in platform source sets."
+    - question: "Which technology compiles shared Kotlin to a native framework for iOS?"
+      options:
+        - "Kotlin/JVM"
+        - "Kotlin/JS"
+        - "Kotlin/Native (via the LLVM toolchain)"
+        - "The Java compiler"
+      correctIndex: 2
+      explanation: "Kotlin/Native compiles Kotlin to native binaries using the LLVM toolchain, producing a framework an Xcode project can import. KMP orchestrates the Foundations-episode targets together: Kotlin/JVM for Android, Kotlin/Native for iOS, and Kotlin/JS or Wasm for the web."
+    - question: "What does Compose Multiplatform add to the KMP story?"
+      options:
+        - "It removes the ability to share logic"
+        - "It makes sharing the UI an option by running Jetpack Compose on desktop, iOS, and web in addition to Android"
+        - "It converts SwiftUI to Kotlin"
+        - "It is a separate language"
+      correctIndex: 1
+      explanation: "Compose Multiplatform, built by JetBrains on Google's Jetpack Compose, lets the same declarative Kotlin UI code run on Android, desktop, iOS, and web. It turns 'share only logic' into a spectrum, so teams can optionally share the UI too — using the very framework Android developers already know."
+---
+
+{/* Episode 1 of Kotlin: Multiplatform. Covers the duplicate-logic problem and KMP's
+    'share logic, keep native UI' philosophy (contrasted with Flutter), the history
+    (Kotlin/Native ~2017, Stable Nov 2023, Google I/O 2024, Compose Multiplatform),
+    source sets (commonMain + platform sets mapping to JVM/Native/JS targets),
+    expect/actual, what to share (Ktor, serialization, SQLDelight, coroutines), and
+    Compose Multiplatform for shared UI. Three inline SVG diagrams. */}

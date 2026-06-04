@@ -1,0 +1,153 @@
+---
+title: "Kotlin Collections & Sequences — Read-Only, Mutable, and Lazy"
+description: "Why Kotlin splits collections into read-only and mutable interfaces, the rich operator library that replaces hand-written loops, and when to reach for a lazy Sequence instead of an eager List to avoid building throwaway intermediate collections."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Collections"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: read-only-vs-mutable
+    title: "Read-only and mutable, as separate types"
+    summary: |
+      Java has one <code>List</code> interface, and it can do everything — read, add, remove, clear. If you hand someone your list, they can mutate it behind your back. Kotlin splits the idea in two at the type level. <code>List&lt;T&gt;</code> is <strong>read-only</strong>: it has <code>size</code>, <code>get</code>, and iteration, but no <code>add</code> or <code>remove</code>. <code>MutableList&lt;T&gt;</code> extends it and adds the modifying operations.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Kotlin's read-only collection interfaces and their mutable subtypes" style="max-width: 100%; height: auto;"><defs><marker id="co-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.co-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.co-title{font-size:16px;font-weight:600}.co-ro{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700;fill:#fff}.co-mu{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:700;fill:#1e293b}.co-label{font-size:11px;fill:#64748b}</style><text x="360" y="22" text-anchor="middle" class="co-t co-title">Read-only interface → mutable subtype</text><rect x="40" y="44" width="180" height="40" rx="8" fill="#7F52FF"/><text x="130" y="69" text-anchor="middle" class="co-t co-ro">List</text><rect x="270" y="44" width="180" height="40" rx="8" fill="#7F52FF"/><text x="360" y="69" text-anchor="middle" class="co-t co-ro">Set</text><rect x="500" y="44" width="180" height="40" rx="8" fill="#7F52FF"/><text x="590" y="69" text-anchor="middle" class="co-t co-ro">Map</text><line x1="130" y1="84" x2="130" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#co-arr)"/><line x1="360" y1="84" x2="360" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#co-arr)"/><line x1="590" y1="84" x2="590" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#co-arr)"/><rect x="30" y="122" width="200" height="44" rx="8" fill="#c4b5fd"/><text x="130" y="149" text-anchor="middle" class="co-t co-mu">MutableList</text><rect x="260" y="122" width="200" height="44" rx="8" fill="#c4b5fd"/><text x="360" y="149" text-anchor="middle" class="co-t co-mu">MutableSet</text><rect x="490" y="122" width="200" height="44" rx="8" fill="#c4b5fd"/><text x="590" y="149" text-anchor="middle" class="co-t co-mu">MutableMap</text><text x="130" y="192" text-anchor="middle" class="co-t co-label">get, size, iterate</text><text x="360" y="192" text-anchor="middle" class="co-t co-label">contains, iterate</text><text x="590" y="192" text-anchor="middle" class="co-t co-label">get by key, keys, values</text><text x="360" y="220" text-anchor="middle" class="co-t co-label">Mutable types add: add, remove, put, clear…</text></svg>
+      <br><br>
+      The benefit is intent. When a function takes a <code>List&lt;T&gt;</code>, it is promising not to modify it; when it returns one, it is handing you something you are not meant to change. You expose the read-only type at API boundaries and keep the mutable type private.
+      <br><br>
+      <strong>An important honesty point.</strong> Read-only is <em>not</em> the same as immutable. A <code>List</code> is a read-only <em>view</em> — the object behind it might still be a <code>MutableList</code> that other code can change, and the underlying elements can themselves be mutable. Kotlin's read-only interfaces stop <em>you</em> from mutating through that reference; they do not freeze the data. For true immutability you reach for the kotlinx.collections.immutable library or defensive copies. Understanding this distinction prevents a subtle class of bugs where a "read-only" list changes underneath you.
+
+  - id: creating-collections
+    title: "Creating collections"
+    summary: |
+      Kotlin provides factory functions that read like literals. The read-only builders are the ones you reach for by default; the <code>mutable</code> variants give you something you can modify.
+      <br><br>
+      <pre><code>val nums = listOf(1, 2, 3)              // List&lt;Int&gt; — read-only&#10;val editable = mutableListOf(1, 2, 3)  // MutableList&lt;Int&gt;&#10;&#10;val unique = setOf("a", "b", "a")      // Set — duplicates dropped → [a, b]&#10;val ages = mapOf("Ann" to 30, "Bo" to 25)   // Map, built with 'to' pairs&#10;&#10;val empty = emptyList&lt;String&gt;()         // shared, allocation-free empty list</code></pre>
+      Notice <code>"Ann" to 30</code> — that is the <code>to</code> infix function from the Functions episode, creating a <code>Pair</code>. There is no special map syntax; it is just functions composing.
+      <br><br>
+      For collections built up with some logic, the <code>build</code> functions give you a temporary mutable scope that returns a read-only result — the best of both worlds:
+      <br><br>
+      <pre><code>val items = buildList {&#10;    add("first")&#10;    if (includeMore) addAll(extras)&#10;}   // 'items' is a read-only List, built mutably inside</code></pre>
+      Under the hood these create the familiar JVM collections (<code>ArrayList</code>, <code>LinkedHashSet</code>, <code>LinkedHashMap</code>), so they interoperate seamlessly with Java code — another payoff of Kotlin's interop-first design.
+
+  - id: the-operator-library
+    title: "The operator library: loops you never write"
+    summary: |
+      The reason idiomatic Kotlin rarely contains a manual <code>for</code> loop is the standard library's vast set of collection operators — all of them extension functions (from the Functions episode) on <code>Iterable</code>. You describe <em>what</em> you want, not the mechanics of looping.
+      <br><br>
+      <pre><code>data class Person(val name: String, val age: Int, val city: String)&#10;&#10;people&#10;    .filter { it.age &gt;= 18 }                 // keep matching&#10;    .map { it.name }                         // transform each&#10;    .sorted()                                // order&#10;&#10;people.groupBy { it.city }                   // Map&lt;City, List&lt;Person&gt;&gt;&#10;people.associateBy { it.name }               // Map&lt;Name, Person&gt;&#10;people.partition { it.age &gt;= 18 }            // Pair(adults, minors)&#10;people.sumOf { it.age }                      // Int&#10;people.maxByOrNull { it.age }                // Person? (null if empty)</code></pre>
+      A few families are worth committing to memory: <code>map</code>/<code>filter</code>/<code>flatMap</code> for transforming, <code>fold</code>/<code>reduce</code> for accumulating a single result, <code>groupBy</code>/<code>associate</code>/<code>partition</code> for restructuring, and the aggregate shortcuts <code>sumOf</code>/<code>count</code>/<code>any</code>/<code>all</code>/<code>none</code>.
+      <br><br>
+      One naming convention pays off everywhere: operations that might find nothing come in two flavours. <code>first()</code> and <code>max()</code> throw if the collection is empty or no element matches; <code>firstOrNull()</code> and <code>maxOrNull()</code> return <code>null</code> instead. The <code>...OrNull</code> suffix is your cue to handle the empty case with the null-safety tools from the foundations episode, rather than risk an exception.
+
+  - id: eager-vs-lazy-sequences
+    title: "Eager Lists vs lazy Sequences"
+    summary: |
+      Those operators are wonderfully readable, but they hide a cost. On a regular collection, <strong>each operator is eager</strong>: it runs to completion and builds a brand-new intermediate list before the next operator starts. A chain of <code>filter</code> then <code>map</code> over a million items allocates a million-element list just to throw it away.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 290" role="img" aria-label="Eager list processing builds intermediate collections while a lazy sequence processes one element end-to-end" style="max-width: 100%; height: auto;"><style>.lz-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.lz-title{font-size:16px;font-weight:600}.lz-h{font-size:12px;font-weight:700}.lz-label{font-size:11px;fill:#64748b}.lz-step{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#fff;font-weight:600}</style><text x="360" y="22" text-anchor="middle" class="lz-t lz-title">Same operators, different execution</text><rect x="20" y="40" width="330" height="230" rx="8" fill="#fff7ed" stroke="#f59e0b" stroke-width="1.5"/><text x="185" y="62" text-anchor="middle" class="lz-t lz-h" fill="#d97706">List — eager (horizontal)</text><rect x="40" y="78" width="290" height="28" rx="5" fill="#f59e0b"/><text x="185" y="97" text-anchor="middle" class="lz-t lz-step">filter ALL items → new list</text><rect x="40" y="116" width="290" height="28" rx="5" fill="#f59e0b"/><text x="185" y="135" text-anchor="middle" class="lz-t lz-step">map ALL items → another new list</text><rect x="40" y="154" width="290" height="28" rx="5" fill="#f59e0b"/><text x="185" y="173" text-anchor="middle" class="lz-t lz-step">take(5) → final list</text><text x="185" y="208" text-anchor="middle" class="lz-t lz-label">Each step finishes fully before the next.</text><text x="185" y="228" text-anchor="middle" class="lz-t lz-label">Builds throwaway intermediate lists.</text><text x="185" y="252" text-anchor="middle" class="lz-t lz-label">Processes every element at every step.</text><rect x="370" y="40" width="330" height="230" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="535" y="62" text-anchor="middle" class="lz-t lz-h" fill="#7F52FF">Sequence — lazy (vertical)</text><rect x="390" y="78" width="120" height="100" rx="5" fill="#7F52FF"/><text x="450" y="120" text-anchor="middle" class="lz-t lz-step">one item:</text><text x="450" y="140" text-anchor="middle" class="lz-t lz-step">filter→map</text><text x="450" y="160" text-anchor="middle" class="lz-t lz-step">→ next</text><rect x="525" y="78" width="155" height="100" rx="5" fill="#a78bfa"/><text x="602" y="132" text-anchor="middle" class="lz-t lz-step" style="fill:#1e293b">stops at 5,</text><text x="602" y="152" text-anchor="middle" class="lz-t lz-step" style="fill:#1e293b">ignores the rest</text><text x="535" y="208" text-anchor="middle" class="lz-t lz-label">Each element flows through ALL steps,</text><text x="535" y="228" text-anchor="middle" class="lz-t lz-label">one at a time. No intermediate lists.</text><text x="535" y="252" text-anchor="middle" class="lz-t lz-label">take(5) → only 5 elements ever processed.</text></svg>
+      <br><br>
+      A <strong>Sequence</strong> changes the execution model from eager to <strong>lazy</strong>. Operators on a sequence do not run immediately — they build a pipeline. Nothing happens until a <em>terminal</em> operation (like <code>toList</code>, <code>first</code>, <code>sum</code>) pulls values through. Then each element flows through the entire chain one at a time, and no intermediate collections are created.
+      <br><br>
+      <pre><code>val firstFive = people.asSequence()&#10;    .filter { it.age &gt;= 18 }&#10;    .map { it.name }&#10;    .take(5)        // pipeline built, nothing run yet&#10;    .toList()       // terminal op — now it runs, stopping after 5</code></pre>
+      Because it is lazy, the sequence above stops the moment it has five names — it never examines the rest of the list. Sequences also make <strong>infinite</strong> data possible: <code>generateSequence(1) { it + 1 }</code> is an endless stream of integers you can safely <code>take</code> from.
+      <br><br>
+      <strong>When to use which.</strong> For small collections and short chains, plain eager operators are simpler and often faster — the laziness has its own per-element overhead. Reach for <code>asSequence()</code> when the collection is large, the chain of operations is long, or you only need part of the result (a <code>find</code> or <code>take</code> that can short-circuit). It is the same eager-vs-lazy trade-off found across many languages — and the sibling, in spirit, of Kotlin's asynchronous <code>Flow</code> from the Concurrency episode.
+
+  - id: maps-in-depth
+    title: "Working with maps"
+    summary: |
+      Maps get their own ergonomic touches. You read with the indexing operator, and iterating gives you entries you can destructure (using the <code>componentN</code> mechanism from the Object Model episode):
+      <br><br>
+      <pre><code>val ages = mapOf("Ann" to 30, "Bo" to 25)&#10;&#10;val a = ages["Ann"]          // 30, but the type is Int? — key might be absent&#10;val safe = ages["Cy"] ?: 0   // Elvis for a default&#10;&#10;for ((name, age) in ages) {  // destructure each entry&#10;    println("$name is $age")&#10;}</code></pre>
+      Indexing a map returns a <em>nullable</em> value, because the key may not be present — the type system surfacing the same null-safety discipline from the foundations episode. For mutable maps, <code>getOrPut</code> is a beloved idiom: return the existing value, or compute, store, and return a new one in a single call.
+      <br><br>
+      <pre><code>val cache = mutableMapOf&lt;String, Int&gt;()&#10;fun lengthOf(s: String) = cache.getOrPut(s) { s.length }   // memoise</code></pre>
+      Transforming maps mirrors the list operators: <code>mapValues</code>, <code>mapKeys</code>, <code>filterKeys</code>, <code>filterValues</code>, and the bridge <code>associate</code>/<code>associateWith</code> that turn a list into a map. Once you internalise that maps, sets, and lists all share the same operator vocabulary, restructuring data becomes a matter of picking the right verb.
+
+  - id: ai-prompts-collections
+    title: "AI prompts — collections and sequences"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — Replace loops with operators:</strong>
+      <pre><code>Rewrite this imperative loop using Kotlin collection operators&#10;(map, filter, groupBy, fold, etc.):&#10;[paste loop]&#10;Keep it readable and explain which operator replaces which part.</code></pre>
+      <br>
+      <strong>Prompt 2 — List or Sequence:</strong>
+      <pre><code>For this data pipeline, should I use eager list operators or&#10;asSequence()?&#10;[paste the chain, note the collection size and whether it short-circuits]&#10;Explain the intermediate-allocation and short-circuit trade-offs.</code></pre>
+      <br>
+      <strong>Prompt 3 — Read-only API design:</strong>
+      <pre><code>Review this class's collection fields and method signatures:&#10;[paste code]&#10;Suggest where to expose read-only List/Set/Map vs MutableXxx, and&#10;flag any place a 'read-only' collection could still be mutated elsewhere.</code></pre>
+      <br>
+      <strong>Prompt 4 — Map idioms:</strong>
+      <pre><code>I'm doing [grouping / counting / indexing / memoising] with a map:&#10;[paste code]&#10;Show the idiomatic Kotlin using groupBy, associateBy, getOrPut,&#10;or mapValues as appropriate.</code></pre>
+
+quiz:
+  title: "Kotlin Collections & Sequences — Quiz"
+  description: "Seven questions on read-only vs mutable collections, the operator library, and eager Lists versus lazy Sequences."
+  questions:
+    - question: "What is the difference between List and MutableList in Kotlin?"
+      options:
+        - "List is faster than MutableList"
+        - "List is a read-only interface (no add/remove); MutableList extends it with modifying operations"
+        - "MutableList can only hold numbers"
+        - "They are identical aliases"
+      correctIndex: 1
+      explanation: "Kotlin splits collections at the type level. List<T> is read-only — it offers get, size, and iteration but no add or remove. MutableList<T> extends List and adds the modifying operations. Exposing List at API boundaries signals you won't (and the caller shouldn't) modify it."
+    - question: "Is a Kotlin read-only List guaranteed to be immutable?"
+      options:
+        - "Yes, the data can never change"
+        - "No — it's a read-only view; the underlying object may still be mutable and change elsewhere"
+        - "Yes, but only for numbers"
+        - "Only if it is empty"
+      correctIndex: 1
+      explanation: "Read-only is not immutable. A List reference only prevents YOU from mutating through it; the actual object might be a MutableList that other code changes, and the elements themselves may be mutable. For true immutability use kotlinx.collections.immutable or defensive copies."
+    - question: "What does the `to` in `mapOf(\"Ann\" to 30)` actually do?"
+      options:
+        - "It is special map syntax built into the language"
+        - "It is an infix function that creates a Pair"
+        - "It converts the string to a number"
+        - "It declares a variable named Ann"
+      correctIndex: 1
+      explanation: "There is no special map syntax. `to` is an infix extension function that creates a Pair, so `\"Ann\" to 30` is `Pair(\"Ann\", 30)`. mapOf takes those pairs. It's a nice demonstration of how Kotlin builds readable APIs from ordinary functions."
+    - question: "What does the `...OrNull` suffix (e.g. firstOrNull) signal?"
+      options:
+        - "The function runs on a background thread"
+        - "The function returns null instead of throwing when there is no result"
+        - "The function only works on nullable types"
+        - "The function is deprecated"
+      correctIndex: 1
+      explanation: "Operations that might find nothing come in two flavours: first()/max() throw when the collection is empty or nothing matches, while firstOrNull()/maxOrNull() return null instead. The OrNull suffix is your cue to handle the empty case with null-safety tools rather than risk an exception."
+    - question: "How does a regular (eager) collection execute a chain like filter { }.map { }?"
+      options:
+        - "Lazily, one element at a time through the whole chain"
+        - "Each operator runs fully and builds a new intermediate list before the next operator starts"
+        - "All operators run in parallel"
+        - "Nothing runs until you call collect()"
+      correctIndex: 1
+      explanation: "On a regular collection each operator is eager: filter processes every element and builds a new list, then map processes that whole list into another new list, and so on. Long chains over large collections allocate intermediate lists that are immediately discarded."
+    - question: "What is the main advantage of converting to a Sequence with asSequence()?"
+      options:
+        - "It sorts the collection automatically"
+        - "It processes elements lazily through the whole pipeline with no intermediate collections, and can short-circuit"
+        - "It makes the collection thread-safe"
+        - "It removes duplicate elements"
+      correctIndex: 1
+      explanation: "A Sequence is lazy: operators build a pipeline that runs only when a terminal operation pulls values, with each element flowing through all steps one at a time and no intermediate lists. This avoids throwaway allocations and lets operations like take/find short-circuit — ideal for large collections or long chains."
+    - question: "When is a plain eager List operation usually preferable to a Sequence?"
+      options:
+        - "Always — Sequences are never useful"
+        - "For small collections and short chains, where laziness adds overhead without payoff"
+        - "Only when the collection is infinite"
+        - "Only inside coroutines"
+      correctIndex: 1
+      explanation: "Laziness has per-element overhead, so for small collections and short operator chains, plain eager operators are simpler and often faster. Reach for asSequence() when the data is large, the chain is long, or you only need part of the result (so it can short-circuit)."
+---
+
+{/* Episode 1 of Kotlin: Collections. Covers the read-only vs mutable interface
+    split (List/MutableList, etc.), read-only-is-not-immutable, factory and build
+    functions, the extension-based operator library (map/filter/groupBy/fold/...),
+    OrNull conventions, eager Lists vs lazy Sequences (intermediate allocations,
+    short-circuiting, infinite sequences), and map idioms (getOrPut, destructuring).
+    Two inline SVG diagrams. */}

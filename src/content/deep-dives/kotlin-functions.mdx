@@ -1,0 +1,167 @@
+---
+title: "Kotlin Functions — Lambdas, Extensions, and DSLs"
+description: "How Kotlin treats functions as first-class values, why inline functions exist, how extension functions add methods to types you don't own, and how lambdas-with-receiver turn Kotlin into a language for building DSLs."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Functions"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: functions-first-class
+    title: "Functions as first-class values"
+    summary: |
+      In Java before version 8, a function could not exist on its own. To pass behaviour around, you wrapped it in an object — an anonymous inner class implementing some single-method interface. Kotlin treats functions as <strong>first-class values</strong> from the start: a function can be stored in a variable, passed as an argument, and returned from another function, just like an <code>Int</code> or a <code>String</code>.
+      <br><br>
+      Functions also do not need to live inside a class. Kotlin allows <strong>top-level functions</strong> — declared directly in a file, no surrounding class required. This is why <code>fun main()</code> sits alone, and why the standard library is full of free functions like <code>maxOf</code> and <code>println</code> rather than static methods bolted onto utility classes.
+      <br><br>
+      Every function has a <strong>function type</strong>, written with an arrow. <code>(Int, Int) -&gt; Int</code> is the type of a function taking two <code>Int</code>s and returning an <code>Int</code>.
+      <br><br>
+      <pre><code>// A variable holding a function&#10;val add: (Int, Int) -&gt; Int = { a, b -&gt; a + b }&#10;println(add(2, 3))   // 5&#10;&#10;// A reference to an existing function with ::&#10;val printer: (Any?) -&gt; Unit = ::println&#10;printer("hello")</code></pre>
+      The <code>::</code> operator creates a <strong>function reference</strong> — a way to grab an existing named function as a value without calling it. These pieces — top-level functions, function types, lambdas, and references — are the vocabulary everything else in this episode is built from.
+
+  - id: higher-order-and-lambdas
+    title: "Higher-order functions and lambdas"
+    summary: |
+      A <strong>higher-order function</strong> is one that takes a function as a parameter or returns one. They are the backbone of Kotlin's collection operations — <code>map</code>, <code>filter</code>, <code>forEach</code> all take a lambda describing what to do with each element.
+      <br><br>
+      Kotlin has a small syntactic convention that makes these read beautifully. If the last parameter of a function is itself a function, you can move the lambda <em>outside</em> the parentheses — the <strong>trailing lambda</strong>. And if a lambda has a single parameter, you can refer to it with the implicit name <code>it</code> instead of naming it.
+      <br><br>
+      <pre><code>val numbers = listOf(1, 2, 3, 4, 5)&#10;&#10;// Fully explicit&#10;numbers.filter({ n -&gt; n % 2 == 0 })&#10;&#10;// Trailing lambda (last arg moved out of parens)&#10;numbers.filter { n -&gt; n % 2 == 0 }&#10;&#10;// Implicit single parameter 'it'&#10;numbers.filter { it % 2 == 0 }   // [2, 4]</code></pre>
+      That trailing-lambda rule is more far-reaching than it first appears. It is the reason functions like <code>repeat(5) { ... }</code> and, ultimately, entire DSLs read like built-in language constructs rather than function calls. We will lean on it heavily at the end of this episode.
+
+  - id: inline-functions
+    title: "Why inline functions exist"
+    summary: |
+      Lambdas are convenient, but on the JVM they are not free. Each lambda is normally compiled into an object, and capturing variables from the surrounding scope allocates memory. For a function called millions of times — like the lambda you pass to <code>forEach</code> in a hot loop — that overhead adds up.
+      <br><br>
+      Kotlin's answer is the <code>inline</code> keyword. When a higher-order function is marked <code>inline</code>, the compiler does not generate a function call at all. Instead it copies the function's body — and the body of the lambda you passed — directly into the call site.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="How an inline function copies its body into the call site" style="max-width: 100%; height: auto;"><defs><marker id="in-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7F52FF"/></marker></defs><style>.in-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.in-title{font-size:16px;font-weight:600}.in-code{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.in-h{font-size:12px;font-weight:700}.in-label{font-size:11px;fill:#64748b}</style><text x="360" y="24" text-anchor="middle" class="in-t in-title">inline = copy the body into the caller</text><rect x="30" y="46" width="300" height="170" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/><text x="50" y="70" class="in-t in-h" fill="#64748b">You write</text><text x="48" y="96" class="in-t in-code">inline fun run(block: () -&gt; Unit) {</text><text x="48" y="114" class="in-t in-code">&#160;&#160;block()</text><text x="48" y="132" class="in-t in-code">}</text><text x="48" y="166" class="in-t in-code">run { println("hi") }</text><text x="48" y="196" class="in-t in-label">a call + a lambda object…</text><line x1="335" y1="130" x2="385" y2="130" stroke="#7F52FF" stroke-width="2" marker-end="url(#in-arr)"/><rect x="390" y="46" width="300" height="170" rx="8" fill="#f5f3ff" stroke="#7F52FF" stroke-width="1.5"/><text x="410" y="70" class="in-t in-h" fill="#7F52FF">Compiler generates</text><text x="408" y="120" class="in-t in-code" style="font-size:13px;fill:#1e293b">println("hi")</text><text x="410" y="166" class="in-t in-label">…becomes just the body —</text><text x="410" y="184" class="in-t in-label">no call, no lambda object,</text><text x="410" y="202" class="in-t in-label">no allocation.</text></svg>
+      <br><br>
+      The result is zero call overhead and zero lambda allocation. This is why so much of the standard library's lambda-taking machinery — <code>let</code>, <code>run</code>, <code>apply</code>, <code>filter</code>, <code>map</code> — is inline. Inlining also unlocks two abilities ordinary lambdas lack: <strong>non-local returns</strong> (a <code>return</code> inside the lambda can return from the enclosing function, because there is no separate function to return from) and the <code>reified</code> type parameters covered in the Type System episode.
+      <br><br>
+      The trade-off: inlining copies code, so over-inlining a large function called in many places bloats the bytecode. Use <code>inline</code> for small higher-order functions, not as a blanket performance fix. The compiler will even warn you when inlining buys nothing.
+
+  - id: extension-functions
+    title: "Extension functions"
+    summary: |
+      This is the feature that most changes how Kotlin <em>feels</em>. An <strong>extension function</strong> lets you add a new method to a class you do not own — without inheriting from it, without modifying its source, without any wrapper.
+      <br><br>
+      <pre><code>// Add a method to the standard String class&#10;fun String.shout(): String = this.uppercase() + "!"&#10;&#10;"hello".shout()   // "HELLO!"</code></pre>
+      Inside the extension, <code>this</code> refers to the instance it was called on (the <strong>receiver</strong>). To the caller, <code>shout()</code> looks and feels exactly like a built-in method of <code>String</code>, complete with autocomplete in the IDE.
+      <br><br>
+      There is an important subtlety: extensions are <strong>resolved statically</strong>. They are not real members of the class — under the hood, <code>"hello".shout()</code> compiles to a plain static call like <code>shout("hello")</code>. This means an extension cannot access a class's private internals, and it cannot be overridden polymorphically the way a real method can. Which extension is called is decided by the <em>declared</em> type of the variable, not its runtime type.
+      <br><br>
+      Despite that limitation — or because of it — extensions are everywhere in idiomatic Kotlin. Huge swathes of the standard library are extension functions: nearly all the collection operators (<code>map</code>, <code>filter</code>, <code>groupBy</code>) are extensions on <code>Iterable</code>. They let you keep classes small and focused while adding rich, discoverable functionality from the outside. C# pioneered this idea (its "extension methods" arrived with LINQ in 2007); Kotlin embraced it as a core part of its style.
+
+  - id: scope-functions
+    title: "Scope functions: let, run, with, apply, also"
+    summary: |
+      Kotlin's standard library includes five small, famously-confusing <strong>scope functions</strong>. They all do roughly the same thing — execute a block of code in the context of an object — but they differ on two axes: how the object is referenced inside the block (as <code>this</code> or as <code>it</code>), and what the block returns (the object itself, or the block's result).
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="Decision table for the five scope functions" style="max-width: 100%; height: auto;"><style>.sf-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sf-title{font-size:16px;font-weight:600}.sf-h{font-size:12px;font-weight:700;fill:#475569}.sf-fn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:13px;font-weight:700;fill:#7F52FF}.sf-c{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sf-use{font-size:10px;fill:#64748b}</style><text x="360" y="22" text-anchor="middle" class="sf-t sf-title">The five scope functions</text><text x="150" y="52" class="sf-t sf-h">function</text><text x="310" y="52" class="sf-t sf-h">refers to object as</text><text x="470" y="52" class="sf-t sf-h">returns</text><text x="600" y="52" class="sf-t sf-h">typical use</text><line x1="30" y1="60" x2="690" y2="60" stroke="#cbd5e1" stroke-width="1"/><g><text x="60" y="84" class="sf-t sf-fn">let</text><text x="310" y="84" text-anchor="middle" class="sf-t sf-c">it</text><text x="470" y="84" text-anchor="middle" class="sf-t sf-c">block result</text><text x="600" y="84" text-anchor="middle" class="sf-t sf-use">null-safe transform</text></g><g><text x="60" y="112" class="sf-t sf-fn">run</text><text x="310" y="112" text-anchor="middle" class="sf-t sf-c">this</text><text x="470" y="112" text-anchor="middle" class="sf-t sf-c">block result</text><text x="600" y="112" text-anchor="middle" class="sf-t sf-use">compute from members</text></g><g><text x="60" y="140" class="sf-t sf-fn">with</text><text x="310" y="140" text-anchor="middle" class="sf-t sf-c">this</text><text x="470" y="140" text-anchor="middle" class="sf-t sf-c">block result</text><text x="600" y="140" text-anchor="middle" class="sf-t sf-use">group calls on one object</text></g><g><text x="60" y="168" class="sf-t sf-fn">apply</text><text x="310" y="168" text-anchor="middle" class="sf-t sf-c">this</text><text x="470" y="168" text-anchor="middle" class="sf-t sf-c">the object</text><text x="600" y="168" text-anchor="middle" class="sf-t sf-use">configure / build</text></g><g><text x="60" y="196" class="sf-t sf-fn">also</text><text x="310" y="196" text-anchor="middle" class="sf-t sf-c">it</text><text x="470" y="196" text-anchor="middle" class="sf-t sf-c">the object</text><text x="600" y="196" text-anchor="middle" class="sf-t sf-use">side effects / logging</text></g><line x1="30" y1="210" x2="690" y2="210" stroke="#cbd5e1" stroke-width="1"/><text x="360" y="232" text-anchor="middle" class="sf-t sf-use">Returns the object → apply, also. Returns the block result → let, run, with.</text></svg>
+      <br><br>
+      Two examples make the distinction click. <code>apply</code> returns the receiver, so it is perfect for configuring an object you are creating:
+      <br><br>
+      <pre><code>val intent = Intent().apply {&#10;    action = "VIEW"      // 'this' is the Intent&#10;    putExtra("id", 42)&#10;}   // returns the configured Intent</code></pre>
+      <code>let</code> exposes the object as <code>it</code> and returns the block's result, making it the idiomatic tool for "do something only if non-null":
+      <br><br>
+      <pre><code>val length: Int? = name?.let {&#10;    println("got $it")&#10;    it.length            // this becomes the result&#10;}</code></pre>
+      The choice between them is not arbitrary style — it expresses intent. <code>apply</code>/<code>also</code> say "I am still working with this object." <code>let</code>/<code>run</code>/<code>with</code> say "I am transforming it into something else."
+
+  - id: lambdas-with-receiver-and-dsls
+    title: "Lambdas with receiver, and DSLs"
+    summary: |
+      We now have every ingredient for Kotlin's most powerful trick. Notice that in the <code>apply</code> example, inside the lambda you could write <code>action = "VIEW"</code> as if you were <em>inside</em> the <code>Intent</code> class. That is a <strong>lambda with receiver</strong> — a function type written <code>Intent.() -&gt; Unit</code>, meaning "a lambda whose <code>this</code> is an <code>Intent</code>."
+      <br><br>
+      Combine a function with a receiver-lambda parameter with the trailing-lambda syntax, and ordinary function calls start to look like a custom mini-language. This is how Kotlin builds <strong>DSLs</strong> (domain-specific languages). The classic example is an HTML builder:
+      <br><br>
+      <pre><code>val page = html {            // html { } is a function taking an HTML.() -&gt; Unit&#10;    body {&#10;        h1 { +"Welcome" }&#10;        p { +"Built with a Kotlin DSL" }&#10;    }&#10;}</code></pre>
+      Every line there is a normal function call with a trailing receiver-lambda. <code>body { }</code> is a method on the <code>html</code> receiver; inside it, <code>this</code> is a <code>Body</code>, so <code>h1 { }</code> resolves against it. The whole thing type-checks at compile time — typos and misplaced tags are errors, not runtime surprises. This same pattern powers Jetpack Compose (<code>Column { Text("hi") }</code>), the Gradle Kotlin build scripts, kotlinx.html, and Ktor's routing.
+      <br><br>
+      One refinement keeps these DSLs honest: the <code>@DslMarker</code> annotation. Without it, nested builders could accidentally call methods from an outer receiver (writing an <code>h1</code> directly inside <code>html</code> rather than <code>body</code>). <code>@DslMarker</code> tells the compiler to restrict each block to its own receiver, catching those mistakes. The supporting cast — <code>infix</code> functions (write <code>1 to "a"</code> instead of <code>1.to("a")</code>) and <code>operator</code> overloading (define what <code>+</code> means for your type) — adds the final polish that lets a Kotlin DSL read like prose.
+
+  - id: ai-prompts-functions
+    title: "AI prompts — functions, lambdas, and DSLs"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — Choosing a scope function:</strong>
+      <pre><code>For each snippet below, tell me which scope function (let, run,&#10;with, apply, also) is most idiomatic and why, considering whether&#10;I need 'this' or 'it' and whether I want the object or a result back:&#10;[paste snippets]</code></pre>
+      <br>
+      <strong>Prompt 2 — Designing extension functions:</strong>
+      <pre><code>I keep writing this utility logic on [some type]:&#10;[paste code]&#10;Turn it into clean extension functions, and note any cases where&#10;an extension is the wrong choice (e.g. needing private access).</code></pre>
+      <br>
+      <strong>Prompt 3 — When to inline:</strong>
+      <pre><code>Should this higher-order function be marked inline?&#10;[paste function]&#10;Explain the allocation/overhead trade-off, whether non-local&#10;returns or reified types matter here, and any bytecode-bloat risk.</code></pre>
+      <br>
+      <strong>Prompt 4 — Build a DSL:</strong>
+      <pre><code>Design a small type-safe Kotlin DSL for [describe your domain,&#10;e.g. configuring a form / building a query / defining test cases].&#10;Use lambdas with receiver and @DslMarker, and show example usage.</code></pre>
+
+quiz:
+  title: "Kotlin Functions — Quiz"
+  description: "Seven questions on first-class functions, lambdas, inline functions, extensions, scope functions, and DSLs."
+  questions:
+    - question: "What does the :: operator do in Kotlin?"
+      options:
+        - "Calls a function immediately"
+        - "Creates a reference to an existing named function as a value, without calling it"
+        - "Declares a new variable"
+        - "Concatenates two strings"
+      correctIndex: 1
+      explanation: "The :: operator creates a function reference — it grabs an existing named function (e.g. ::println) as a first-class value you can store or pass around, without invoking it. It's the bridge between named functions and function-type values."
+    - question: "In `numbers.filter { it % 2 == 0 }`, what is `it`?"
+      options:
+        - "A keyword that reverses the list"
+        - "The implicit name for the lambda's single parameter"
+        - "A reference to the whole list"
+        - "An error — you must name the parameter"
+      correctIndex: 1
+      explanation: "When a lambda has exactly one parameter, Kotlin lets you omit the declaration and refer to it with the implicit name `it`. Here `it` is each element of the list in turn. The lambda is also written outside the parentheses thanks to the trailing-lambda convention."
+    - question: "Why are many higher-order functions in the standard library marked inline?"
+      options:
+        - "To make them run on a separate thread"
+        - "To eliminate the function-call overhead and lambda object allocation by copying the body into the call site"
+        - "To hide them from other code"
+        - "Because inline functions can be overridden"
+      correctIndex: 1
+      explanation: "A lambda is normally compiled to an object, and calling a higher-order function has call overhead. Marking it inline makes the compiler copy the function body and the lambda body directly into the call site — no call, no allocation. It also enables non-local returns and reified type parameters."
+    - question: "How is an extension function actually resolved?"
+      options:
+        - "Dynamically, based on the object's runtime type"
+        - "Statically: it compiles to a plain static call based on the declared type, and cannot access private members"
+        - "It modifies the original class's bytecode"
+        - "It is added as a real member method at runtime"
+      correctIndex: 1
+      explanation: "Extension functions are syntactic sugar resolved statically. `\"hi\".shout()` compiles to something like `shout(\"hi\")`. Because they aren't real members, they can't access private internals and aren't polymorphic — the declared type, not the runtime type, decides which extension is called."
+    - question: "Which scope functions return the receiver object itself (rather than the block's result)?"
+      options:
+        - "let and run"
+        - "with and run"
+        - "apply and also"
+        - "let and with"
+      correctIndex: 2
+      explanation: "apply and also both return the object they were called on, which makes them ideal for configuration and side effects. let, run, and with instead return the result of their block. apply/also use 'this'/'it' respectively; let/also use 'it', while run/with/apply use 'this'."
+    - question: "What is a 'lambda with receiver' and why does it matter for DSLs?"
+      options:
+        - "A lambda that receives no parameters"
+        - "A lambda whose `this` is set to a given type, so its body can call that type's members directly"
+        - "A lambda that must return Unit"
+        - "A lambda stored in a list"
+      correctIndex: 1
+      explanation: "A lambda with receiver has a function type like `Body.() -> Unit`, meaning inside the lambda `this` is a Body and you can call its members without qualification. Combined with trailing-lambda syntax, this is what lets builders like html { body { ... } } and Jetpack Compose read like a custom language."
+    - question: "What problem does the @DslMarker annotation solve?"
+      options:
+        - "It makes a DSL run faster"
+        - "It prevents nested DSL blocks from accidentally calling members of an outer receiver"
+        - "It marks a function as inline"
+        - "It generates documentation for the DSL"
+      correctIndex: 1
+      explanation: "In nested receiver-lambda DSLs, an inner block could unintentionally resolve a call against an outer receiver (e.g. calling an outer builder's method from a deeply nested block). @DslMarker restricts each scope to its own receiver, turning those mistakes into compile-time errors."
+---
+
+{/* Episode 1 of Kotlin: Functions. Covers first-class functions and function types,
+    higher-order functions and lambdas (trailing lambda, it), inline functions and
+    their trade-offs, extension functions (static resolution), the five scope
+    functions, and lambdas-with-receiver building up to type-safe DSLs and @DslMarker.
+    Three inline SVG diagrams. */}

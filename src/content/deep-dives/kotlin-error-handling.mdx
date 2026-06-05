@@ -1,0 +1,150 @@
+---
+title: "Kotlin Error Handling — No Checked Exceptions, try as an Expression, and Result"
+description: "Why Kotlin deliberately abolished Java's checked exceptions, how try and throw become expressions in the type system, the require/check/error preconditions, and functional error handling with runCatching and Result."
+category: "Kotlin"
+color: "#7F52FF"
+subject: "Kotlin: Error Handling"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: no-checked-exceptions
+    title: "The checked-exceptions decision"
+    summary: |
+      Java has two kinds of exceptions. <strong>Unchecked</strong> ones (like <code>NullPointerException</code>) can be thrown anywhere. <strong>Checked</strong> ones (like <code>IOException</code>) must be declared in a method's <code>throws</code> clause and handled by every caller, or the code will not compile. Checked exceptions were a bold 1990s experiment in forcing programmers to confront failure. Kotlin looked at three decades of evidence and decided they had failed.
+      <br><br>
+      <strong>In Kotlin, every exception is unchecked.</strong> There is no <code>throws</code> clause, and the compiler never forces you to catch anything. This was a deliberate, somewhat controversial choice, and the Kotlin team has explained their reasoning at length.
+      <br><br>
+      The problem with checked exceptions, as observed in large Java codebases, is that they do not scale. In small examples they look responsible. At scale they produce two antipatterns. The first is the empty <code>catch</code> block — developers, forced to handle an exception they cannot meaningfully recover from right there, simply swallow it: <code>catch (e: IOException) { }</code>. That is strictly worse than not catching at all, because it hides the failure. The second is "exception pollution" — a low-level <code>throws IOException</code> ripples up through every intermediate method signature, coupling layers that should not know about each other.
+      <br><br>
+      <pre><code>// Java forces this; Kotlin does not&#10;// The infamous swallowed exception:&#10;try {&#10;    readFile()&#10;} catch (e: IOException) {&#10;    // do nothing — the failure vanishes silently&#10;}</code></pre>
+      Notably, C# made the same call years earlier, and influential voices — including Java luminaries — came to agree the feature was a net negative. Kotlin's stance is that error handling is a real responsibility, but the <em>compiler</em> mandating where it happens does more harm than good. You are trusted to handle errors at the layer where you can actually do something useful about them.
+
+  - id: try-and-throw-as-expressions
+    title: "try and throw are expressions"
+    summary: |
+      In Kotlin, almost everything is an <strong>expression</strong> — it produces a value. This applies to <code>try</code> and even <code>throw</code>, which unlocks concise patterns impossible in Java.
+      <br><br>
+      A <code>try/catch</code> evaluates to a value: the value of the <code>try</code> block if it succeeds, or the value of the matching <code>catch</code> block if it throws.
+      <br><br>
+      <pre><code>val number: Int = try {&#10;    input.toInt()&#10;} catch (e: NumberFormatException) {&#10;    0          // the value of the whole try/catch when parsing fails&#10;}</code></pre>
+      Even <code>throw</code> is an expression — and its type is <code>Nothing</code>, the bottom type from the Type System episode. Because <code>Nothing</code> is a subtype of every type, a <code>throw</code> can appear anywhere a value is expected, which is exactly what makes the Elvis-throw idiom type-check:
+      <br><br>
+      <pre><code>val name = user.name ?: throw IllegalArgumentException("name required")&#10;// throw has type Nothing, so the whole expression's type is the&#10;// non-null type of user.name — name is a non-null String here.</code></pre>
+      This is a recurring theme in Kotlin's design: by making control-flow constructs into expressions and giving "never returns" a real type (<code>Nothing</code>), the language lets error handling compose naturally with everything else, instead of being a special statement-only corner of the syntax.
+
+  - id: preconditions
+    title: "Preconditions: require, check, and error"
+    summary: |
+      Most exceptions you throw deliberately fall into two buckets: "the caller gave me bad arguments" and "my object is in a state where this should not happen." Kotlin's standard library provides three precondition functions that make these intentions explicit and concise.
+      <br><br>
+      <pre><code>fun withdraw(amount: Int) {&#10;    require(amount &gt; 0) { "amount must be positive, was $amount" }&#10;    check(balance &gt;= amount) { "insufficient funds" }&#10;    balance -= amount&#10;}</code></pre>
+      <strong><code>require</code></strong> validates arguments and throws <code>IllegalArgumentException</code> if the condition is false — use it at the top of a function to reject bad input (a "fail fast" guard). <strong><code>check</code></strong> validates state and throws <code>IllegalStateException</code> — use it when an operation is only valid in certain states. <strong><code>error(message)</code></strong> simply throws <code>IllegalStateException</code> unconditionally, and because it returns <code>Nothing</code>, it works in expression position (a common <code>else -&gt; error("unreachable")</code> in a <code>when</code>).
+      <br><br>
+      The message is a lambda, not a string — and that lambda is only evaluated when the check actually fails. So you can build a rich, interpolated error message without paying its cost on the (overwhelmingly common) success path. There is also <code>requireNotNull</code> and <code>checkNotNull</code>, which both validate and smart-cast the value to non-null, folding a null check and an error into one line.
+
+  - id: runcatching-and-result
+    title: "Functional errors: runCatching and Result"
+    summary: |
+      Sometimes you want to treat a failure as a <em>value</em> to pass around and transform, rather than a control-flow jump to catch. Kotlin's standard library offers <code>Result&lt;T&gt;</code> — a type that holds either a success value or a failure (a <code>Throwable</code>) — and <code>runCatching</code>, which executes a block and wraps the outcome in a <code>Result</code>.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="runCatching produces a Result that is either Success or Failure, with operators to transform each" style="max-width: 100%; height: auto;"><defs><marker id="rc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs><style>.rc-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.rc-title{font-size:16px;font-weight:600}.rc-box{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;font-weight:700;fill:#fff}.rc-label{font-size:11px;fill:#64748b}.rc-op{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}</style><text x="360" y="22" text-anchor="middle" class="rc-t rc-title">runCatching turns a throwing call into a value</text><rect x="270" y="42" width="180" height="42" rx="8" fill="#7F52FF"/><text x="360" y="68" text-anchor="middle" class="rc-t rc-box">runCatching { ... }</text><line x1="320" y1="84" x2="200" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#rc-arr)"/><line x1="400" y1="84" x2="520" y2="120" stroke="#94a3b8" stroke-width="2" marker-end="url(#rc-arr)"/><rect x="90" y="122" width="220" height="44" rx="8" fill="#10b981"/><text x="200" y="149" text-anchor="middle" class="rc-t rc-box">Success(value)</text><rect x="410" y="122" width="220" height="44" rx="8" fill="#dc2626"/><text x="520" y="149" text-anchor="middle" class="rc-t rc-box">Failure(throwable)</text><text x="200" y="192" text-anchor="middle" class="rc-t rc-op">.map { } .getOrThrow()</text><text x="520" y="192" text-anchor="middle" class="rc-t rc-op">.recover { } .getOrElse { }</text><text x="360" y="226" text-anchor="middle" class="rc-t rc-label">.fold(onSuccess = ..., onFailure = ...) handles both at once</text></svg>
+      <br><br>
+      <pre><code>val result: Result&lt;Config&gt; = runCatching { loadConfig() }&#10;&#10;val config = result&#10;    .map { it.validated() }       // transform the success value&#10;    .getOrElse { Config.DEFAULT } // supply a fallback on failure&#10;&#10;// Or handle both branches explicitly:&#10;result.fold(&#10;    onSuccess = { render(it) },&#10;    onFailure = { log(it) },&#10;)</code></pre>
+      This style shines for pipelines where you want to keep flowing and decide how to handle failure at the end — <code>getOrNull</code>, <code>getOrDefault</code>, <code>recover</code>, and <code>mapCatching</code> give you a small algebra of outcomes.
+      <br><br>
+      <strong>The coroutine caveat.</strong> There is one trap that ties back to the Concurrency episode: a blanket <code>runCatching</code> (or <code>catch (e: Exception)</code>) inside a coroutine will also catch <code>CancellationException</code> — the very exception that implements cancellation — and silently break it. In coroutine code, either avoid swallowing everything or explicitly rethrow <code>CancellationException</code>. <code>Result</code> is a sharp tool; like the <code>!!</code> operator, it is excellent when used deliberately and dangerous when used to paper over failures.
+
+  - id: resources-and-cleanup
+    title: "Cleanup: finally and use"
+    summary: |
+      When something must run whether or not an exception is thrown — releasing a lock, closing a connection — Kotlin has the familiar <code>finally</code> block. But for the common case of "open a resource, use it, always close it," there is something cleaner.
+      <br><br>
+      Java introduced try-with-resources in Java 7 with special syntax. Kotlin needed no new syntax — it expresses the same idea as an ordinary extension function, <code>use</code>, available on anything that implements <code>Closeable</code>/<code>AutoCloseable</code>:
+      <br><br>
+      <pre><code>// 'use' closes the resource automatically, even if the block throws&#10;File("data.txt").bufferedReader().use { reader -&gt;&#10;    println(reader.readText())&#10;}   // reader.close() is guaranteed here</code></pre>
+      The <code>use</code> function takes a lambda (the Functions episode again), runs it, and closes the resource in a <code>finally</code> internally — propagating your block's exception if there was one, or any close exception otherwise. It is a small but telling example of Kotlin's philosophy: where Java added a language feature, Kotlin reached for a library function built on lambdas and extensions. The same building blocks, composed differently, often remove the need for new syntax entirely.
+
+  - id: ai-prompts-error-handling
+    title: "AI prompts — error handling"
+    summary: |
+      Use these prompts with an AI assistant to go deeper on the ideas in this episode.
+      <br><br>
+      <strong>Prompt 1 — exceptions vs Result:</strong>
+      <pre><code>For this function, should failures be signalled with exceptions,&#10;a nullable return, or a Result?&#10;[paste function and how callers use it]&#10;Explain the trade-offs and rewrite it the idiomatic way.</code></pre>
+      <br>
+      <strong>Prompt 2 — add preconditions:</strong>
+      <pre><code>Add fail-fast preconditions to this function using require/check/&#10;requireNotNull where appropriate:&#10;[paste function]&#10;Explain which precondition fits each invariant and why.</code></pre>
+      <br>
+      <strong>Prompt 3 — runCatching pipeline:</strong>
+      <pre><code>Refactor this nested try/catch into a runCatching pipeline using&#10;map, recover, getOrElse, or fold:&#10;[paste code]&#10;And flag any coroutine code where CancellationException must be&#10;rethrown rather than swallowed.</code></pre>
+      <br>
+      <strong>Prompt 4 — resource cleanup:</strong>
+      <pre><code>Review this code that opens files/streams/connections:&#10;[paste code]&#10;Convert manual try/finally close logic to the use { } function, and&#10;point out any resource that isn't guaranteed to be closed.</code></pre>
+
+quiz:
+  title: "Kotlin Error Handling — Quiz"
+  description: "Seven questions on checked exceptions, try/throw as expressions, preconditions, and Result-based error handling."
+  questions:
+    - question: "How does Kotlin treat checked exceptions?"
+      options:
+        - "Exactly like Java — they must be declared and caught"
+        - "It has no checked exceptions; every exception is unchecked and the compiler never forces a catch"
+        - "It bans exceptions entirely"
+        - "Only IOException is checked"
+      correctIndex: 1
+      explanation: "Kotlin deliberately has no checked exceptions. There is no throws clause and the compiler never forces you to handle an exception. The Kotlin team concluded that, at scale, checked exceptions encourage empty catch blocks and signature pollution rather than better error handling."
+    - question: "What is a documented downside of Java's checked exceptions that motivated Kotlin's decision?"
+      options:
+        - "They make programs run faster"
+        - "They encourage empty catch blocks that silently swallow failures, and pollute method signatures up the call stack"
+        - "They cannot be used with generics"
+        - "They only work on the JVM"
+      correctIndex: 1
+      explanation: "In large codebases, being forced to handle a checked exception where you can't recover leads developers to write empty catch blocks (hiding the failure), and a low-level `throws` ripples up through every intermediate signature, coupling unrelated layers. Kotlin (like C#) judged this a net negative."
+    - question: "What is the type of a `throw` expression in Kotlin?"
+      options:
+        - "Unit"
+        - "Any"
+        - "Nothing"
+        - "Throwable"
+      correctIndex: 2
+      explanation: "throw is an expression of type Nothing — the bottom type. Because Nothing is a subtype of every type, a throw can appear anywhere a value is expected. This is exactly what makes `val x = something ?: throw ...` type-check and promote x to non-null."
+    - question: "Which precondition function throws IllegalArgumentException when its condition is false?"
+      options:
+        - "check"
+        - "require"
+        - "error"
+        - "assert"
+      correctIndex: 1
+      explanation: "require validates arguments and throws IllegalArgumentException — use it as a fail-fast guard for bad input. check validates state and throws IllegalStateException. error(message) unconditionally throws IllegalStateException and returns Nothing, so it works in expression position."
+    - question: "Why is the message argument to require/check a lambda rather than a plain string?"
+      options:
+        - "To make the code longer"
+        - "So the (possibly expensive) message is only built when the check actually fails"
+        - "Because strings are not allowed in Kotlin"
+        - "To run the message on another thread"
+      correctIndex: 1
+      explanation: "The message is a lambda that is only evaluated if the condition fails. This means you can construct a rich, interpolated error message without paying its cost on the common success path — a small but pervasive efficiency idiom in the standard library."
+    - question: "What does runCatching { ... } return?"
+      options:
+        - "The value, or null on failure"
+        - "A Result<T> holding either the success value or the thrown Throwable"
+        - "A Boolean indicating success"
+        - "Nothing — it rethrows immediately"
+      correctIndex: 1
+      explanation: "runCatching executes its block and wraps the outcome in a Result<T> — Success(value) or Failure(throwable). You then transform or extract it with map, recover, getOrElse, getOrNull, or fold, treating failure as a value to handle rather than a control-flow jump."
+    - question: "What is the danger of a blanket runCatching or catch(Exception) inside a coroutine?"
+      options:
+        - "It runs too slowly"
+        - "It can catch CancellationException and silently break coroutine cancellation"
+        - "It disables the Result type"
+        - "It forces the coroutine onto the main thread"
+      correctIndex: 1
+      explanation: "Coroutine cancellation works by throwing CancellationException. A blanket runCatching or catch(Exception) will catch it too, swallowing the cancellation signal and breaking structured concurrency. In coroutine code you must avoid swallowing it or explicitly rethrow CancellationException."
+---
+
+{/* Episode 1 of Kotlin: Error Handling. Covers the abolition of checked exceptions
+    (and why), try and throw as expressions (throw : Nothing, Elvis-throw), the
+    require/check/error preconditions with lazy messages, runCatching and Result
+    (map/recover/getOrElse/fold) with the CancellationException caveat, and resource
+    cleanup via finally and the use { } function. One inline SVG diagram. */}

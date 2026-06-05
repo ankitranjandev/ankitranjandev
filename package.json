@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "lighthouse": "lhci autorun",
-    "deploy": "pnpm build && firebase deploy"
+    "deploy": "pnpm build && npx wrangler pages deploy dist"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.2.0",

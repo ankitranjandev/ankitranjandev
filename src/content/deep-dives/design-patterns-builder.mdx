@@ -1,0 +1,263 @@
+---
+title: "The Builder Pattern in Dart — Assembling Objects, One Step at a Time"
+description: "Some objects are too fiddly to make in one breath. The builder pattern splits assembly from the finished thing — and in Flutter it shows up as the callbacks that build your UI on demand."
+category: "Design Patterns"
+color: "#9333ea"
+subject: "Patterns: Composition"
+order: 2
+publishedAt: 2026-06-04
+topics:
+  - id: the-problem-too-many-parameters
+    title: "The problem — one constructor, too many knobs"
+    summary: |
+      Some objects are simple. A <code>Point(x, y)</code> needs two numbers and you're done. But some objects have a dozen knobs, half of them optional, and you have to set them in some order. That's where the single constructor starts to hurt.
+      <br><br>
+      Picture a burger order. Patty, cheese, lettuce, sauce, a size, a bun choice. Cram it all into positional parameters and you get this.
+      <br><br>
+      <pre><code>final burger = Burger(true, false, true, 2, false, true, 'large', null, true, false);</code></pre>
+      What is that fourth argument? Which boolean is the cheese? Swap any two of those booleans and it still compiles — you've shipped a bug that the type system can't see. This is the <strong>telescoping constructor</strong>, and it rots in two directions at once: it's unreadable at the call site, and it grows a new parameter every time the product gains an option.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 350" role="img" aria-label="A telescoping constructor with many positional arguments that is easy to misorder, versus a builder that assembles the same object one named step at a time" style="max-width: 100%; height: auto;"><style>.bld1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.bld1-title{font-size:16px;font-weight:600}.bld1-bad{font-size:13px;font-weight:600;fill:#dc2626}.bld1-good{font-size:13px;font-weight:600;fill:#10b981}.bld1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.bld1-cap{font-size:11px;fill:#64748b}</style><text x="360" y="30" text-anchor="middle" class="bld1-t bld1-title">One giant call, or one step at a time</text><rect x="30" y="52" width="320" height="266" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="78" text-anchor="middle" class="bld1-t bld1-bad">Telescoping constructor</text><rect x="54" y="94" width="272" height="150" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" rx="6"/><text x="70" y="118" class="bld1-t bld1-mn">Burger(</text><text x="82" y="138" class="bld1-t bld1-mn">true, false, true, 2,</text><text x="82" y="158" class="bld1-t bld1-mn">false, true, 'large',</text><text x="82" y="178" class="bld1-t bld1-mn">null, true, false,</text><text x="82" y="198" class="bld1-t bld1-mn">// which flag was which?</text><text x="70" y="218" class="bld1-t bld1-mn">);</text><text x="190" y="276" text-anchor="middle" class="bld1-t bld1-cap">Swap two booleans and it still compiles.</text><text x="190" y="296" text-anchor="middle" class="bld1-t bld1-cap">Every new option grows the call.</text><rect x="370" y="52" width="320" height="266" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="78" text-anchor="middle" class="bld1-t bld1-good">Builder, step by step</text><rect x="394" y="94" width="232" height="38" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="510" y="118" text-anchor="middle" class="bld1-t bld1-mn">b.addPatty()</text><rect x="394" y="140" width="232" height="38" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="510" y="164" text-anchor="middle" class="bld1-t bld1-mn">b.addCheese()</text><rect x="394" y="186" width="232" height="38" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="510" y="210" text-anchor="middle" class="bld1-t bld1-mn">b.size('large')</text><line x1="510" y1="224" x2="510" y2="244" stroke="#10b981" stroke-width="2" marker-end="url(#bld1-a)"/><rect x="424" y="250" width="172" height="38" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="510" y="274" text-anchor="middle" class="bld1-t bld1-mn">b.build()</text><text x="530" y="308" text-anchor="middle" class="bld1-t bld1-cap">Each step is named. Order is yours to set.</text><defs><marker id="bld1-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      Dart softens the worst of this with named parameters — <code>Burger(patty: true, cheese: false, ...)</code> reads far better than ten bare booleans. That alone solves a lot of cases, and you should reach for it first. But it doesn't help when the object has to be assembled in <em>stages</em>: when you build a piece, run some logic, build another piece, and only at the end produce the finished thing. For that, you separate the assembling from the result.
+
+  - id: separate-assembly-from-result
+    title: "The pattern — split the assembly from the finished object"
+    summary: |
+      Here's the move. Instead of one constructor that takes everything at once, you make a second object whose only job is to <em>collect</em> the parts. You poke at it step by step. When you're done, you ask it for the finished thing.
+      <br><br>
+      There are two roles, and they're deliberately separate.
+      <br><br>
+      <strong>The builder</strong> is mutable scratch space. It holds half-finished state and exposes one method per decision.
+      <br><br>
+      <strong>The product</strong> is the real object — often immutable — that the builder hands back from <code>build()</code>.
+      <br><br>
+      <pre><code>class Burger {
+        final bool patty;
+        final bool cheese;
+        final String size;
+        Burger(this.patty, this.cheese, this.size);
+      }
+
+      class BurgerBuilder {
+        bool _patty = false;
+        bool _cheese = false;
+        String _size = 'regular';
+
+        void addPatty() =&gt; _patty = true;
+        void addCheese() =&gt; _cheese = true;
+        void setSize(String s) =&gt; _size = s;
+
+        Burger build() =&gt; Burger(_patty, _cheese, _size);
+      }</code></pre>
+      The call site now reads like a list of decisions, not a row of mystery arguments.
+      <br><br>
+      <pre><code>final b = BurgerBuilder()
+        ..addPatty()
+        ..addCheese()
+        ..setSize('large');
+
+      final burger = b.build();</code></pre>
+      Look at what that bought you. The booleans have names again. The order is whatever you want. And the builder can hold <em>logic</em> between steps — validate, branch, loop — which a single constructor call never could. <strong>The trade:</strong> you carry an extra object around. For a two-field class that's overkill; named parameters win. For an object you genuinely assemble in pieces, the builder earns its keep.
+
+  - id: flutter-builder-callbacks
+    title: "Flutter's builders are functions that build on demand"
+    summary: |
+      Now, the classic builder above is a whole class. Flutter rarely makes you write that. Instead it hands the pattern to you as a <em>callback</em> — a function named <code>builder</code> that produces a widget when asked.
+      <br><br>
+      You've already met these. <code>ListView.builder</code> takes an <code>itemBuilder</code>. <code>showDialog</code> takes a <code>builder</code>. There's even a widget literally called <code>Builder</code>. The shape is always the same: you hand in a function, and Flutter calls it later, when it's ready, to produce the widget.
+      <br><br>
+      <pre><code>ListView.builder(
+        itemCount: messages.length,
+        itemBuilder: (context, index) {
+          return ListTile(title: Text(messages[index]));
+        },
+      );</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="The itemBuilder callback receives a BuildContext and an index and returns one Widget, called once per visible item" style="max-width: 100%; height: auto;"><style>.bld4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.bld4-title{font-size:16px;font-weight:600}.bld4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.bld4-cap{font-size:11px;fill:#64748b}.bld4-h{font-size:13px;font-weight:600}</style><text x="360" y="28" text-anchor="middle" class="bld4-t bld4-title">(context, index) =&gt; Widget, once per visible row</text><rect x="40" y="70" width="150" height="44" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="6"/><text x="115" y="97" text-anchor="middle" class="bld4-t bld4-mn">BuildContext</text><rect x="40" y="130" width="150" height="44" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="6"/><text x="115" y="157" text-anchor="middle" class="bld4-t bld4-mn">index: 42</text><line x1="190" y1="92" x2="280" y2="118" stroke="#94a3b8" stroke-width="2" marker-end="url(#bld4-a)"/><line x1="190" y1="152" x2="280" y2="128" stroke="#94a3b8" stroke-width="2" marker-end="url(#bld4-a)"/><rect x="284" y="98" width="180" height="50" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="374" y="120" text-anchor="middle" class="bld4-t bld4-h">itemBuilder</text><text x="374" y="138" text-anchor="middle" class="bld4-t bld4-cap">the build strategy</text><line x1="464" y1="123" x2="544" y2="123" stroke="#9333ea" stroke-width="2" marker-end="url(#bld4-p)"/><text x="504" y="113" text-anchor="middle" class="bld4-t bld4-cap">returns</text><rect x="548" y="98" width="140" height="50" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="618" y="128" text-anchor="middle" class="bld4-t bld4-mn">Widget</text><rect x="60" y="206" width="600" height="86" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="8"/><text x="80" y="232" class="bld4-t bld4-cap">Flutter calls it on demand, only for rows in or near the viewport:</text><text x="80" y="258" class="bld4-t bld4-mn">itemBuilder: (context, i) =&gt; ListTile(title: Text(items[i]))</text><text x="80" y="282" class="bld4-t bld4-cap">Scroll down, row 43 appears, Flutter calls itemBuilder(context, 43).</text><defs><marker id="bld4-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker><marker id="bld4-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      The type of that callback is <code>IndexedWidgetBuilder</code> — which is just an alias for <code>Widget Function(BuildContext, int)</code>. Flutter passes you the <code>BuildContext</code> and the row index; you return one widget. You're not building the whole list. You're handing the framework a recipe for building <em>one item</em>, and it runs that recipe whenever it needs another item.
+      <br><br>
+      The bare <code>Builder</code> widget exists for a narrower reason: it gives you a fresh <code>BuildContext</code> located inside the current widget. That matters when something like <code>Scaffold.of(context)</code> needs a context that sits <em>below</em> the <code>Scaffold</code>, not the one above it.
+      <br><br>
+      <pre><code>Scaffold(
+        body: Builder(
+          builder: (context) {
+            // this context is inside the Scaffold
+            return ElevatedButton(
+              onPressed: () =&gt; Scaffold.of(context).openDrawer(),
+              child: const Text('Open'),
+            );
+          },
+        ),
+      );</code></pre>
+
+  - id: builders-defer-work
+    title: "Why the callback matters — deferred, lazy building"
+    summary: |
+      So why does Flutter bother with a callback at all? Why not just hand it a list of widgets? Because a function lets the framework <em>defer the work</em>. It calls your builder only when it actually needs the result — and for a long scrolling list, that's the whole game.
+      <br><br>
+      Compare the two ways to make a list. The plain constructor takes a finished <code>children</code> list. Every widget in it is built <em>now</em>, before a single pixel hits the screen.
+      <br><br>
+      <pre><code>// Eager: all 10,000 ListTiles built up front
+      ListView(
+        children: [
+          for (var i = 0; i &lt; 10000; i++)
+            ListTile(title: Text('Item \$i')),
+        ],
+      );</code></pre>
+      The builder version takes a function and an <code>itemCount</code>. Flutter calls the function only for the rows near the viewport. Scroll, and it builds the next few; the ones far off-screen never get built until they're needed.
+      <br><br>
+      <pre><code>// Lazy: only the visible ListTiles are built
+      ListView.builder(
+        itemCount: 10000,
+        itemBuilder: (context, i) =&gt; ListTile(title: Text('Item \$i')),
+      );</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="ListView builds every row up front even off-screen, while ListView.builder builds only the rows scrolled into view and leaves off-screen rows unbuilt" style="max-width: 100%; height: auto;"><style>.bld2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.bld2-title{font-size:16px;font-weight:600}.bld2-bad{font-size:13px;font-weight:600;fill:#dc2626}.bld2-good{font-size:13px;font-weight:600;fill:#10b981}.bld2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.bld2-cap{font-size:11px;fill:#64748b}.bld2-grey{font-size:11px;fill:#94a3b8}</style><text x="360" y="28" text-anchor="middle" class="bld2-t bld2-title">Build all 10,000 rows, or only the ones you see</text><rect x="30" y="48" width="320" height="290" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="74" text-anchor="middle" class="bld2-t bld2-bad">ListView(children: [...])</text><rect x="120" y="86" width="140" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="5"/><text x="190" y="111" text-anchor="middle" class="bld2-t bld2-mn">Row 0 (built)</text><rect x="120" y="132" width="140" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="5"/><text x="190" y="157" text-anchor="middle" class="bld2-t bld2-mn">Row 1 (built)</text><rect x="120" y="178" width="140" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="5"/><text x="190" y="203" text-anchor="middle" class="bld2-t bld2-mn">Row 2 (built)</text><rect x="120" y="224" width="140" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="5"/><text x="190" y="249" text-anchor="middle" class="bld2-t bld2-mn">Row 3 (built)</text><rect x="120" y="270" width="140" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="5"/><text x="190" y="295" text-anchor="middle" class="bld2-t bld2-mn">Row 4 (built)</text><text x="190" y="328" text-anchor="middle" class="bld2-t bld2-cap">All rows built up front, even off-screen.</text><rect x="370" y="48" width="320" height="290" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="74" text-anchor="middle" class="bld2-t bld2-good">ListView.builder(itemBuilder)</text><rect x="430" y="86" width="200" height="92" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 3" rx="6"/><text x="530" y="110" text-anchor="middle" class="bld2-t bld2-cap">viewport</text><rect x="446" y="118" width="168" height="22" fill="#ede9fe" stroke="#9333ea" stroke-width="1.5" rx="4"/><text x="530" y="134" text-anchor="middle" class="bld2-t bld2-mn">Row 41 (built)</text><rect x="446" y="146" width="168" height="22" fill="#ede9fe" stroke="#9333ea" stroke-width="1.5" rx="4"/><text x="530" y="162" text-anchor="middle" class="bld2-t bld2-mn">Row 42 (built)</text><rect x="446" y="196" width="168" height="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="4"/><text x="530" y="211" text-anchor="middle" class="bld2-t bld2-grey">Row 43 — not built</text><rect x="446" y="222" width="168" height="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="4"/><text x="530" y="237" text-anchor="middle" class="bld2-t bld2-grey">Row 44 — not built</text><rect x="446" y="248" width="168" height="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 2" rx="4"/><text x="530" y="263" text-anchor="middle" class="bld2-t bld2-grey">... 9,955 more, unbuilt</text><text x="530" y="298" text-anchor="middle" class="bld2-t bld2-cap">itemBuilder runs only as rows scroll in.</text><text x="530" y="316" text-anchor="middle" class="bld2-t bld2-cap">Off-screen rows cost nothing yet.</text></svg>
+      <br><br>
+      For five items it makes no difference. For ten thousand it's the difference between a smooth scroll and a frozen frame. <strong>Rule of thumb:</strong> a short, fixed list you can write out by hand → <code>ListView(children: [...])</code>. A long or dynamic list → <code>ListView.builder</code>, every time. The callback isn't ceremony; it's what lets the framework skip the work you can't yet see.
+
+  - id: cascade-and-fluent-builders
+    title: "Cascades and StringBuffer — building without a builder class"
+    summary: |
+      You saw the <code>..</code> in the burger example and the <code>ListView</code> calls. That's the <strong>cascade operator</strong>, and it's Dart's built-in answer to fluent, step-by-step building. It lets you run a sequence of operations on one object without naming that object over and over.
+      <br><br>
+      The trick is what <code>..</code> evaluates to. A normal <code>.</code> returns whatever the method returns. A <code>..</code> runs the method but <em>throws away its result and returns the receiver instead</em>. So every step in the chain hands the same object to the next.
+      <br><br>
+      <pre><code>final paint = Paint()
+        ..color = Colors.blue
+        ..strokeWidth = 4.0
+        ..style = PaintingStyle.stroke;
+      // paint is the Paint, not the result of the last assignment</code></pre>
+      The classic standard-library builder is <code>StringBuffer</code>. Concatenating strings with <code>+</code> in a loop allocates a fresh string every time — strings are immutable, remember. A <code>StringBuffer</code> is mutable scratch space: you <code>write</code> into it as many times as you like, then call <code>toString()</code> once to produce the finished, immutable string.
+      <br><br>
+      <pre><code>final sb = StringBuffer()
+        ..write('Hi ')
+        ..write('there')
+        ..write('!');
+
+      final greeting = sb.toString();   // 'Hi there!'</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-label="A cascade chain of build steps on one receiver, each returning the same object, flowing into a finished result" style="max-width: 100%; height: auto;"><style>.bld3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.bld3-title{font-size:16px;font-weight:600}.bld3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.bld3-tag{font-size:11px;font-weight:600;fill:#9333ea}.bld3-cap{font-size:11px;fill:#64748b}.bld3-out{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#065f46}</style><text x="360" y="28" text-anchor="middle" class="bld3-t bld3-title">Each .. returns the same buffer, then build</text><rect x="40" y="56" width="180" height="58" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="130" y="82" text-anchor="middle" class="bld3-t bld3-mn">StringBuffer()</text><text x="130" y="102" text-anchor="middle" class="bld3-t bld3-cap">the receiver</text><line x1="130" y1="114" x2="130" y2="142" stroke="#9333ea" stroke-width="2" marker-end="url(#bld3-a)"/><text x="244" y="135" text-anchor="middle" class="bld3-t bld3-tag">..write('Hi ')</text><rect x="40" y="146" width="180" height="44" fill="#f5f3ff" stroke="#9333ea" stroke-width="1.5" rx="8"/><text x="130" y="173" text-anchor="middle" class="bld3-t bld3-mn">buffer: "Hi "</text><line x1="130" y1="190" x2="130" y2="214" stroke="#9333ea" stroke-width="2" marker-end="url(#bld3-a)"/><text x="248" y="207" text-anchor="middle" class="bld3-t bld3-tag">..write('there')</text><rect x="40" y="218" width="180" height="44" fill="#f5f3ff" stroke="#9333ea" stroke-width="1.5" rx="8"/><text x="130" y="245" text-anchor="middle" class="bld3-t bld3-mn">buffer: "Hi there"</text><line x1="220" y1="240" x2="320" y2="240" stroke="#94a3b8" stroke-width="2" marker-end="url(#bld3-g)"/><text x="270" y="230" text-anchor="middle" class="bld3-t bld3-cap">.toString()</text><rect x="330" y="216" width="200" height="48" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="8"/><text x="430" y="245" text-anchor="middle" class="bld3-t bld3-out">"Hi there"</text><rect x="330" y="64" width="350" height="120" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="8"/><text x="350" y="90" class="bld3-t bld3-cap">The whole chain, one expression:</text><text x="350" y="116" class="bld3-t bld3-mn">final s = (StringBuffer()</text><text x="364" y="138" class="bld3-t bld3-mn">..write('Hi ')</text><text x="364" y="160" class="bld3-t bld3-mn">..write('there'))</text><text x="364" y="178" class="bld3-t bld3-mn">.toString();</text><text x="430" y="290" text-anchor="middle" class="bld3-t bld3-cap">.. operates and discards its result; the object flows on.</text><defs><marker id="bld3-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker><marker id="bld3-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs></svg>
+      <br><br>
+      This is the builder pattern with the boilerplate removed. <code>StringBuffer</code> is the mutable builder, <code>write</code> is a build step, and <code>toString()</code> is <code>build()</code>. Because Dart gives you the cascade for free, you rarely need to hand-write a builder class — you reach for a buffer or a cascade and get the same shape with less code.
+
+  - id: copywith-immutable-builder
+    title: "copyWith — a builder for immutable objects"
+    summary: |
+      There's one more flavour, and it's the one you'll use most in real Flutter code. Sometimes you don't want a mutable builder at all. You have an immutable object and you want a <em>slightly different</em> immutable object — change one field, keep the rest. That's what <code>copyWith</code> is for.
+      <br><br>
+      The problem it solves: with a <code>final</code> field, you can't just reassign it. And rebuilding the whole object by hand means restating every field you <em>didn't</em> change, which is noise and a bug waiting to happen the moment you add a field.
+      <br><br>
+      <pre><code>class Settings {
+        final bool darkMode;
+        final String language;
+        final double fontSize;
+
+        const Settings({
+          required this.darkMode,
+          required this.language,
+          required this.fontSize,
+        });
+
+        Settings copyWith({
+          bool? darkMode,
+          String? language,
+          double? fontSize,
+        }) {
+          return Settings(
+            darkMode: darkMode ?? this.darkMode,
+            language: language ?? this.language,
+            fontSize: fontSize ?? this.fontSize,
+          );
+        }
+      }</code></pre>
+      Each parameter is nullable, and <code>?? this.field</code> means "use what you were given, otherwise keep the old value." So you name only what changes.
+      <br><br>
+      <pre><code>const current = Settings(
+        darkMode: false, language: 'en', fontSize: 14.0,
+      );
+
+      final updated = current.copyWith(darkMode: true);
+      // darkMode flips to true; language and fontSize are untouched</code></pre>
+      This is a builder that produces in one step, with no mutable scratch object in between. It's the heart of immutable state management — Bloc, Riverpod, plain <code>setState</code> with immutable models all lean on it. You never mutate the old state; you build a new state that differs in exactly the fields you touched. <strong>One caveat:</strong> the <code>?? this.field</code> trick can't distinguish "leave it alone" from "set it to null." When a field is itself nullable and you genuinely need to null it, plain <code>copyWith</code> can't express that — you'll see code generators like <code>freezed</code> step in to handle it.
+
+  - id: when-to-reach-for-a-builder
+    title: "When to reach for a builder, and the thread back to widgets"
+    summary: |
+      So when does a builder earn its place over a plain constructor? Walk down this list and stop at the first one that fits.
+      <br>• Two or three fields, all known at once → a plain constructor, named parameters. No builder.
+      <br>• Many optional fields, still all known at once → still a constructor with named parameters. Dart makes this clean enough that you don't need more.
+      <br>• The object is assembled in <em>stages</em>, with logic between steps → a cascade, or a real builder class.
+      <br>• You're producing widgets <em>on demand</em>, lazily → a builder callback like <code>itemBuilder</code>.
+      <br>• You have an immutable object and want a tweaked copy → <code>copyWith</code>.
+      <br><br>
+      Notice these aren't five patterns. They're one idea — separate the act of constructing from the finished result — wearing five outfits sized to how much structure the job has earned. Most of the time Dart's cascade and named parameters cover you, and you never write the word "builder" at all.
+      <br><br>
+      <strong>Builder versus Strategy.</strong> We met Strategy last time: it's about <em>which behaviour runs</em>. Builder is about <em>how an object gets assembled</em>. They sit close together in Flutter — an <code>itemBuilder</code> is a builder callback, but it's also a strategy for how each row is constructed. The same callback can wear both labels, and that's fine; the labels are there to help you reason, not to box the code in.
+      <br><br>
+      And here's the thread back to everything Flutter. A widget tree <em>is</em> an object assembled from parts — you nest a <code>Padding</code> around a <code>Column</code> around your tiles, building the bigger thing out of smaller ones. The <code>build</code> method on every widget is a builder: it takes a context and returns the assembled subtree. You've been writing builders since your very first <code>build(BuildContext context)</code>. Naming the pattern just tells you what your hands already knew.
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on the builder pattern — the telescoping-constructor problem, Flutter's builder callbacks, lazy construction, cascades, and copyWith for immutable state."
+  questions:
+    - question: "What problem does the builder pattern primarily address?"
+      options:
+        - "It guarantees only one instance of a class exists"
+        - "It separates how an object is assembled from the finished object, avoiding unreadable, error-prone giant constructors"
+        - "It runs object construction on a background isolate"
+        - "It notifies listeners whenever a field changes"
+      correctIndex: 1
+      explanation: "The builder pattern pulls the act of assembly out of the constructor. Instead of one telescoping constructor that takes every parameter at once — where a misordered boolean still compiles — you collect the parts step by step and then produce the finished object. That keeps both the call site and the construction logic readable."
+    - question: "In ListView.builder, what is the type of the itemBuilder callback?"
+      options:
+        - "List<Widget>"
+        - "void Function()"
+        - "Widget Function(BuildContext, int) — aliased as IndexedWidgetBuilder"
+        - "Future<Widget> Function(int)"
+      correctIndex: 2
+      explanation: "itemBuilder is an IndexedWidgetBuilder, which is just an alias for Widget Function(BuildContext, int). Flutter passes you the build context and the row index, and you return a single widget. You describe how to build one item, not the whole list."
+    - question: "Why does ListView.builder perform better than ListView(children: [...]) for a list of 10,000 rows?"
+      options:
+        - "It builds all rows faster by using multiple isolates"
+        - "It caches the finished widgets to disk"
+        - "It calls the builder lazily, building only the rows near the viewport instead of all of them up front"
+        - "It compresses the widget tree in memory"
+      correctIndex: 2
+      explanation: "ListView takes a finished children list, so every widget is built before anything is shown. ListView.builder takes a callback and an itemCount, and Flutter calls that callback only for rows in or near the viewport. The off-screen rows aren't built until they're scrolled toward, which is what keeps a long list smooth."
+    - question: "What does the Builder widget give you that an inline widget does not?"
+      options:
+        - "A faster rebuild cycle"
+        - "A fresh BuildContext located inside the current widget subtree"
+        - "Automatic state persistence"
+        - "A broadcast stream of build events"
+      correctIndex: 1
+      explanation: "The Builder widget exists to provide a new BuildContext positioned below the current widget. That matters for lookups like Scaffold.of(context), which need a context beneath the Scaffold rather than the one above it."
+    - question: "What does the cascade operator (..) evaluate to?"
+      options:
+        - "Whatever the called method returns"
+        - "null"
+        - "The receiver object, discarding the method's return value"
+        - "A new copy of the receiver"
+      correctIndex: 2
+      explanation: "A cascade runs the operation but throws away its result and returns the receiver instead. That is exactly why you can chain ..write('a')..write('b') on a StringBuffer — each step hands the same buffer to the next, so the whole chain refers to one object."
+    - question: "Why is StringBuffer a builder, and why prefer it over repeated string concatenation?"
+      options:
+        - "Strings are mutable, so StringBuffer avoids copying"
+        - "Strings are immutable, so concatenating with + in a loop allocates a new string each time; StringBuffer is mutable scratch space that produces the final string once via toString()"
+        - "StringBuffer runs concatenation on a separate thread"
+        - "StringBuffer automatically removes duplicate characters"
+      correctIndex: 1
+      explanation: "Dart strings are immutable, so building one with + inside a loop allocates a fresh string on every iteration. StringBuffer is mutable: you write into it repeatedly, then call toString() once to get the finished immutable string. It is the builder pattern — write is a build step and toString() is build()."
+    - question: "How does copyWith act as a builder for an immutable object?"
+      options:
+        - "It mutates the original object's fields in place"
+        - "It returns a new instance, taking each given value or falling back to the original field with ?? this.field"
+        - "It converts the object into a mutable builder you must call build() on"
+        - "It deletes the old object and reuses its memory"
+      correctIndex: 1
+      explanation: "copyWith produces a new immutable instance in a single step. Each parameter is nullable, and 'value ?? this.field' keeps the original when no new value is supplied — so you name only the fields that change. This is the backbone of immutable state management, where you never mutate old state but build a new state that differs in just the fields you touched."
+---
+
+{/* Design Patterns, Episode 2: The Builder Pattern. Part of the Patterns: Composition series.
+    7 topics covering the telescoping-constructor problem, splitting assembly from the product,
+    Flutter's builder callbacks, lazy construction with ListView.builder, cascades and StringBuffer,
+    copyWith for immutable objects, and when to reach for a builder. 4 inline SVG diagrams (bld1-bld4). */}

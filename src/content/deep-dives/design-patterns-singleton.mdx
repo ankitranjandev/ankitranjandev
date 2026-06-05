@@ -1,0 +1,300 @@
+---
+title: "The Singleton Pattern in Dart — One Instance, and the Price You Pay for It"
+description: "Some things should exist exactly once: a logger, an app config, a database handle. The singleton guarantees that single shared instance — and Dart makes it a one-liner. But a global by any other name is still a global, and this episode is honest about what that costs you."
+category: "Design Patterns"
+color: "#9333ea"
+subject: "Patterns: Creation"
+order: 2
+publishedAt: 2026-06-04
+topics:
+  - id: the-problem-exactly-once
+    title: "The problem — some things should exist exactly once"
+    summary: |
+      Some objects are meant to be the only one of their kind. A logger writing to a single file. An app config loaded once at startup. A database handle holding one connection pool. An HTTP client reusing one set of sockets. Spin up a second of any of these and you get two log buffers fighting over a file, two copies of config drifting out of sync, two connection pools where you budgeted for one.
+      <br><br>
+      So the question is simple. How do you guarantee that everyone in the app shares the exact same instance?
+      <br><br>
+      The naive answer is "just be careful — only call the constructor once". But an app has hundreds of call sites, and nothing stops the next one from typing <code>Logger()</code> again.
+      <br><br>
+      <pre><code>class Logger {
+        final List&lt;String&gt; _buffer = [];
+        void log(String msg) =&gt; _buffer.add(msg);
+      }
+
+      final a = Logger();
+      final b = Logger();        // a second, separate logger
+
+      a.log('saved');
+      print(b._buffer.length);   // 0 — b never saw it</code></pre>
+      Two objects, two buffers, and a bug that only shows up when one part of the app logs and another reads. We need the type itself to enforce the rule, not the discipline of whoever calls it.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="On the left every constructor call builds a separate object; on the right every call resolves to one shared instance" style="max-width: 100%; height: auto;"><style>.sng1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sng1-title{font-size:16px;font-weight:600}.sng1-bad{font-size:13px;font-weight:600;fill:#dc2626}.sng1-good{font-size:13px;font-weight:600;fill:#10b981}.sng1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.sng1-label{font-size:11px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="sng1-t sng1-title">Three calls, three objects — or three calls, one object</text><rect x="30" y="50" width="320" height="258" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="76" text-anchor="middle" class="sng1-t sng1-bad">Plain constructor</text><rect x="50" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="90" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><rect x="150" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="190" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><rect x="250" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="290" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><line x1="90" y1="126" x2="90" y2="166" stroke="#fca5a5" stroke-width="1.5" marker-end="url(#sng1-r)"/><line x1="190" y1="126" x2="190" y2="166" stroke="#fca5a5" stroke-width="1.5" marker-end="url(#sng1-r)"/><line x1="290" y1="126" x2="290" y2="166" stroke="#fca5a5" stroke-width="1.5" marker-end="url(#sng1-r)"/><rect x="56" y="170" width="68" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="90" y="197" text-anchor="middle" class="sng1-t sng1-mn">#a1b2</text><rect x="156" y="170" width="68" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="190" y="197" text-anchor="middle" class="sng1-t sng1-mn">#c3d4</text><rect x="256" y="170" width="68" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="290" y="197" text-anchor="middle" class="sng1-t sng1-mn">#e5f6</text><text x="190" y="250" text-anchor="middle" class="sng1-t sng1-label">Three separate objects on the heap.</text><text x="190" y="272" text-anchor="middle" class="sng1-t sng1-label">Three log buffers, three config copies.</text><text x="190" y="296" text-anchor="middle" class="sng1-t sng1-bad">identical(a, b) == false</text><rect x="370" y="50" width="320" height="258" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="76" text-anchor="middle" class="sng1-t sng1-good">Singleton</text><rect x="390" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="430" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><rect x="490" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="530" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><rect x="590" y="92" width="80" height="34" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="630" y="114" text-anchor="middle" class="sng1-t sng1-mn">Logger()</text><line x1="430" y1="126" x2="520" y2="186" stroke="#10b981" stroke-width="1.5" marker-end="url(#sng1-g)"/><line x1="530" y1="126" x2="530" y2="186" stroke="#10b981" stroke-width="1.5" marker-end="url(#sng1-g)"/><line x1="630" y1="126" x2="540" y2="186" stroke="#10b981" stroke-width="1.5" marker-end="url(#sng1-g)"/><rect x="466" y="190" width="128" height="46" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="211" text-anchor="middle" class="sng1-t sng1-mn">_instance</text><text x="530" y="228" text-anchor="middle" class="sng1-t sng1-mn">#a1b2</text><text x="530" y="266" text-anchor="middle" class="sng1-t sng1-label">Every call hands back the same object.</text><text x="530" y="288" text-anchor="middle" class="sng1-t sng1-label">One buffer, one config, shared.</text><text x="530" y="308" text-anchor="middle" class="sng1-t sng1-good">identical(a, b) == true</text><defs><marker id="sng1-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#fca5a5"/></marker><marker id="sng1-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      That's the singleton's whole job: make the right-hand side true. Every <code>Logger()</code> in the codebase resolves to one object. The pattern is famous, it's everywhere, and — fair warning — it's also one of the most argued-over patterns there is. We'll build it first, then be honest about why.
+
+  - id: the-dart-idiom
+    title: "The Dart idiom — private constructor, static instance, factory gate"
+    summary: |
+      Most languages reach for a static <code>getInstance()</code> method. Dart has something cleaner. Because Dart lets a constructor be a <code>factory</code>, you can intercept <code>Logger()</code> itself and hand back a stored object. The call site looks like an ordinary constructor; behind it, there's a gate.
+      <br><br>
+      Three pieces make it work.
+      <br>• <strong>A private constructor</strong> — <code>Logger._()</code>. The underscore makes it library-private, so no outside code can ever call <code>new</code> and mint a fresh object.
+      <br>• <strong>A static final instance</strong> — built exactly once and held on the class.
+      <br>• <strong>A factory constructor</strong> — the public <code>Logger()</code>, which returns that stored instance instead of building anything.
+      <br><br>
+      <pre><code>class Logger {
+        // 1. private constructor — only this library can call it
+        Logger._();
+
+        // 2. the one and only instance, built once
+        static final Logger _instance = Logger._();
+
+        // 3. the public gate — always returns the same object
+        factory Logger() =&gt; _instance;
+
+        final List&lt;String&gt; _buffer = [];
+        void log(String msg) =&gt; _buffer.add(msg);
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 350" role="img" aria-label="The three parts of the Dart singleton idiom: a private constructor, a static final instance field, and a factory constructor that returns that field" style="max-width: 100%; height: auto;"><style>.sng2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sng2-title{font-size:16px;font-weight:600}.sng2-h{font-size:13px;font-weight:600;fill:#9333ea}.sng2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#1e293b}.sng2-label{font-size:11px;fill:#64748b}.sng2-cap{font-size:12px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="sng2-t sng2-title">Three parts lock the count to one</text><rect x="40" y="50" width="640" height="56" fill="#f3e8ff" stroke="#9333ea" stroke-width="1.5" rx="8"/><text x="60" y="74" class="sng2-t sng2-h">1. Private constructor</text><text x="60" y="96" class="sng2-t sng2-mn">Logger._();</text><text x="660" y="74" text-anchor="end" class="sng2-t sng2-label">the underscore hides it — no outside code can call new</text><rect x="40" y="120" width="640" height="56" fill="#f3e8ff" stroke="#9333ea" stroke-width="1.5" rx="8"/><text x="60" y="144" class="sng2-t sng2-h">2. Static final instance</text><text x="60" y="166" class="sng2-t sng2-mn">static final Logger _instance = Logger._();</text><text x="660" y="144" text-anchor="end" class="sng2-t sng2-label">built once, lazily, on first access</text><rect x="40" y="190" width="640" height="56" fill="#f3e8ff" stroke="#9333ea" stroke-width="1.5" rx="8"/><text x="60" y="214" class="sng2-t sng2-h">3. Factory constructor</text><text x="60" y="236" class="sng2-t sng2-mn">factory Logger() =&gt; _instance;</text><text x="660" y="214" text-anchor="end" class="sng2-t sng2-label">Logger() returns the field, never a new object</text><rect x="180" y="270" width="160" height="44" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="260" y="297" text-anchor="middle" class="sng2-t sng2-mn">Logger()</text><line x1="340" y1="292" x2="394" y2="292" stroke="#9333ea" stroke-width="2" marker-end="url(#sng2-a)"/><rect x="400" y="270" width="160" height="44" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="480" y="297" text-anchor="middle" class="sng2-t sng2-mn">_instance</text><text x="360" y="338" text-anchor="middle" class="sng2-t sng2-cap">The factory is the gate. Every call walks back to the same instance.</text><defs><marker id="sng2-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      Now the call site can't break the rule even if it tries.
+      <br><br>
+      <pre><code>final a = Logger();
+      final b = Logger();
+
+      a.log('saved');
+      print(b._buffer.length);     // 1 — same buffer
+      print(identical(a, b));      // true — same object</code></pre>
+      <code>a</code> and <code>b</code> are not two loggers that happen to agree. They are one logger with two names. That's the guarantee the type now enforces, and it took three short lines to get it.
+      <br><br>
+      You'll also see the same shape written with a <code>static</code> getter — <code>static Logger get instance =&gt; _instance</code>, called as <code>Logger.instance</code>. It's the same idea; the factory version just keeps the familiar <code>Logger()</code> call site.
+
+  - id: lazy-vs-eager
+    title: "Lazy vs eager — when does the instance actually get built?"
+    summary: |
+      Here's a detail Dart hands you for free. That <code>static final</code> field is not built when the program starts. It's built the first time something reads it — and never again. Dart static fields are <em>lazily initialised</em>.
+      <br><br>
+      Why care? Because the instance might be expensive. A database handle opens a connection. A config loader reads a file. If you eagerly built every singleton at startup, your app would pay for things it might never use. Lazy means you pay only on first touch.
+      <br><br>
+      <pre><code>class Database {
+        Database._() {
+          print('opening connection...');   // the expensive bit
+        }
+        static final Database _instance = Database._();
+        factory Database() =&gt; _instance;
+      }
+
+      void main() {
+        print('app started');
+        final db = Database();    // 'opening connection...' prints HERE
+        Database();               // nothing — already built
+      }
+      // app started
+      // opening connection...</code></pre>
+      Notice the order. <code>'app started'</code> prints first. The connection only opens when <code>Database()</code> is first called, not when <code>main</code> begins. The second call builds nothing — it walks straight to the stored instance.
+      <br><br>
+      <strong>Want eager instead?</strong> If you need the instance ready before anything asks for it — say, to fail fast on a bad config at launch — just touch it on purpose during startup.
+      <br><br>
+      <pre><code>void main() {
+        Database();         // force the lazy field now
+        runApp(MyApp());
+      }</code></pre>
+      Either way the construction runs once. Lazy is the default and usually what you want; eager is a deliberate nudge for the rare case where you'd rather crash at launch than mid-request.
+
+  - id: service-locator
+    title: "The service locator — the grown-up global"
+    summary: |
+      Hand-writing the private-constructor dance for every shared object gets old. And it bakes a hard decision into each class: the class itself decides it's a singleton. Sometimes you'd rather decide that from outside — register one shared instance in one place, and let the rest of the app look it up.
+      <br><br>
+      That's a <strong>service locator</strong>. In Flutter the popular one is the <code>get_it</code> package. You register your services once at startup, then resolve them anywhere by type.
+      <br><br>
+      <pre><code>final getIt = GetIt.instance;
+
+      void setupLocator() {
+        // one shared instance, created lazily on first lookup
+        getIt.registerLazySingleton&lt;Api&gt;(() =&gt; HttpApi());
+        getIt.registerLazySingleton&lt;Logger&gt;(() =&gt; FileLogger());
+      }
+
+      // anywhere in the app
+      final api = getIt&lt;Api&gt;();        // same Api every time
+      final logger = getIt&lt;Logger&gt;();  // same Logger every time</code></pre>
+      Look at what changed. The class no longer forces itself to be a singleton — <code>HttpApi</code> is an ordinary class with an ordinary constructor. The <em>locator</em> decides there's one shared instance, and it registers against the <code>Api</code> interface rather than the concrete type. That last part matters more than it looks, and we'll come back to it.
+      <br><br>
+      <code>get_it</code> gives you a few registration modes worth knowing.
+      <br>• <code>registerLazySingleton</code> — one instance, built on first lookup. The common choice.
+      <br>• <code>registerSingleton</code> — one instance, built eagerly at registration.
+      <br>• <code>registerFactory</code> — a fresh instance on every lookup. Not a singleton at all — the same container, opposite behaviour.
+      <br><br>
+      It's a tidy upgrade on a bare global variable: typed, central, and swappable in one place. But make no mistake about what it is. A service locator is still global access with better manners. Everything that reaches into <code>getIt</code> still depends on a global — it's just spelled more politely. Which brings us to the part nobody likes.
+
+  - id: the-dangers
+    title: "The dangers — global state, hidden dependencies, and tests"
+    summary: |
+      A singleton is a global variable wearing a class as a disguise. Everything you've ever heard about why globals are dangerous applies here, in full.
+      <br><br>
+      <strong>Global mutable state.</strong> One shared, writable object that any code can reach means any code can change it. A value set in one corner of the app surfaces as a surprise in another. With no single owner, you can't reason locally — you have to hold the whole app in your head to know what state the singleton is in right now.
+      <br><br>
+      <strong>Hidden dependencies.</strong> Look at this constructor and tell me what it needs to run.
+      <br><br>
+      <pre><code>class CheckoutController {
+        CheckoutController();   // depends on... nothing?
+
+        void submit(Cart cart) {
+          Api().post('/checkout', cart);   // surprise: it needs Api
+          Logger().log('checkout done');   // and Logger
+        }
+      }</code></pre>
+      The signature lies. It claims no dependencies, then reaches out to two globals inside a method. Nothing in the type tells you this class can't work without a live <code>Api</code>. The dependencies are real, but invisible — you only find them by reading every line.
+      <br><br>
+      <strong>The testability problem.</strong> This is the one that bites hardest. You want to test <code>submit</code> without hitting the network. But <code>Api()</code> is hard-wired inside the method — there is no seam, no parameter, no way to slip a fake in. The test is forced to use the real thing.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="A widget wired to a global singleton cannot be given a fake in tests, while a widget that takes an injected dependency can be handed a fake" style="max-width: 100%; height: auto;"><style>.sng3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sng3-title{font-size:16px;font-weight:600}.sng3-bad{font-size:13px;font-weight:600;fill:#dc2626}.sng3-good{font-size:13px;font-weight:600;fill:#10b981}.sng3-h{font-size:13px;font-weight:600}.sng3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.sng3-label{font-size:11px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="sng3-t sng3-title">Can the test hand it a fake?</text><rect x="30" y="50" width="320" height="262" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="76" text-anchor="middle" class="sng3-t sng3-bad">Reaches for the global</text><rect x="90" y="92" width="160" height="42" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="170" y="118" text-anchor="middle" class="sng3-t sng3-h">CartWidget</text><text x="100" y="160" class="sng3-t sng3-mn">Api().checkout()</text><text x="100" y="178" class="sng3-t sng3-label">hard-wired inside build()</text><line x1="170" y1="186" x2="170" y2="216" stroke="#dc2626" stroke-width="2" marker-end="url(#sng3-r)"/><rect x="100" y="220" width="140" height="42" fill="#fee2e2" stroke="#dc2626" stroke-width="2" rx="6"/><text x="170" y="246" text-anchor="middle" class="sng3-t sng3-mn">real Api (global)</text><rect x="270" y="220" width="68" height="42" fill="#ffffff" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3" rx="6"/><text x="304" y="241" text-anchor="middle" class="sng3-t sng3-mn">FakeApi</text><text x="304" y="256" text-anchor="middle" class="sng3-t sng3-bad">no way in</text><text x="190" y="290" text-anchor="middle" class="sng3-t sng3-bad">Test hits the live network. No seam.</text><rect x="370" y="50" width="320" height="262" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="76" text-anchor="middle" class="sng3-t sng3-good">Takes it as a parameter</text><rect x="430" y="92" width="200" height="42" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="530" y="112" text-anchor="middle" class="sng3-t sng3-h">CartWidget(this.api)</text><text x="530" y="128" text-anchor="middle" class="sng3-t sng3-label">api passed in</text><line x1="530" y1="134" x2="530" y2="166" stroke="#10b981" stroke-width="2" marker-end="url(#sng3-g)"/><rect x="408" y="170" width="120" height="42" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="468" y="196" text-anchor="middle" class="sng3-t sng3-mn">real Api</text><rect x="544" y="170" width="120" height="42" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="604" y="196" text-anchor="middle" class="sng3-t sng3-mn">FakeApi</text><text x="530" y="240" text-anchor="middle" class="sng3-t sng3-label">prod passes real, test passes fake</text><text x="530" y="262" text-anchor="middle" class="sng3-t sng3-mn">CartWidget(FakeApi())</text><text x="530" y="290" text-anchor="middle" class="sng3-t sng3-good">Test swaps in a fake. Fast and offline.</text><defs><marker id="sng3-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker><marker id="sng3-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      And there's a second sting in the tail: state leaks <em>between</em> tests. Because the singleton lives for the whole process, whatever test one writes into it is still there when test two runs. Your suite passes or fails depending on the order it ran in — the worst kind of flake. None of this means singletons are forbidden. It means you've taken on a real cost, and you should know you're paying it.
+
+  - id: singleton-vs-injection
+    title: "Singleton vs dependency injection — why Flutter passes things in"
+    summary: |
+      Every danger in the last topic has the same root: the dependency is fetched from a global instead of handed in. Flip that one decision and the problems dissolve. That flip has a name — <strong>dependency injection</strong> — and it's the idiom Flutter leans on.
+      <br><br>
+      Injection just means a class receives what it needs from outside, rather than reaching out to grab it. Compare the two shapes directly.
+      <br><br>
+      <pre><code>// Singleton: reaches out for the global
+      class Checkout {
+        void submit() =&gt; Api().post('/checkout');   // grabs it
+      }
+
+      // Injection: takes it in
+      class Checkout {
+        Checkout(this.api);
+        final Api api;
+        void submit() =&gt; api.post('/checkout');      // uses what it was given
+      }</code></pre>
+      The injected version has an honest signature. You cannot construct a <code>Checkout</code> without handing it an <code>Api</code>, so the dependency is visible, the test can pass a fake, and two checkouts can use two different APIs if you ever need that. Same behaviour, none of the hidden coupling.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 350" role="img" aria-label="On the left every widget reaches sideways into a global singleton; on the right dependencies flow down the widget tree from a provider at the top" style="max-width: 100%; height: auto;"><style>.sng4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.sng4-title{font-size:16px;font-weight:600}.sng4-bad{font-size:13px;font-weight:600;fill:#dc2626}.sng4-good{font-size:13px;font-weight:600;fill:#10b981}.sng4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.sng4-label{font-size:11px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="sng4-t sng4-title">Reach sideways into a global, or pass it down the tree</text><rect x="30" y="48" width="320" height="270" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="74" text-anchor="middle" class="sng4-t sng4-bad">Global access</text><rect x="146" y="206" width="88" height="34" fill="#fde68a" stroke="#f59e0b" stroke-width="2" rx="6"/><text x="190" y="228" text-anchor="middle" class="sng4-t sng4-mn">Api()</text><rect x="50" y="98" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="92" y="119" text-anchor="middle" class="sng4-t sng4-mn">Cart</text><rect x="248" y="98" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="290" y="119" text-anchor="middle" class="sng4-t sng4-mn">Profile</text><rect x="50" y="150" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="92" y="171" text-anchor="middle" class="sng4-t sng4-mn">Feed</text><rect x="248" y="150" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="290" y="171" text-anchor="middle" class="sng4-t sng4-mn">Settings</text><line x1="92" y1="130" x2="170" y2="206" stroke="#dc2626" stroke-width="1.3" marker-end="url(#sng4-r)"/><line x1="290" y1="130" x2="210" y2="206" stroke="#dc2626" stroke-width="1.3" marker-end="url(#sng4-r)"/><line x1="92" y1="182" x2="168" y2="208" stroke="#dc2626" stroke-width="1.3" marker-end="url(#sng4-r)"/><line x1="290" y1="182" x2="212" y2="208" stroke="#dc2626" stroke-width="1.3" marker-end="url(#sng4-r)"/><text x="190" y="270" text-anchor="middle" class="sng4-t sng4-label">Every widget knows the global by name.</text><text x="190" y="290" text-anchor="middle" class="sng4-t sng4-label">Hidden dependencies, hard to redirect.</text><text x="190" y="308" text-anchor="middle" class="sng4-t sng4-bad">Coupled to one concrete Api</text><rect x="370" y="48" width="320" height="270" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="74" text-anchor="middle" class="sng4-t sng4-good">Dependency injection</text><rect x="466" y="92" width="128" height="34" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/><text x="530" y="114" text-anchor="middle" class="sng4-t sng4-mn">Provider(api)</text><rect x="412" y="160" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="454" y="181" text-anchor="middle" class="sng4-t sng4-mn">Cart</text><rect x="564" y="160" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="606" y="181" text-anchor="middle" class="sng4-t sng4-mn">Profile</text><rect x="412" y="220" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="454" y="241" text-anchor="middle" class="sng4-t sng4-mn">Feed</text><rect x="564" y="220" width="84" height="32" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="5"/><text x="606" y="241" text-anchor="middle" class="sng4-t sng4-mn">Settings</text><line x1="530" y1="126" x2="454" y2="160" stroke="#10b981" stroke-width="1.3" marker-end="url(#sng4-g)"/><line x1="530" y1="126" x2="606" y2="160" stroke="#10b981" stroke-width="1.3" marker-end="url(#sng4-g)"/><line x1="454" y1="192" x2="454" y2="220" stroke="#10b981" stroke-width="1.3" marker-end="url(#sng4-g)"/><line x1="606" y1="192" x2="606" y2="220" stroke="#10b981" stroke-width="1.3" marker-end="url(#sng4-g)"/><text x="530" y="278" text-anchor="middle" class="sng4-t sng4-label">One source at the top, flowing down.</text><text x="530" y="298" text-anchor="middle" class="sng4-t sng4-label">Swap the provider, swap it everywhere.</text><text x="530" y="316" text-anchor="middle" class="sng4-t sng4-good">Each widget takes what it needs</text><defs><marker id="sng4-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker><marker id="sng4-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      Flutter has machinery built for exactly this flow. The framework's <code>InheritedWidget</code> lets a value placed high in the tree be read by any descendant below it — and packages like <code>Provider</code> and <code>Riverpod</code> wrap that into a clean API. You put one instance near the top, and every widget under it reads the same object. You still get "one shared instance", which is what you wanted from the singleton — but it flows <em>down the tree</em> instead of sitting in a global, so a test can wrap the widget in a provider holding a fake.
+      <br><br>
+      <pre><code>// One shared Api, placed above the app
+      Provider&lt;Api&gt;(
+        create: (_) =&gt; HttpApi(),
+        child: MyApp(),
+      );
+
+      // any descendant reads the same instance
+      final api = context.read&lt;Api&gt;();</code></pre>
+      Same single instance, opposite plumbing. That's why "prefer injection over a singleton" is the standard Flutter advice — not because shared state is bad, but because how it reaches the code that uses it makes all the difference.
+
+  - id: when-singletons-are-fine
+    title: "When a singleton is genuinely fine, and how to keep it testable"
+    summary: |
+      After all that, it would be easy to swear off singletons entirely. Don't. There are cases where one is the right call, and the goal isn't to ban the pattern — it's to use it without inheriting its worst traits.
+      <br><br>
+      A singleton earns its place when the thing it wraps is naturally one-of-a-kind and mostly stateless. A logger. A read-only config loaded once at boot. A wrapper over a resource the operating system already gives you exactly one of. The trouble was never "one instance" — it was global mutable state and hidden coupling. Remove those two, and a singleton is just a convenient shared object.
+      <br><br>
+      The trick is to <strong>program to an interface and inject the instance</strong>. Define the capability as an interface. Let the concrete class be a singleton if you like — but have your code depend on the interface, and receive it as a parameter.
+      <br><br>
+      <pre><code>// the contract code depends on
+      abstract interface class Logger {
+        void log(String msg);
+      }
+
+      // the concrete singleton — fine to keep one instance
+      class FileLogger implements Logger {
+        FileLogger._();
+        static final FileLogger _instance = FileLogger._();
+        factory FileLogger() =&gt; _instance;
+
+        @override
+        void log(String msg) =&gt; print('[file] \$msg');
+      }
+
+      // code depends on the INTERFACE and takes it in
+      class Checkout {
+        Checkout(this.logger);
+        final Logger logger;
+        void submit() =&gt; logger.log('checkout done');
+      }</code></pre>
+      In production you wire the real one: <code>Checkout(FileLogger())</code>. The single shared file logger flows in. In a test you hand over a fake that records calls instead of writing a file.
+      <br><br>
+      <pre><code>class FakeLogger implements Logger {
+        final messages = &lt;String&gt;[];
+        @override
+        void log(String msg) =&gt; messages.add(msg);
+      }
+
+      test('checkout logs once', () {
+        final logger = FakeLogger();
+        Checkout(logger).submit();
+        expect(logger.messages, ['checkout done']);   // no file, no global
+      });</code></pre>
+      That's the whole reconciliation. Keep the single instance where it helps, but never let your code <em>reach</em> for it — depend on an interface and inject the instance. You get the shared object without the global, and the seam for tests stays open. The singleton stops being a trap and goes back to being what it should have been all along: just one object, shared on purpose.
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on the singleton pattern — the problem it solves, the Dart idiom, lazy initialisation, service locators, the dangers, and how injection keeps shared state testable."
+  questions:
+    - question: "What problem does the singleton pattern solve?"
+      options:
+        - "It lets you swap interchangeable behaviours at runtime"
+        - "It guarantees a class has exactly one shared instance that everyone uses"
+        - "It runs an object's methods on a background isolate"
+        - "It notifies listeners whenever a value changes"
+      correctIndex: 1
+      explanation: "A singleton makes the type itself enforce that only one instance exists. Things like a logger, an app config, or a database handle are meant to be shared; the pattern guarantees every call resolves to the same object rather than relying on the discipline of callers."
+    - question: "In the canonical Dart singleton, what role does the factory constructor play?"
+      options:
+        - "It builds a brand-new instance on every call"
+        - "It marks the class as abstract so it cannot be constructed"
+        - "It returns the stored static instance instead of constructing anything"
+        - "It makes the constructor run asynchronously"
+      correctIndex: 2
+      explanation: "The public factory constructor intercepts calls like Logger() and returns the existing static final _instance. Combined with a private constructor (Logger._()) that blocks outside construction, this means every Logger() call hands back the same object — identical(a, b) is true."
+    - question: "When is a 'static final' singleton instance actually constructed in Dart?"
+      options:
+        - "Eagerly, the moment the program starts"
+        - "Lazily, the first time the field is accessed — and only once"
+        - "Every time the factory constructor is called"
+        - "Never, until you call an explicit initialise() method"
+      correctIndex: 1
+      explanation: "Dart initialises static fields lazily. The instance is built the first time something reads it, not at program start, and never again afterwards. This matters when construction is expensive — you only pay the cost on first use. To go eager, simply touch the field during startup."
+    - question: "What is a service locator like get_it?"
+      options:
+        - "A widget that rebuilds when its dependency changes"
+        - "A central registry where you register shared instances and resolve them by type — a tidier global"
+        - "A compiler feature that forbids more than one instance of any class"
+        - "A way to run singletons on separate isolates"
+      correctIndex: 1
+      explanation: "A service locator registers shared instances in one place (often registerLazySingleton) and lets code resolve them by type anywhere via getIt<T>(). It moves the singleton decision out of the class and is typed and central — but it is still global access, just with better manners."
+    - question: "Why do singletons make code hard to test?"
+      options:
+        - "Singletons run too slowly for test suites"
+        - "Dart forbids constructing singletons inside test files"
+        - "Code reaches for the global directly, leaving no seam to swap in a fake — and state leaks between tests"
+        - "Tests cannot call factory constructors"
+      correctIndex: 2
+      explanation: "When a method calls Api() inside itself, there is no parameter to inject a fake through, so the test is forced to use the real dependency. Worse, because the singleton lives for the whole process, state written by one test persists into the next, causing order-dependent flakes."
+    - question: "Why does Flutter usually prefer dependency injection (Provider / InheritedWidget) over a global singleton?"
+      options:
+        - "Injection makes the app start faster"
+        - "InheritedWidget is the only way to share any value in Flutter"
+        - "Singletons are not allowed in Flutter apps"
+        - "Injection still gives one shared instance, but it flows down the tree — so dependencies are visible and a test can supply a fake"
+      correctIndex: 3
+      explanation: "InheritedWidget and Provider place one instance high in the tree, and descendants read that same object — so you still get a single shared instance. But because it is passed in rather than fetched from a global, dependencies are explicit in signatures and tests can wrap a widget in a provider holding a fake."
+    - question: "How do you keep a singleton testable when you genuinely need one?"
+      options:
+        - "Make every field on the singleton mutable"
+        - "Program to an interface and inject the instance, so code depends on the contract rather than reaching for the global"
+        - "Construct a new instance inside every method that uses it"
+        - "Mark the singleton class as deprecated"
+      correctIndex: 1
+      explanation: "Define the capability as an interface and have your code depend on that interface, receiving the instance as a parameter. The concrete class can still be a singleton, but because code never reaches for the global directly, production wires the real one in and tests pass a fake that implements the same interface."
+---
+
+{/* Design Patterns, Episode 2: The Singleton Pattern. Part of the Patterns: Creation series.
+    7 topics: the exactly-once problem, the Dart private-constructor/static-final/factory idiom,
+    lazy vs eager initialisation, service locators (get_it), the dangers (global state, hidden
+    deps, testability), singleton vs dependency injection (Provider/InheritedWidget), and when a
+    singleton is fine plus how to keep it testable via interface + injection. 4 inline SVG diagrams. */}

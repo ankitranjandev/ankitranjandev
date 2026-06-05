@@ -1,0 +1,293 @@
+---
+title: "The Factory Pattern in Dart — Construction with a Brain"
+description: "Calling Foo() hard-wires you to one class and gives you no room to think. Dart's factory constructor turns construction into a decision — cache, validate, or pick a subtype — all behind the same call."
+category: "Design Patterns"
+color: "#9333ea"
+subject: "Patterns: Creation"
+order: 1
+publishedAt: 2026-06-04
+topics:
+  - id: the-problem-with-new
+    title: "The problem — a constructor is a hard wire"
+    summary: |
+      Call <code>Circle()</code> and you get a <code>Circle</code>. Always. That's the deal with a normal constructor: you name a concrete class, and you're wired straight to it. No room to cache, no room to validate, no room to hand back something smarter.
+      <br><br>
+      Most of the time that's fine. But construction isn't always so simple. Sometimes building an object needs <em>logic</em>.
+      <br>• You want to reuse an instance instead of allocating a new one every time.
+      <br>• You want to reject bad inputs before an object even exists.
+      <br>• You want to decide <em>which</em> concrete type to build based on what you're handed.
+      <br><br>
+      A plain constructor can't do any of that. It runs, it fills the fields, it returns a brand new instance of exactly that class. Full stop.
+      <br><br>
+      <pre><code>// We want one shared logger per name.
+      // A normal constructor can't give us that —
+      // every call builds a fresh object.
+      class Logger {
+        final String name;
+        Logger(this.name);
+      }
+
+      final a = Logger('net');
+      final b = Logger('net');
+      print(identical(a, b));   // false — two separate objects</code></pre>
+      And there's a deeper version of the same problem. The caller has to know the exact class name. Write <code>Circle()</code> everywhere and you've scattered that concrete dependency across the codebase. Want to swap in a cached circle, or pick a shape from a string? You'd have to touch every call site. The constructor leaves you no seam to slip logic into.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-label="A direct constructor binds the caller to one concrete class, while a factory lets the caller ask an interface and the factory picks the concrete type" style="max-width: 100%; height: auto;"><style>.fac1-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.fac1-title{font-size:16px;font-weight:600}.fac1-bad{font-size:13px;font-weight:600;fill:#dc2626}.fac1-good{font-size:13px;font-weight:600;fill:#10b981}.fac1-h{font-size:13px;font-weight:600}.fac1-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#475569}.fac1-label{font-size:11px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="fac1-t fac1-title">Bound to one concrete, or asking an interface</text><rect x="30" y="50" width="320" height="266" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" rx="10"/><text x="190" y="76" text-anchor="middle" class="fac1-t fac1-bad">Direct constructor</text><rect x="118" y="92" width="144" height="42" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="190" y="118" text-anchor="middle" class="fac1-t fac1-h">caller</text><line x1="190" y1="134" x2="190" y2="176" stroke="#dc2626" stroke-width="2" marker-end="url(#fac1-r)"/><text x="280" y="160" text-anchor="middle" class="fac1-t fac1-mn">new ConcreteA()</text><rect x="118" y="178" width="144" height="42" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="6"/><text x="190" y="204" text-anchor="middle" class="fac1-t fac1-mn">ConcreteA</text><text x="190" y="262" text-anchor="middle" class="fac1-t fac1-label">The caller names the class itself.</text><text x="190" y="284" text-anchor="middle" class="fac1-t fac1-label">Change the class, change every caller.</text><rect x="370" y="50" width="320" height="266" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" rx="10"/><text x="530" y="76" text-anchor="middle" class="fac1-t fac1-good">Factory</text><rect x="458" y="92" width="144" height="42" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" rx="6"/><text x="530" y="118" text-anchor="middle" class="fac1-t fac1-h">caller</text><line x1="530" y1="134" x2="530" y2="160" stroke="#9333ea" stroke-width="2" marker-end="url(#fac1-p)"/><text x="618" y="152" text-anchor="middle" class="fac1-t fac1-mn">Shape(kind)</text><rect x="446" y="162" width="168" height="42" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="6"/><text x="530" y="183" text-anchor="middle" class="fac1-t fac1-h">Shape</text><text x="530" y="198" text-anchor="middle" class="fac1-t fac1-label">interface + factory</text><line x1="478" y1="204" x2="430" y2="244" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#fac1-g)"/><line x1="582" y1="204" x2="630" y2="244" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#fac1-g)"/><rect x="390" y="246" width="86" height="38" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="433" y="270" text-anchor="middle" class="fac1-t fac1-mn">Circle</text><rect x="584" y="246" width="86" height="38" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="627" y="270" text-anchor="middle" class="fac1-t fac1-mn">Square</text><text x="530" y="304" text-anchor="middle" class="fac1-t fac1-label">The factory picks the concrete. The caller never knows.</text><defs><marker id="fac1-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker><marker id="fac1-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker><marker id="fac1-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker></defs></svg>
+      <br><br>
+      What we want is a call that looks like a constructor but is allowed to think first. Dart has exactly that, and it's a keyword.
+
+  - id: the-factory-constructor
+    title: "Dart's factory constructor — a constructor that can think"
+    summary: |
+      A normal constructor is <em>generative</em>: it generates a fresh instance and you have no say in that. Mark it <code>factory</code> instead and the rules change. A factory constructor doesn't have to create anything new. It just has to <em>return an instance of the class</em> — and it can get that instance however it likes.
+      <br><br>
+      Here's the syntax. Same call site, a body that decides.
+      <br><br>
+      <pre><code>class Logger {
+        final String name;
+
+        // The real, private constructor that actually builds.
+        Logger._internal(this.name);
+
+        // The factory: called like Logger('net'), but it
+        // returns from a cache instead of always allocating.
+        static final _cache = &lt;String, Logger&gt;{};
+
+        factory Logger(String name) {
+          return _cache.putIfAbsent(name, () =&gt; Logger._internal(name));
+        }
+      }
+
+      final a = Logger('net');
+      final b = Logger('net');
+      print(identical(a, b));   // true — same shared object</code></pre>
+      Two things make a factory constructor different, and both matter.
+      <br><br>
+      <strong>It returns, it doesn't initialise.</strong> A generative constructor has no <code>return</code> — it fills <code>this</code> and you're done. A factory constructor has a body with an explicit <code>return</code>, and there is <em>no</em> <code>this</code>. It can't touch instance fields, because at the point it runs there's no instance yet. That's the trade: you lose <code>this</code>, you gain a decision.
+      <br><br>
+      <strong>It can return a subtype.</strong> The only constraint is that what you return is the class or something that <em>is-a</em> the class. So a factory on <code>Shape</code> can hand back a <code>Circle</code> or a <code>Square</code>. That's the seam the plain constructor never gave us — and it's the next topic.
+
+  - id: factory-method-pick-the-type
+    title: "Factory method — pick the concrete type at runtime"
+    summary: |
+      Now the payoff. Because a factory can return a subtype, you can put one in front of a family of classes and let it choose which one to build — at runtime, from whatever input you're handed.
+      <br><br>
+      Say you decode shapes from a config string. The caller asks for a <code>Shape</code> and shouldn't care which concrete class shows up.
+      <br><br>
+      <pre><code>abstract interface class Shape {
+        double get area;
+
+        // One door. The right concrete type walks out.
+        factory Shape(String kind, double size) {
+          return switch (kind) {
+            'circle' =&gt; Circle(size),
+            'square' =&gt; Square(size),
+            _ =&gt; throw ArgumentError('Unknown shape: \$kind'),
+          };
+        }
+      }
+
+      class Circle implements Shape {
+        final double r;
+        Circle(this.r);
+        @override
+        double get area =&gt; 3.14159 * r * r;
+      }
+
+      class Square implements Shape {
+        final double side;
+        Square(this.side);
+        @override
+        double get area =&gt; side * side;
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="A single factory constructor has one entry point but several outcomes: it can return a cached instance, build a fresh one, or choose a subtype" style="max-width: 100%; height: auto;"><style>.fac2-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.fac2-title{font-size:16px;font-weight:600}.fac2-h{font-size:13px;font-weight:600}.fac2-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:12px;fill:#475569}.fac2-label{font-size:11px;fill:#64748b}.fac2-cap{font-size:12px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="fac2-t fac2-title">One entry point, several outcomes</text><rect x="262" y="54" width="196" height="50" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="360" y="76" text-anchor="middle" class="fac2-t fac2-h">factory Logger(name)</text><text x="360" y="94" text-anchor="middle" class="fac2-t fac2-label">the one call site</text><line x1="300" y1="104" x2="150" y2="158" stroke="#9333ea" stroke-width="2" marker-end="url(#fac2-p)"/><line x1="360" y1="104" x2="360" y2="158" stroke="#9333ea" stroke-width="2" marker-end="url(#fac2-p)"/><line x1="420" y1="104" x2="570" y2="158" stroke="#9333ea" stroke-width="2" marker-end="url(#fac2-p)"/><rect x="42" y="160" width="200" height="86" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="8"/><text x="142" y="186" text-anchor="middle" class="fac2-t fac2-h">Cached</text><text x="142" y="208" text-anchor="middle" class="fac2-t fac2-mn">return _cache[name]</text><text x="142" y="230" text-anchor="middle" class="fac2-t fac2-label">same object returned</text><rect x="260" y="160" width="200" height="86" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="8"/><text x="360" y="186" text-anchor="middle" class="fac2-t fac2-h">Fresh</text><text x="360" y="208" text-anchor="middle" class="fac2-t fac2-mn">return Logger._(name)</text><text x="360" y="230" text-anchor="middle" class="fac2-t fac2-label">a brand new instance</text><rect x="478" y="160" width="200" height="86" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="8"/><text x="578" y="186" text-anchor="middle" class="fac2-t fac2-h">Subtype</text><text x="578" y="208" text-anchor="middle" class="fac2-t fac2-mn">return FileLogger()</text><text x="578" y="230" text-anchor="middle" class="fac2-t fac2-label">a chosen subclass</text><text x="360" y="288" text-anchor="middle" class="fac2-t fac2-cap">A generative constructor must build a fresh instance.</text><text x="360" y="308" text-anchor="middle" class="fac2-t fac2-cap">A factory is free to return any of these.</text><defs><marker id="fac2-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      Look at the call site. <code>Shape('circle', 10)</code> reads exactly like a constructor, yet it hands back a <code>Circle</code>. The caller depends on <code>Shape</code> and nothing else.
+      <br><br>
+      <pre><code>final s = Shape('circle', 10);
+      print(s.area);            // 314.159
+      print(s is Circle);       // true — but the caller didn't ask for one</code></pre>
+      This is the classic "factory method" use: choosing an implementation behind a shared interface. Platform-specific code lives here too — a <code>Storage()</code> factory returning <code>WebStorage</code> on the web and <code>FileStorage</code> on mobile, with every caller blissfully unaware which one it got.
+
+  - id: factories-all-over-flutter
+    title: "Factories are everywhere in Flutter"
+    summary: |
+      Once you know the shape, you'll see factories threaded through the framework and through every app you write. Some are named the pattern; most just quietly use it.
+      <br><br>
+      <strong>The .of(context) idiom.</strong> <code>Theme.of(context)</code>, <code>MediaQuery.of(context)</code>, <code>Navigator.of(context)</code> — these are factory-method-style lookups. <code>Theme.of</code> is a static method that walks up the widget tree and returns the nearest inherited <code>ThemeData</code>. You ask for theme data; the method finds and hands back the right instance. You never construct it yourself.
+      <br><br>
+      <pre><code>// You don't build ThemeData. You ask for it,
+      // and the framework returns the inherited one.
+      final theme = Theme.of(context);
+      final color = theme.colorScheme.primary;</code></pre>
+      <strong>The .fromJson factory.</strong> Every model class you parse from an API uses this convention — a factory constructor that takes a decoded <code>Map</code> and returns a typed object.
+      <br><br>
+      <pre><code>class User {
+        final int id;
+        final String name;
+        User._(this.id, this.name);
+
+        factory User.fromJson(Map&lt;String, dynamic&gt; json) {
+          return User._(json['id'] as int, json['name'] as String);
+        }
+      }</code></pre>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="A fromJson factory takes an untyped Map of decoded JSON, validates and reads its fields, and returns a typed Dart object" style="max-width: 100%; height: auto;"><style>.fac3-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.fac3-title{font-size:16px;font-weight:600}.fac3-h{font-size:13px;font-weight:600}.fac3-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.fac3-mns{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#1e293b}.fac3-label{font-size:11px;fill:#64748b}.fac3-cap{font-size:12px;fill:#64748b}</style><text x="360" y="28" text-anchor="middle" class="fac3-t fac3-title">From an untyped Map to a typed object</text><rect x="28" y="74" width="178" height="120" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" rx="8"/><text x="117" y="98" text-anchor="middle" class="fac3-t fac3-h">Map&lt;String, dynamic&gt;</text><text x="117" y="115" text-anchor="middle" class="fac3-t fac3-label">decoded JSON</text><text x="44" y="142" class="fac3-t fac3-mns">{</text><text x="58" y="160" class="fac3-t fac3-mns">'id': 7,</text><text x="58" y="178" class="fac3-t fac3-mns">'name': 'Ada'</text><text x="44" y="188" class="fac3-t fac3-mns">}</text><line x1="206" y1="134" x2="256" y2="134" stroke="#94a3b8" stroke-width="2" marker-end="url(#fac3-a)"/><rect x="258" y="74" width="204" height="120" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="360" y="98" text-anchor="middle" class="fac3-t fac3-h">User.fromJson(map)</text><text x="360" y="114" text-anchor="middle" class="fac3-t fac3-label">factory constructor</text><text x="274" y="140" class="fac3-t fac3-mn">read fields</text><text x="274" y="158" class="fac3-t fac3-mn">validate types</text><text x="274" y="176" class="fac3-t fac3-mn">return User._(...)</text><line x1="462" y1="134" x2="512" y2="134" stroke="#94a3b8" stroke-width="2" marker-end="url(#fac3-a)"/><rect x="514" y="74" width="178" height="120" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="8"/><text x="603" y="98" text-anchor="middle" class="fac3-t fac3-h">User</text><text x="603" y="115" text-anchor="middle" class="fac3-t fac3-label">typed instance</text><text x="530" y="142" class="fac3-t fac3-mns">id:   int  7</text><text x="530" y="166" class="fac3-t fac3-mns">name: 'Ada'</text><text x="360" y="240" text-anchor="middle" class="fac3-t fac3-cap">The factory is the one place that knows the JSON shape.</text><text x="360" y="262" text-anchor="middle" class="fac3-t fac3-cap">The rest of the app only ever sees a typed User.</text><defs><marker id="fac3-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs></svg>
+      <br><br>
+      And there are factories hiding in plain sight. <code>Icon</code> sits in front of a glyph lookup. <code>List.from</code>, <code>Map.fromEntries</code>, <code>Uri.parse</code> — all of these take some input and decide what to build. Construction with a brain, wherever the input needs interpreting.
+
+  - id: factories-and-const-caching
+    title: "Factories, const, and caching"
+    summary: |
+      Caching is where factory constructors earn their keep. If two callers ask for the same thing, why build it twice? The factory holds a store and hands back what it already made.
+      <br><br>
+      <pre><code>class Currency {
+        final String code;
+        const Currency._(this.code);
+
+        static final _pool = &lt;String, Currency&gt;{};
+
+        factory Currency(String code) {
+          return _pool.putIfAbsent(code, () =&gt; Currency._(code));
+        }
+      }
+
+      final usd1 = Currency('USD');
+      final usd2 = Currency('USD');
+      print(identical(usd1, usd2));   // true — one object, shared</code></pre>
+      Now the rule you have to keep straight. <strong>A factory constructor cannot itself be <code>const</code>.</strong> A <code>const</code> constructor has to be a compile-time recipe the compiler can evaluate and canonicalise. A factory runs arbitrary code at runtime — a cache lookup, a switch, a throw. The two ideas don't mix, and Dart won't let you write <code>const factory</code>.
+      <br><br>
+      But here's the nuance that trips people up: a factory <em>can return</em> an instance that was built by a <code>const</code> constructor. So you still get canonicalisation — just chosen at runtime rather than guaranteed at compile time.
+      <br><br>
+      <pre><code>class Glyph {
+        final int code;
+        const Glyph._(this.code);     // const, canonicalised
+
+        // Not const itself, but it returns canonicalised
+        // const instances. Two 'star' lookups share one object.
+        factory Glyph(String name) =&gt; switch (name) {
+          'star' =&gt; const Glyph._(0x2605),
+          'heart' =&gt; const Glyph._(0x2665),
+          _ =&gt; throw ArgumentError(name),
+        };
+      }</code></pre>
+      So the boundary is sharp. The factory is runtime logic; the things it returns can still be compile-time constants. You lose <code>const</code> on the door and keep it on what walks through.
+
+  - id: abstract-factory
+    title: "Abstract Factory — families of related objects"
+    summary: |
+      A single factory picks one object. Sometimes you need to pick a whole <em>family</em> of objects that are meant to work together — and that's the Abstract Factory pattern.
+      <br><br>
+      The classic Flutter example is platform styling. On iOS you want a <code>CupertinoApp</code>, a sliding navigation bar, a rounded switch — a matching set. On Android you want the Material equivalents. You don't want to mix one from each; a Cupertino switch inside a Material app looks wrong. So you choose the <em>factory</em> once, and every widget it produces belongs to the same family.
+      <br><br>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 350" role="img" aria-label="An abstract factory switches on the platform to pick a whole family of related widgets: the Material family on Android or the Cupertino family on iOS" style="max-width: 100%; height: auto;"><style>.fac4-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#1e293b}.fac4-title{font-size:16px;font-weight:600}.fac4-h{font-size:13px;font-weight:600}.fac4-mn{font-family:"SF Mono",Menlo,Monaco,monospace;font-size:11px;fill:#475569}.fac4-label{font-size:11px;fill:#64748b}.fac4-cap{font-size:12px;fill:#64748b}.fac4-fam{font-size:12px;font-weight:600}</style><text x="360" y="28" text-anchor="middle" class="fac4-t fac4-title">One switch picks a whole family, not one object</text><rect x="270" y="50" width="180" height="48" fill="#ede9fe" stroke="#9333ea" stroke-width="2" rx="8"/><text x="360" y="71" text-anchor="middle" class="fac4-t fac4-h">platform?</text><text x="360" y="89" text-anchor="middle" class="fac4-t fac4-label">the abstract factory</text><line x1="305" y1="98" x2="200" y2="138" stroke="#9333ea" stroke-width="2" marker-end="url(#fac4-p)"/><line x1="415" y1="98" x2="520" y2="138" stroke="#9333ea" stroke-width="2" marker-end="url(#fac4-p)"/><text x="232" y="128" text-anchor="middle" class="fac4-t fac4-label">Android</text><text x="488" y="128" text-anchor="middle" class="fac4-t fac4-label">iOS</text><rect x="40" y="140" width="290" height="170" fill="#f0fdf4" stroke="#10b981" stroke-width="1.5" rx="10"/><text x="185" y="164" text-anchor="middle" class="fac4-t fac4-fam" fill="#10b981">Material family</text><rect x="58" y="178" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="118" y="203" text-anchor="middle" class="fac4-t fac4-mn">MaterialApp</text><rect x="192" y="178" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="252" y="203" text-anchor="middle" class="fac4-t fac4-mn">AppBar</text><rect x="58" y="228" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="118" y="253" text-anchor="middle" class="fac4-t fac4-mn">Switch</text><rect x="192" y="228" width="120" height="40" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="6"/><text x="252" y="253" text-anchor="middle" class="fac4-t fac4-mn">ElevatedButton</text><text x="185" y="292" text-anchor="middle" class="fac4-t fac4-label">parts designed to go together</text><rect x="390" y="140" width="290" height="170" fill="#eff6ff" stroke="#0369a1" stroke-width="1.5" rx="10"/><text x="535" y="164" text-anchor="middle" class="fac4-t fac4-fam" fill="#0369a1">Cupertino family</text><rect x="408" y="178" width="120" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="6"/><text x="468" y="203" text-anchor="middle" class="fac4-t fac4-mn">CupertinoApp</text><rect x="542" y="178" width="120" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="6"/><text x="602" y="203" text-anchor="middle" class="fac4-t fac4-mn">NavigationBar</text><rect x="408" y="228" width="120" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="6"/><text x="468" y="253" text-anchor="middle" class="fac4-t fac4-mn">CupertinoSwitch</text><rect x="542" y="228" width="120" height="40" fill="#dbeafe" stroke="#0369a1" stroke-width="1.5" rx="6"/><text x="602" y="253" text-anchor="middle" class="fac4-t fac4-mn">FilledButton</text><text x="535" y="292" text-anchor="middle" class="fac4-t fac4-label">a matching set for the platform</text><text x="360" y="334" text-anchor="middle" class="fac4-t fac4-cap">Pick the factory once. Every widget it makes belongs to the same family.</text><defs><marker id="fac4-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker></defs></svg>
+      <br><br>
+      In code, an abstract factory is an interface whose methods each build one member of the family. Concrete factories implement it per platform.
+      <br><br>
+      <pre><code>abstract interface class WidgetKit {
+        Widget button(String label, VoidCallback onTap);
+        Widget toggle(bool value, ValueChanged&lt;bool&gt; onChanged);
+      }
+
+      class MaterialKit implements WidgetKit {
+        @override
+        Widget button(String label, VoidCallback onTap) =&gt;
+            ElevatedButton(onPressed: onTap, child: Text(label));
+        @override
+        Widget toggle(bool v, ValueChanged&lt;bool&gt; onChanged) =&gt;
+            Switch(value: v, onChanged: onChanged);
+      }
+
+      // CupertinoKit implements the same interface with
+      // CupertinoButton and CupertinoSwitch.
+
+      // Choose the family once.
+      final WidgetKit kit = Platform.isIOS ? CupertinoKit() : MaterialKit();
+      kit.button('Save', save);   // the right button, guaranteed to match</code></pre>
+      The whole screen now leans on <code>WidgetKit</code>, never on a concrete widget. Swap the kit and the entire UI re-skins, every part still matching its siblings.
+
+  - id: when-to-reach-for-a-factory
+    title: "When to use a factory — and when not to"
+    summary: |
+      A factory is construction with logic bolted on. That logic has a cost, so reach for it only when a plain constructor genuinely can't do the job.
+      <br><br>
+      <strong>Use a factory when:</strong>
+      <br>• You need to return a cached or shared instance instead of always allocating.
+      <br>• You need to choose a concrete subtype at runtime — from a string, a platform, a config.
+      <br>• Construction needs validation or transformation, like parsing a <code>Map</code> in <code>fromJson</code>.
+      <br>• You want a named, intention-revealing way to build, such as <code>Colour.fromHex('#9333ea')</code>.
+      <br><br>
+      <strong>Stick with a plain constructor when:</strong>
+      <br>• You just need to set fields. A factory here is pure ceremony.
+      <br>• You want <code>const</code>. A factory can't be const, so a value type you'd like canonicalised at compile time should keep a const generative constructor.
+      <br>• Subclasses must call <code>super</code>. A factory isn't part of the initialisation chain — a subclass can't invoke a factory constructor with <code>super</code>, so a base class meant to be extended usually needs a generative constructor.
+      <br><br>
+      <strong>The trade-offs, plainly.</strong> A factory buys you decoupling and a seam for caching or substitution. It costs you <code>this</code>, costs you <code>const</code>, and adds a layer the reader has to step through to see what's really built. The decoupling is real and worth paying for when the construction is doing something. When it isn't, you're wrapping a one-line job in a keyword for no reason.
+      <br><br>
+      And notice the through-line back to Strategy. Strategy decouples <em>which behaviour runs</em>; Factory decouples <em>which object gets built</em>. Both push a concrete decision behind an interface so the caller stays ignorant — and an abstract factory is really just a strategy whose job happens to be construction.
+quiz:
+  title: "Test your understanding"
+  description: "Seven questions on the factory pattern — factory constructors, returning subtypes and cached instances, the const boundary, abstract factories, and where factories live inside Flutter."
+  questions:
+    - question: "What can a factory constructor do that a generative (normal) constructor cannot?"
+      options:
+        - "Initialise final fields directly in its parameter list"
+        - "Return a cached instance or an instance of a subtype, rather than always building a fresh object"
+        - "Run faster because it skips field initialisation"
+        - "Be marked const so the compiler canonicalises it"
+      correctIndex: 1
+      explanation: "A generative constructor always builds and returns a fresh instance of exactly its own class. A factory constructor has a body with an explicit return, so it can hand back a cached instance, a freshly built one, or an instance of a subtype. That freedom is the entire point of the keyword."
+    - question: "Why can't a factory constructor access this?"
+      options:
+        - "Because this is reserved for static methods"
+        - "Because factory constructors run on a background isolate"
+        - "Because no instance exists yet when the factory runs — it decides what to return before any object is created"
+        - "Because Dart forbids this in any constructor"
+      correctIndex: 2
+      explanation: "A factory constructor runs before there is an instance to refer to — its job is to decide which instance to return. With no object yet built, there is no this to touch instance fields through. That is the trade: you give up this and gain a runtime decision."
+    - question: "What must a factory constructor return?"
+      options:
+        - "Anything at all, including null"
+        - "An instance of its own class or a subtype of it"
+        - "Only a brand new instance, never a cached one"
+        - "A Future that completes with the instance"
+      correctIndex: 1
+      explanation: "The single constraint on a factory constructor is that it returns an instance that is-a the class — the class itself or one of its subtypes. That is exactly what lets a Shape factory return a Circle, and what makes runtime type selection possible behind a shared interface."
+    - question: "Why can a factory constructor not be declared const?"
+      options:
+        - "Because const constructors are slower"
+        - "Because a const constructor must be a compile-time recipe, while a factory runs arbitrary code at runtime"
+        - "Because const is only allowed on classes with no fields"
+        - "Because Dart removed const factories in Dart 3"
+      correctIndex: 1
+      explanation: "A const constructor must be evaluable and canonicalised by the compiler at compile time. A factory runs real code — a cache lookup, a switch, a throw — so the two are incompatible and const factory is not allowed. A factory can, however, return an instance that was built by a const constructor."
+    - question: "What is Theme.of(context) an example of?"
+      options:
+        - "A const generative constructor"
+        - "A factory-method-style lookup that finds and returns an existing ThemeData rather than constructing one"
+        - "The strategy pattern applied to scrolling"
+        - "A broadcast stream of theme changes"
+      correctIndex: 1
+      explanation: "Theme.of(context) is a static method that walks up the widget tree and returns the nearest inherited ThemeData. You ask for theme data and the framework finds and hands back the right instance — factory-method style. You never construct the ThemeData yourself."
+    - question: "How does an Abstract Factory differ from a single factory method?"
+      options:
+        - "It can only be used in pure Dart, never in Flutter"
+        - "It builds one object faster by caching it"
+        - "It produces a whole family of related objects designed to work together, rather than choosing a single object"
+        - "It is just another name for a const constructor"
+      correctIndex: 2
+      explanation: "A factory method picks one concrete object behind an interface. An abstract factory groups several related creations behind one interface so an entire family is chosen together — for example a Material kit versus a Cupertino kit — guaranteeing the parts match instead of being mixed."
+    - question: "When is a plain generative constructor the better choice over a factory?"
+      options:
+        - "When you simply need to set fields, want a const constructor, or need subclasses to call super"
+        - "Whenever the class has more than two fields"
+        - "Whenever the object will be created more than once"
+        - "Never — factories are always preferable"
+      correctIndex: 0
+      explanation: "A factory adds a layer and gives up both this and const. If construction is just assigning fields, a factory is pure ceremony. You also need a generative constructor when you want const canonicalisation, or when a base class must be extended and subclasses invoke super — which a factory is not part of."
+---
+
+{/* Design Patterns: The Factory Pattern. Part of the Patterns: Creation series.
+    7 topics covering the problem with plain constructors, Dart's factory constructor,
+    factory methods selecting a subtype, factories across Flutter (.of/.fromJson/Icon),
+    factories with const and caching, abstract factory for widget families, and when to
+    reach for a factory versus a generative constructor. 4 inline SVG diagrams. */}

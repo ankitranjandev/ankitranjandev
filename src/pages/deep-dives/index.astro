@@ -219,8 +219,7 @@ const subjectOrder: Record<string, number> = {
         'System Design': '#dc2626',
       };
 
-      tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
+      const activateTab = (tab: Element) => {
           const category = tab.getAttribute('data-category');
 
           // Update tabs
@@ -244,8 +243,24 @@ const subjectOrder: Record<string, number> = {
             const isActive = panel.getAttribute('data-category') === category;
             panel.classList.toggle('hidden', !isActive);
           });
-        });
+      };
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => activateTab(tab));
       });
+
+      // Deep links like /deep-dives/#swift open the matching category tab
+      const openFromHash = () => {
+        const slug = decodeURIComponent(location.hash.slice(1)).toLowerCase();
+        if (!slug) return;
+        const target = Array.from(tabs).find(t =>
+          (t.getAttribute('data-category') || '').toLowerCase().replace(/\s+/g, '-') === slug
+        );
+        if (target) activateTab(target);
+      };
+
+      openFromHash();
+      window.addEventListener('hashchange', openFromHash);
     });
   </script>
 </BaseLayout>

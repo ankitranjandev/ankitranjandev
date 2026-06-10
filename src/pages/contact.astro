@@ -41,7 +41,7 @@ const expertise = [
   title="Contact"
   description="Get in touch with Ankit Ranjan for mobile development opportunities, consulting, or collaboration."
 >
-  <div class="content-grid py-12 md:py-20">
+  <div class="page-container py-12 md:py-20">
     <!-- Header -->
     <section class="mb-12">
       <div class="mb-4 flex items-center gap-3">
@@ -62,7 +62,7 @@ const expertise = [
     <!-- Contact Methods -->
     <section class="mb-12">
       <h2 class="mb-6 text-xl font-semibold">Get in touch</h2>
-      <div class="grid gap-4 max-w-md">
+      <div class="grid gap-4 md:grid-cols-3">
         {contactMethods.map(({ icon, label, value, href, description }) => (
           <a
             href={href}

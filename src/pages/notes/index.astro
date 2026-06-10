@@ -12,7 +12,7 @@ const notes = sortByDate(allNotes);
   title="Notes"
   description="Short-form thoughts and quick observations about Flutter, mobile development, and software engineering."
 >
-  <div class="content-grid py-12 md:py-16">
+  <div class="page-container py-12 md:py-16">
     <header class="mb-10">
       <h1 class="mb-4 text-3xl font-bold tracking-tight md:text-4xl">Notes</h1>
       <p class="text-lg text-[var(--text-secondary)]">
@@ -21,7 +21,7 @@ const notes = sortByDate(allNotes);
     </header>
 
     {notes.length > 0 ? (
-      <div class="grid gap-6 sm:grid-cols-2">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {notes.map((note) => (
           <NoteCard
             title={note.data.title}

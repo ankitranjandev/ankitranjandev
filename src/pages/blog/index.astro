@@ -16,7 +16,7 @@ const tags = getUniqueTags(filterDrafts(allPosts), allNotes);
   title="Blog"
   description="Articles about Flutter development, mobile app architecture, and software engineering."
 >
-  <div class="content-grid py-12 md:py-16">
+  <div class="page-container py-12 md:py-16">
     <header class="mb-10">
       <h1 class="mb-4 text-3xl font-bold tracking-tight md:text-4xl">Blog</h1>
       <p class="text-lg text-[var(--text-secondary)]">
@@ -33,7 +33,7 @@ const tags = getUniqueTags(filterDrafts(allPosts), allNotes);
     )}
 
     {posts.length > 0 ? (
-      <div class="grid gap-10">
+      <div class="grid gap-6 lg:grid-cols-2">
         {posts.map((post) => (
           <PostCard
             title={post.data.title}

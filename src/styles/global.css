@@ -55,10 +55,10 @@
   }
 
   .dark {
-    --bg: #0c0a09;
+    --bg: #131211;
     --bg-secondary: #1c1917;
     --bg-elevated: #292524;
-    --text: #fafaf9;
+    --text: #e7e5e4;
     --text-secondary: #a8a29e;
     --text-tertiary: #8a8580; /* 5.4:1 on dark --bg — WCAG AA for small text */
     --border: #292524;

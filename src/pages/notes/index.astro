@@ -24,6 +24,7 @@ const notes = sortByDate(allNotes);
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {notes.map((note) => (
           <NoteCard
+            headingLevel="h2"
             title={note.data.title}
             publishedAt={note.data.publishedAt}
             tags={note.data.tags}

@@ -35,7 +35,7 @@ const categoryMeta: Record<string, { color: string; description: string }> = {
     description: 'Master the Dart programming language from first principles to advanced features.'
   },
   'Swift': {
-    color: '#F05138',
+    color: '#C7411F', /* darkened from #F05138 — 5:1 with white text (WCAG AA) */
     description: 'Master Swift from its origins and compiler internals to value semantics, protocols, and modern concurrency.'
   },
   'Design Patterns': {
@@ -113,8 +113,10 @@ const subjectOrder: Record<string, number> = {
         {categories.map((category, idx) => (
           <button
             role="tab"
+            id={`tab-${category.toLowerCase().replace(/\s+/g, '-')}`}
             aria-selected={idx === 0 ? 'true' : 'false'}
             aria-controls={`panel-${category.toLowerCase().replace(/\s+/g, '-')}`}
+            tabindex={idx === 0 ? 0 : -1}
             data-category={category}
             class:list={[
               'category-tab px-4 py-2 rounded-lg font-medium text-sm transition-all',
@@ -125,7 +127,7 @@ const subjectOrder: Record<string, number> = {
             style={idx === 0 ? `background-color: ${categoryMeta[category]?.color || '#0175C2'}` : ''}
           >
             {category}
-            <span class="ml-2 text-xs opacity-75">
+            <span class="ml-2 text-xs">
               ({Object.values(groupedByCategory[category]).flat().length})
             </span>
           </button>
@@ -146,6 +148,8 @@ const subjectOrder: Record<string, number> = {
         <div
           role="tabpanel"
           id={`panel-${category.toLowerCase().replace(/\s+/g, '-')}`}
+          aria-labelledby={`tab-${category.toLowerCase().replace(/\s+/g, '-')}`}
+          tabindex="0"
           data-category={category}
           class:list={['category-panel', idx !== 0 && 'hidden']}
         >
@@ -212,7 +216,7 @@ const subjectOrder: Record<string, number> = {
       // Get category metadata colors
       const categoryColors: Record<string, string> = {
         'Dart': '#0175C2',
-        'Swift': '#F05138',
+        'Swift': '#C7411F',
         'Design Patterns': '#9333ea',
         'Flutter': '#02569B',
         'Kotlin': '#7F52FF',
@@ -226,6 +230,7 @@ const subjectOrder: Record<string, number> = {
           tabs.forEach(t => {
             const isActive = t.getAttribute('data-category') === category;
             t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            t.setAttribute('tabindex', isActive ? '0' : '-1');
 
             if (isActive) {
               t.classList.remove('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]');
@@ -247,6 +252,28 @@ const subjectOrder: Record<string, number> = {
 
       tabs.forEach(tab => {
         tab.addEventListener('click', () => activateTab(tab));
+      });
+
+      // Arrow-key navigation per the WAI-ARIA tabs pattern
+      const tabList = document.querySelector('[role="tablist"]');
+      tabList?.addEventListener('keydown', (e) => {
+        const event = e as KeyboardEvent;
+        const tabArray = Array.from(tabs);
+        const current = tabArray.indexOf(document.activeElement as Element);
+        if (current === -1) return;
+
+        let next: number | null = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % tabArray.length;
+        else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + tabArray.length) % tabArray.length;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = tabArray.length - 1;
+
+        if (next !== null) {
+          event.preventDefault();
+          const target = tabArray[next] as HTMLElement;
+          activateTab(target);
+          target.focus();
+        }
       });
 
       // Deep links like /deep-dives/#swift open the matching category tab

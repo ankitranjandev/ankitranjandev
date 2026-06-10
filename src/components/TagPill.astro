@@ -24,12 +24,12 @@ const linkClasses = `${baseClasses} no-underline transition-all hover:border-acc
   linked ? (
     <a href={href} class={linkClasses}>
       {tag}
-      {count !== undefined && <span class="text-[var(--text-secondary)]/60">({count})</span>}
+      {count !== undefined && <span class="text-[var(--text-tertiary)]">({count})</span>}
     </a>
   ) : (
     <span class={baseClasses}>
       {tag}
-      {count !== undefined && <span class="opacity-60">({count})</span>}
+      {count !== undefined && <span class="text-[var(--text-tertiary)]">({count})</span>}
     </span>
   )
 }

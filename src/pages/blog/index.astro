@@ -36,6 +36,7 @@ const tags = getUniqueTags(filterDrafts(allPosts), allNotes);
       <div class="grid gap-6 lg:grid-cols-2">
         {posts.map((post) => (
           <PostCard
+            headingLevel="h2"
             title={post.data.title}
             description={post.data.description}
             publishedAt={post.data.publishedAt}

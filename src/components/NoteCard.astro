@@ -7,9 +7,11 @@ interface Props {
   publishedAt: Date;
   tags: string[];
   href: string;
+  headingLevel?: 'h2' | 'h3';
 }
 
-const { title, publishedAt, tags, href } = Astro.props;
+const { title, publishedAt, tags, href, headingLevel = 'h3' } = Astro.props;
+const Heading = headingLevel;
 ---
 
 <article class="group relative">
@@ -25,9 +27,9 @@ const { title, publishedAt, tags, href } = Astro.props;
             <path d="m12 5 7 7-7 7"></path>
           </svg>
         </div>
-        <h3 class="font-semibold text-[var(--text)] transition-colors group-hover:text-accent">
+        <Heading class="font-semibold text-[var(--text)] transition-colors group-hover:text-accent">
           {title}
-        </h3>
+        </Heading>
         {tags.length > 0 && (
           <div class="flex flex-wrap gap-1.5 pt-1">
             {tags.slice(0, 2).map((tag) => (

@@ -5,7 +5,7 @@ module.exports = {
       url: [
         'http://localhost/index.html',
         'http://localhost/blog/index.html',
-        'http://localhost/about/index.html',
+        'http://localhost/contact/index.html',
         'http://localhost/deep-dives/index.html',
         'http://localhost/notes/index.html',
       ],

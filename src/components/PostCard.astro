@@ -9,10 +9,12 @@ interface Props {
   tags: string[];
   href: string;
   body?: string;
+  headingLevel?: 'h2' | 'h3';
 }
 
-const { title, description, publishedAt, tags, href, body } = Astro.props;
+const { title, description, publishedAt, tags, href, body, headingLevel = 'h3' } = Astro.props;
 const readingTime = body ? getReadingTimeFromBody(body) : undefined;
+const Heading = headingLevel;
 ---
 
 <article class="group relative">
@@ -28,9 +30,9 @@ const readingTime = body ? getReadingTimeFromBody(body) : undefined;
             </>
           )}
         </div>
-        <h3 class="text-lg font-semibold text-[var(--text)] transition-colors group-hover:text-accent md:text-xl">
+        <Heading class="text-lg font-semibold text-[var(--text)] transition-colors group-hover:text-accent md:text-xl">
           {title}
-        </h3>
+        </Heading>
         <p class="text-[var(--text-secondary)] line-clamp-2 leading-relaxed">{description}</p>
         {tags.length > 0 && (
           <div class="flex flex-wrap gap-2 pt-1">

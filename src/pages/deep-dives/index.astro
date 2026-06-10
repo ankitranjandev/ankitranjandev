@@ -121,8 +121,8 @@ const subjectOrder: Record<string, number> = {
             class:list={[
               'category-tab px-4 py-2 rounded-lg font-medium text-sm transition-all',
               idx === 0
-                ? 'bg-accent text-white'
-                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)]'
+                ? 'text-white'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text)]'
             ]}
             style={idx === 0 ? `background-color: ${categoryMeta[category]?.color || '#0175C2'}` : ''}
           >
@@ -233,11 +233,11 @@ const subjectOrder: Record<string, number> = {
             t.setAttribute('tabindex', isActive ? '0' : '-1');
 
             if (isActive) {
-              t.classList.remove('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]');
+              t.classList.remove('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]', 'hover:bg-[var(--bg-elevated)]', 'hover:text-[var(--text)]');
               t.classList.add('text-white');
               (t as HTMLElement).style.backgroundColor = categoryColors[category!] || '#0175C2';
             } else {
-              t.classList.add('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]');
+              t.classList.add('bg-[var(--bg-secondary)]', 'text-[var(--text-secondary)]', 'hover:bg-[var(--bg-elevated)]', 'hover:text-[var(--text)]');
               t.classList.remove('text-white');
               (t as HTMLElement).style.backgroundColor = '';
             }

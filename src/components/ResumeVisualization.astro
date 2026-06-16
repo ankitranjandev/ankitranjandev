@@ -13,11 +13,7 @@ interface Experience {
   highlights: string[];
 }
 
-interface Skill {
-  name: string;
-  level: number; // 0-100
-  category: 'language' | 'framework' | 'tool' | 'platform';
-}
+type Skill = string;
 
 const experiences: Experience[] = [
   {
@@ -70,14 +66,14 @@ const experiences: Experience[] = [
 ];
 
 const skills: Skill[] = [
-  { name: 'Flutter', level: 95, category: 'framework' },
-  { name: 'Dart', level: 95, category: 'language' },
-  { name: 'Kotlin', level: 85, category: 'language' },
-  { name: 'Swift', level: 80, category: 'language' },
-  { name: 'Clean Architecture', level: 90, category: 'tool' },
-  { name: 'BLoC', level: 92, category: 'framework' },
-  { name: 'Firebase', level: 88, category: 'platform' },
-  { name: 'CI/CD', level: 85, category: 'tool' },
+  'Flutter',
+  'Dart',
+  'Kotlin',
+  'Swift',
+  'Clean Architecture',
+  'BLoC',
+  'Firebase',
+  'CI/CD',
 ];
 
 const metrics = [
@@ -173,13 +169,7 @@ const openSource = [
     <div class="skills-grid">
       {skills.map((skill, i) => (
         <div class="skill-item" style={`--delay: ${i * 0.05}s`}>
-          <div class="skill-header">
-            <span class="skill-name">{skill.name}</span>
-            <span class="skill-percent">{skill.level}%</span>
-          </div>
-          <div class="skill-bar">
-            <div class="skill-fill" style={`--level: ${skill.level}%`}></div>
-          </div>
+          <span class="skill-name">{skill}</span>
         </div>
       ))}
     </div>
@@ -451,15 +441,9 @@ const openSource = [
   }
 
   .skills-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(1, 1fr);
-  }
-
-  @media (min-width: 640px) {
-    .skills-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .skill-item {
@@ -469,41 +453,21 @@ const openSource = [
     transform: translateY(10px);
   }
 
-  .skill-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-  }
-
   .skill-name {
+    display: inline-block;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
     color: var(--text);
+    transition: all 0.2s ease;
   }
 
-  .skill-percent {
-    font-size: 0.8rem;
-    font-weight: 600;
+  .skill-item:hover .skill-name {
+    border-color: var(--color-accent);
     color: var(--color-accent);
-    font-family: var(--font-mono);
-  }
-
-  .skill-bar {
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .skill-fill {
-    height: 100%;
-    width: var(--level);
-    background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
-    border-radius: 3px;
-    animation: fillBar 1s ease-out forwards;
-    animation-delay: calc(var(--delay) + 0.3s);
-    transform-origin: left;
-    transform: scaleX(0);
   }
 
   /* Timeline section */
@@ -800,12 +764,6 @@ const openSource = [
     to {
       opacity: 1;
       transform: translateY(0);
-    }
-  }
-
-  @keyframes fillBar {
-    to {
-      transform: scaleX(1);
     }
   }
 </style>

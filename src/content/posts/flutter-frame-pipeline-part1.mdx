@@ -318,6 +318,7 @@ class _VsyncDemoState extends State<VsyncDemo>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   Duration _elapsed = Duration.zero;
+  double interval = 0.0;
 
   @override
   void initState() {
@@ -326,6 +327,8 @@ class _VsyncDemoState extends State<VsyncDemo>
     // It fires once per VSync while running
     _ticker = createTicker((elapsed) {
       setState(() {
+        int delta = elapsed.inMicroseconds - _elapsed.inMicroseconds;
+        interval =  delta/1000.0;
         _elapsed = elapsed;
       });
     });
@@ -340,11 +343,16 @@ class _VsyncDemoState extends State<VsyncDemo>
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Elapsed: ${_elapsed.inMilliseconds}ms',
+    return MaterialApp(
+      builder: (context, child) => Scaffold(
+        body: Center(
+          child: Text(
+        'Elapsed: ${_elapsed.inMilliseconds}ms, duration between ticks: $interval ms',
         style: Theme.of(context).textTheme.headlineMedium,
       ),
+        ),
+      ),
+      
     );
   }
 }

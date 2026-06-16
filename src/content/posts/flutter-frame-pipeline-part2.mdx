@@ -15,7 +15,7 @@ In Part 1, we traced the VSync pulse through Flutter's engine to the Dart framew
 
 By the end of this part, you'll understand exactly what happens between `flushPaint()` and pixels appearing on the display — and why Impeller fixed a class of jank that Skia couldn't.
 
-## Paint and the Layer Tree
+## Rung 4: Paint and the Layer Tree
 
 ### Paint Is Recording, Not Drawing
 
@@ -35,71 +35,7 @@ void paint(PaintingContext context, Offset offset) {
 The `canvas` here isn't connected to the screen. It's a `Canvas` that wraps a `PictureRecorder`. Every `draw` call adds an operation to an internal list. When painting finishes, `endRecording()` produces a `Picture` — an immutable, replayable recording of all those commands.
 
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="Paint phase: Canvas records commands into a Picture, not pixels">
-  <defs>
-    <marker id="fp2-pr-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
-    </marker>
-  </defs>
-  <style>
-    .fp2pr-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2pr-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2pr-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
-    .fp2pr-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
-  </style>
-
-  <text x="360" y="28" text-anchor="middle" class="fp2pr-title">Paint: Recording Commands, Not Drawing Pixels</text>
-
-  <!-- PictureRecorder + Canvas -->
-  <g transform="translate(30, 55)">
-    <rect x="0" y="0" width="180" height="140" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
-    <text x="90" y="22" text-anchor="middle" class="fp2pr-label">PictureRecorder</text>
-
-    <rect x="15" y="35" width="150" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="90" y="55" text-anchor="middle" class="fp2pr-label">Canvas</text>
-    <text x="90" y="75" text-anchor="middle" class="fp2pr-small">Records draw calls</text>
-    <text x="90" y="90" text-anchor="middle" class="fp2pr-small">as commands, not</text>
-    <text x="90" y="105" text-anchor="middle" class="fp2pr-small">as pixels</text>
-  </g>
-
-  <!-- Draw commands flowing in -->
-  <g transform="translate(230, 55)">
-    <rect x="0" y="0" width="200" height="140" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
-    <text x="100" y="22" text-anchor="middle" class="fp2pr-label">Draw Commands</text>
-
-    <text x="100" y="48" text-anchor="middle" class="fp2pr-code">canvas.drawRect(...)</text>
-    <text x="100" y="68" text-anchor="middle" class="fp2pr-code">canvas.drawLine(...)</text>
-    <text x="100" y="88" text-anchor="middle" class="fp2pr-code">canvas.drawParagraph(...)</text>
-    <text x="100" y="108" text-anchor="middle" class="fp2pr-code">canvas.drawImage(...)</text>
-    <text x="100" y="128" text-anchor="middle" class="fp2pr-code">canvas.clipPath(...)</text>
-  </g>
-
-  <!-- Arrow to Picture -->
-  <g transform="translate(440, 115)">
-    <line x1="0" y1="0" x2="35" y2="0" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp2-pr-arrow)"/>
-    <text x="18" y="-8" text-anchor="middle" class="fp2pr-code">.endRecording()</text>
-  </g>
-
-  <!-- Picture output -->
-  <g transform="translate(490, 55)">
-    <rect x="0" y="0" width="200" height="140" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
-    <text x="100" y="22" text-anchor="middle" class="fp2pr-label">Picture</text>
-
-    <rect x="15" y="35" width="170" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="100" y="58" text-anchor="middle" class="fp2pr-small">Immutable recording of</text>
-    <text x="100" y="75" text-anchor="middle" class="fp2pr-small">all draw commands</text>
-    <text x="100" y="95" text-anchor="middle" class="fp2pr-small">No pixels yet — just</text>
-    <text x="100" y="112" text-anchor="middle" class="fp2pr-small">a list of operations</text>
-  </g>
-
-  <!-- Key insight -->
-  <g transform="translate(30, 215)">
-    <rect x="0" y="0" width="660" height="70" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
-    <text x="330" y="20" text-anchor="middle" class="fp2pr-label" fill="var(--svg-purple, #9333ea)">Why Recording Matters</text>
-    <text x="330" y="40" text-anchor="middle" class="fp2pr-small">The Picture can be replayed multiple times, cached, or composited with other Pictures.</text>
-    <text x="330" y="55" text-anchor="middle" class="fp2pr-small">This is how RepaintBoundary works — it caches the Picture and only re-records when needed.</text>
-  </g>
-</svg>
+<img src="/assets/flutter-frame-pipeline/fp2-paint-recording.svg" alt="Paint records commands into a Picture, not pixels" />
 </figure>
 
 Why record instead of draw directly? Three reasons:
@@ -147,119 +83,7 @@ Not everything goes into a single `Picture`. Some operations require separate **
 **OffsetLayer** — Created by `RepaintBoundary`. Marks a subtree that can be composited independently.
 
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter layer tree structure: ContainerLayer containing various layer types">
-  <style>
-    .fp2lt-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2lt-label { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2lt-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
-    .fp2lt-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
-  </style>
-
-  <text x="360" y="28" text-anchor="middle" class="fp2lt-title">The Layer Tree</text>
-
-  <!-- Root: TransformLayer (RenderView) -->
-  <g transform="translate(280, 50)">
-    <rect x="0" y="0" width="160" height="45" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">TransformLayer</text>
-    <text x="80" y="32" text-anchor="middle" class="fp2lt-small">(RenderView root)</text>
-    <text x="80" y="42" text-anchor="middle" class="fp2lt-code">device pixel ratio</text>
-  </g>
-
-  <!-- Lines down to children -->
-  <line x1="360" y1="95" x2="360" y2="110" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="180" y1="110" x2="540" y2="110" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="180" y1="110" x2="180" y2="125" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="360" y1="110" x2="360" y2="125" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="540" y1="110" x2="540" y2="125" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-
-  <!-- OffsetLayer (RepaintBoundary) -->
-  <g transform="translate(100, 125)">
-    <rect x="0" y="0" width="160" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">OffsetLayer</text>
-    <text x="80" y="32" text-anchor="middle" class="fp2lt-small">(RepaintBoundary)</text>
-    <text x="80" y="48" text-anchor="middle" class="fp2lt-code">Isolated repaint zone</text>
-  </g>
-
-  <!-- OpacityLayer -->
-  <g transform="translate(280, 125)">
-    <rect x="0" y="0" width="160" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">OpacityLayer</text>
-    <text x="80" y="32" text-anchor="middle" class="fp2lt-small">(Opacity widget)</text>
-    <text x="80" y="48" text-anchor="middle" class="fp2lt-code">alpha: 0.5</text>
-  </g>
-
-  <!-- ClipRectLayer -->
-  <g transform="translate(460, 125)">
-    <rect x="0" y="0" width="160" height="55" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">ClipRectLayer</text>
-    <text x="80" y="32" text-anchor="middle" class="fp2lt-small">(ClipRect widget)</text>
-    <text x="80" y="48" text-anchor="middle" class="fp2lt-code">rect: 0,0,200,200</text>
-  </g>
-
-  <!-- Lines to PictureLayers -->
-  <line x1="180" y1="180" x2="180" y2="210" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="360" y1="180" x2="360" y2="210" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-  <line x1="540" y1="180" x2="540" y2="210" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
-
-  <!-- PictureLayer 1 -->
-  <g transform="translate(100, 210)">
-    <rect x="0" y="0" width="160" height="50" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">PictureLayer</text>
-    <text x="80" y="35" text-anchor="middle" class="fp2lt-small">Picture (cached draws)</text>
-  </g>
-
-  <!-- PictureLayer 2 -->
-  <g transform="translate(280, 210)">
-    <rect x="0" y="0" width="160" height="50" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">PictureLayer</text>
-    <text x="80" y="35" text-anchor="middle" class="fp2lt-small">Picture (cached draws)</text>
-  </g>
-
-  <!-- PictureLayer 3 -->
-  <g transform="translate(460, 210)">
-    <rect x="0" y="0" width="160" height="50" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="6"/>
-    <text x="80" y="18" text-anchor="middle" class="fp2lt-label">PictureLayer</text>
-    <text x="80" y="35" text-anchor="middle" class="fp2lt-small">Picture (cached draws)</text>
-  </g>
-
-  <!-- Layer types legend -->
-  <g transform="translate(30, 290)">
-    <rect x="0" y="0" width="660" height="115" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="8"/>
-    <text x="330" y="20" text-anchor="middle" class="fp2lt-label">Layer Types</text>
-
-    <rect x="20" y="35" width="140" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
-    <text x="90" y="48" text-anchor="middle" class="fp2lt-code">PictureLayer</text>
-    <text x="90" y="60" text-anchor="middle" class="fp2lt-small">Holds a Picture</text>
-
-    <rect x="175" y="35" width="140" height="32" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1" rx="4"/>
-    <text x="245" y="48" text-anchor="middle" class="fp2lt-code">TransformLayer</text>
-    <text x="245" y="60" text-anchor="middle" class="fp2lt-small">Matrix transform</text>
-
-    <rect x="330" y="35" width="140" height="32" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1" rx="4"/>
-    <text x="400" y="48" text-anchor="middle" class="fp2lt-code">OpacityLayer</text>
-    <text x="400" y="60" text-anchor="middle" class="fp2lt-small">Uses saveLayer!</text>
-
-    <rect x="485" y="35" width="155" height="32" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
-    <text x="563" y="48" text-anchor="middle" class="fp2lt-code">OffsetLayer</text>
-    <text x="563" y="60" text-anchor="middle" class="fp2lt-small">RepaintBoundary</text>
-
-    <rect x="20" y="75" width="140" height="32" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="4"/>
-    <text x="90" y="88" text-anchor="middle" class="fp2lt-code">ClipRectLayer</text>
-    <text x="90" y="100" text-anchor="middle" class="fp2lt-small">Rectangular clip</text>
-
-    <rect x="175" y="75" width="140" height="32" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="4"/>
-    <text x="245" y="88" text-anchor="middle" class="fp2lt-code">ClipPathLayer</text>
-    <text x="245" y="100" text-anchor="middle" class="fp2lt-small">Arbitrary path clip</text>
-
-    <rect x="330" y="75" width="140" height="32" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="1" rx="4"/>
-    <text x="400" y="88" text-anchor="middle" class="fp2lt-code">BackdropFilter</text>
-    <text x="400" y="100" text-anchor="middle" class="fp2lt-small">Expensive blur!</text>
-
-    <rect x="485" y="75" width="155" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
-    <text x="563" y="88" text-anchor="middle" class="fp2lt-code">ContainerLayer</text>
-    <text x="563" y="100" text-anchor="middle" class="fp2lt-small">Groups children</text>
-  </g>
-</svg>
+<img src="/assets/flutter-frame-pipeline/fp2-layer-tree.svg" alt="Flutter layer tree structure" />
 </figure>
 
 ### RepaintBoundary
@@ -284,7 +108,7 @@ The cost: each layer consumes memory and adds a compositing step. Don't wrap eve
 
 ---
 
-## The Handoff — Compositing to Scene
+## Rung 5: The Handoff — Compositing to Scene
 
 After `flushPaint()`, we have a tree of layers. Now `compositeFrame()` must turn this into a `Scene` and hand it to the engine.
 
@@ -344,111 +168,7 @@ This is `FlutterView.render()` — the function that ships the scene to the engi
 This is the **boundary**. Before this call: Dart code on the UI thread. After: C++ engine code, eventually running on the raster thread. No more Dart executes for this frame.
 
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="The handoff from UI thread to raster thread via FlutterView.render(scene)">
-  <defs>
-    <marker id="fp2-ho-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
-    </marker>
-    <marker id="fp2-ho-arrow-green" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-green, #10b981)"/>
-    </marker>
-  </defs>
-  <style>
-    .fp2ho-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2ho-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2ho-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
-    .fp2ho-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
-  </style>
-
-  <text x="360" y="28" text-anchor="middle" class="fp2ho-title">The UI → Raster Thread Handoff</text>
-
-  <!-- UI Thread Side -->
-  <g transform="translate(20, 50)">
-    <rect x="0" y="0" width="310" height="230" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2ho-label">UI Thread (Dart)</text>
-
-    <!-- Layer Tree -->
-    <rect x="20" y="40" width="130" height="50" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="85" y="60" text-anchor="middle" class="fp2ho-code">Layer Tree</text>
-    <text x="85" y="75" text-anchor="middle" class="fp2ho-small">from flushPaint()</text>
-
-    <!-- Arrow -->
-    <line x1="155" y1="65" x2="175" y2="65" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow)"/>
-
-    <!-- SceneBuilder -->
-    <rect x="180" y="40" width="110" height="50" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="235" y="60" text-anchor="middle" class="fp2ho-code">SceneBuilder</text>
-    <text x="235" y="75" text-anchor="middle" class="fp2ho-small">addToScene()</text>
-
-    <!-- Arrow down -->
-    <line x1="235" y1="95" x2="235" y2="115" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow)"/>
-
-    <!-- Scene -->
-    <rect x="160" y="120" width="130" height="45" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
-    <text x="225" y="140" text-anchor="middle" class="fp2ho-code">Scene</text>
-    <text x="225" y="155" text-anchor="middle" class="fp2ho-small">(native pointer)</text>
-
-    <!-- Arrow down -->
-    <line x1="225" y1="170" x2="225" y2="190" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow)"/>
-
-    <!-- render call -->
-    <rect x="100" y="195" width="190" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="4"/>
-    <text x="195" y="212" text-anchor="middle" class="fp2ho-code">FlutterView.render(scene)</text>
-  </g>
-
-  <!-- The Boundary -->
-  <g transform="translate(340, 50)">
-    <rect x="0" y="0" width="40" height="230" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="4"/>
-    <text x="20" y="100" text-anchor="middle" transform="rotate(-90, 20, 100)" class="fp2ho-label" fill="var(--svg-red, #dc2626)">BOUNDARY</text>
-    <text x="20" y="135" text-anchor="middle" transform="rotate(-90, 20, 135)" class="fp2ho-small" fill="var(--svg-red, #dc2626)">Last Dart code</text>
-  </g>
-
-  <!-- Arrow across boundary -->
-  <g transform="translate(330, 157)">
-    <line x1="0" y1="0" x2="70" y2="0" stroke="var(--svg-green, #10b981)" stroke-width="3" marker-end="url(#fp2-ho-arrow-green)"/>
-  </g>
-
-  <!-- Raster Thread Side -->
-  <g transform="translate(390, 50)">
-    <rect x="0" y="0" width="310" height="230" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2ho-label">Raster Thread (C++ Engine)</text>
-
-    <!-- LayerTree C++ -->
-    <rect x="20" y="40" width="130" height="45" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="85" y="58" text-anchor="middle" class="fp2ho-code">LayerTree</text>
-    <text x="85" y="72" text-anchor="middle" class="fp2ho-small">(C++ struct)</text>
-
-    <!-- Arrow -->
-    <line x1="155" y1="62" x2="175" y2="62" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow-green)"/>
-
-    <!-- DisplayList -->
-    <rect x="180" y="40" width="110" height="45" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="235" y="58" text-anchor="middle" class="fp2ho-code">DisplayList</text>
-    <text x="235" y="72" text-anchor="middle" class="fp2ho-small">(Impeller format)</text>
-
-    <!-- Arrow down -->
-    <line x1="155" y1="95" x2="155" y2="115" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow-green)"/>
-
-    <!-- GPU Commands -->
-    <rect x="50" y="120" width="210" height="45" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="155" y="140" text-anchor="middle" class="fp2ho-code">GPU Command Buffers</text>
-    <text x="155" y="155" text-anchor="middle" class="fp2ho-small">Metal (iOS) / Vulkan (Android)</text>
-
-    <!-- Arrow down -->
-    <line x1="155" y1="170" x2="155" y2="190" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp2-ho-arrow-green)"/>
-
-    <!-- GPU -->
-    <rect x="80" y="195" width="150" height="25" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="4"/>
-    <text x="155" y="212" text-anchor="middle" class="fp2ho-code">GPU Executes</text>
-  </g>
-
-  <!-- Key insight -->
-  <g transform="translate(20, 295)">
-    <rect x="0" y="0" width="680" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
-    <text x="340" y="14" text-anchor="middle" class="fp2ho-code">FlutterView.render(scene) is the seam.</text>
-    <text x="340" y="28" text-anchor="middle" class="fp2ho-small">Before: Dart on UI thread. After: C++ on raster thread. No Dart runs after this point.</text>
-  </g>
-</svg>
+<img src="/assets/flutter-frame-pipeline/fp2-handoff.svg" alt="The handoff from UI thread to raster thread" />
 </figure>
 
 ### What Crosses the Boundary
@@ -468,7 +188,7 @@ This pipelining means the UI thread and raster thread can work in parallel on di
 
 ---
 
-## The Raster Thread and Impeller
+## Rung 6: The Raster Thread and Impeller
 
 Now we're in engine territory. The raster thread receives the `LayerTree` and must turn it into GPU commands.
 
@@ -492,145 +212,7 @@ While the raster thread prepares commands, the display is simultaneously scannin
 When the display finishes scanning the front buffer (reaching the bottom-right corner), it enters the **Vertical Blanking Interval (VBI)**. During this brief pause, the system swaps the buffer pointers: back becomes front, front becomes back.
 
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" style="max-width: 100%; height: auto;" role="img" aria-label="Double buffering: GPU draws to back buffer while display reads front buffer, swap during VBI">
-  <defs>
-    <marker id="fp2-db-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
-    </marker>
-    <marker id="fp2-db-arrow-green" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-green, #10b981)"/>
-    </marker>
-  </defs>
-  <style>
-    .fp2db-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2db-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2db-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
-    .fp2db-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
-  </style>
-
-  <text x="360" y="28" text-anchor="middle" class="fp2db-title">Double Buffering and the VSync Swap</text>
-
-  <!-- During Frame -->
-  <g transform="translate(30, 50)">
-    <rect x="0" y="0" width="310" height="165" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2db-label">During Frame (Active Rendering)</text>
-
-    <!-- Front Buffer -->
-    <g transform="translate(20, 35)">
-      <rect x="0" y="0" width="120" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
-      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Front Buffer</text>
-
-      <!-- Scan lines -->
-      <line x1="10" y1="35" x2="110" y2="35" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.4"/>
-      <line x1="10" y1="45" x2="110" y2="45" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.5"/>
-      <line x1="10" y1="55" x2="70" y2="55" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
-      <circle cx="70" cy="55" r="3" fill="var(--svg-dart-blue, #0175C2)"/>
-
-      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Display reads this</text>
-    </g>
-
-    <!-- Back Buffer -->
-    <g transform="translate(170, 35)">
-      <rect x="0" y="0" width="120" height="80" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
-      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Back Buffer</text>
-
-      <!-- Drawing indicator -->
-      <rect x="15" y="35" width="30" height="25" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1.5" rx="3"/>
-      <rect x="50" y="35" width="30" height="25" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1.5" rx="3"/>
-
-      <text x="60" y="75" text-anchor="middle" class="fp2db-small">GPU writes here</text>
-    </g>
-
-    <!-- Explanation -->
-    <text x="155" y="135" text-anchor="middle" class="fp2db-small">Display scans front buffer top→bottom</text>
-    <text x="155" y="150" text-anchor="middle" class="fp2db-small">GPU simultaneously draws next frame to back</text>
-  </g>
-
-  <!-- VSync Moment -->
-  <g transform="translate(380, 50)">
-    <rect x="0" y="0" width="310" height="165" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2db-label" fill="var(--svg-purple, #9333ea)">VSync Moment (VBI Period)</text>
-
-    <!-- Front becomes Back -->
-    <g transform="translate(20, 35)">
-      <rect x="0" y="0" width="120" height="80" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
-      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Was Front</text>
-      <text x="60" y="40" text-anchor="middle" class="fp2db-code">→ Back</text>
-      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Now available for GPU</text>
-    </g>
-
-    <!-- Swap arrow -->
-    <g transform="translate(145, 65)">
-      <line x1="0" y1="10" x2="20" y2="10" stroke="var(--svg-purple, #9333ea)" stroke-width="2" marker-end="url(#fp2-db-arrow)"/>
-      <line x1="20" y1="20" x2="0" y2="20" stroke="var(--svg-purple, #9333ea)" stroke-width="2" marker-end="url(#fp2-db-arrow)"/>
-      <text x="10" y="0" text-anchor="middle" class="fp2db-code" fill="var(--svg-purple, #9333ea)">SWAP</text>
-    </g>
-
-    <!-- Back becomes Front -->
-    <g transform="translate(170, 35)">
-      <rect x="0" y="0" width="120" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
-      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Was Back</text>
-      <text x="60" y="40" text-anchor="middle" class="fp2db-code">→ Front</text>
-      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Now scanned by display</text>
-    </g>
-
-    <!-- Explanation -->
-    <text x="155" y="135" text-anchor="middle" class="fp2db-small">Pointers swap instantaneously</text>
-    <text x="155" y="150" text-anchor="middle" class="fp2db-small">No pixel copying — just address change</text>
-  </g>
-
-  <!-- Why tearing happens -->
-  <g transform="translate(30, 230)">
-    <rect x="0" y="0" width="310" height="90" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2db-label" fill="var(--svg-red, #dc2626)">Without VSync: Tearing</text>
-    <text x="155" y="45" text-anchor="middle" class="fp2db-small">If GPU writes to the buffer being scanned:</text>
-    <text x="155" y="60" text-anchor="middle" class="fp2db-small">top half = old frame, bottom half = new frame</text>
-    <text x="155" y="75" text-anchor="middle" class="fp2db-small">Visible as a horizontal "tear" line</text>
-  </g>
-
-  <!-- Triple buffering note -->
-  <g transform="translate(380, 230)">
-    <rect x="0" y="0" width="310" height="90" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
-    <text x="155" y="22" text-anchor="middle" class="fp2db-label">Triple Buffering (Modern)</text>
-    <text x="155" y="45" text-anchor="middle" class="fp2db-small">Front (scanning) + Back 1 (queued) + Back 2 (rendering)</text>
-    <text x="155" y="60" text-anchor="middle" class="fp2db-small">GPU always has a buffer to draw to</text>
-    <text x="155" y="75" text-anchor="middle" class="fp2db-small">Smoother frame pacing, but more latency</text>
-  </g>
-
-  <!-- Timeline -->
-  <g transform="translate(30, 340)">
-    <rect x="0" y="0" width="660" height="85" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
-    <text x="330" y="20" text-anchor="middle" class="fp2db-label">Frame Timeline</text>
-
-    <!-- Timeline bar -->
-    <rect x="30" y="35" width="600" height="25" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
-
-    <!-- Frame 1 -->
-    <rect x="30" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
-    <text x="105" y="52" text-anchor="middle" class="fp2db-code">Frame N displayed</text>
-
-    <!-- VSync -->
-    <rect x="180" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
-    <text x="182" y="75" text-anchor="middle" class="fp2db-small" fill="var(--svg-purple, #9333ea)">VSync</text>
-
-    <!-- Frame 2 -->
-    <rect x="185" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <text x="260" y="52" text-anchor="middle" class="fp2db-code">Frame N+1 displayed</text>
-
-    <!-- VSync 2 -->
-    <rect x="335" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
-
-    <!-- Frame 3 -->
-    <rect x="340" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <text x="415" y="52" text-anchor="middle" class="fp2db-code">Frame N+2 displayed</text>
-
-    <!-- VSync 3 -->
-    <rect x="490" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
-
-    <!-- Continue -->
-    <text x="560" y="52" text-anchor="middle" class="fp2db-small">...</text>
-  </g>
-</svg>
+<img src="/assets/flutter-frame-pipeline/fp2-double-buffer.svg" alt="Double buffering and VSync swap" />
 </figure>
 
 The swap is just a pointer change — no pixels are copied. The GPU can immediately start writing to the new back buffer while the display scans the new front buffer.
@@ -661,79 +243,7 @@ Impeller takes a fundamentally different approach: **ahead-of-time (AOT) shader 
 The shader library is small because Impeller uses a fixed set of composable shaders, not the infinite variety Skia generated dynamically.
 
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="Impeller vs Skia: precompiled shaders eliminate first-run jank">
-  <style>
-    .fp2is-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2is-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
-    .fp2is-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
-    .fp2is-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
-  </style>
-
-  <text x="360" y="28" text-anchor="middle" class="fp2is-title">Why Impeller Eliminates Shader Jank</text>
-
-  <!-- Skia Timeline -->
-  <g transform="translate(30, 55)">
-    <rect x="0" y="0" width="660" height="95" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
-    <text x="50" y="22" text-anchor="start" class="fp2is-label" fill="var(--svg-red, #dc2626)">Skia (JIT Shader Compilation)</text>
-
-    <!-- Timeline bar -->
-    <rect x="20" y="35" width="620" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
-
-    <!-- Frame 1 with compile stall -->
-    <rect x="20" y="35" width="80" height="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1" rx="4"/>
-
-    <!-- Spike for shader compile -->
-    <rect x="100" y="20" width="40" height="50" fill="var(--svg-red, #dc2626)" rx="3"/>
-    <text x="120" y="43" text-anchor="middle" class="fp2is-code" fill="white">JANK</text>
-
-    <!-- Remaining frames smooth -->
-    <rect x="140" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="220" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="300" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="380" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="460" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="540" y="35" width="100" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
-
-    <!-- Labels -->
-    <text x="60" y="57" text-anchor="middle" class="fp2is-small">Frame 1</text>
-    <text x="180" y="57" text-anchor="middle" class="fp2is-small">Frame 2</text>
-    <text x="580" y="57" text-anchor="middle" class="fp2is-small">Smooth after</text>
-
-    <text x="330" y="85" text-anchor="middle" class="fp2is-small">First time a blur/gradient/effect appears → GPU compiles shader → stall → dropped frames</text>
-  </g>
-
-  <!-- Impeller Timeline -->
-  <g transform="translate(30, 165)">
-    <rect x="0" y="0" width="660" height="95" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
-    <text x="50" y="22" text-anchor="start" class="fp2is-label" fill="var(--svg-green, #10b981)">Impeller (AOT Shader Compilation)</text>
-
-    <!-- Timeline bar -->
-    <rect x="20" y="35" width="620" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
-
-    <!-- All frames smooth -->
-    <rect x="20" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
-    <rect x="100" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="180" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="260" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="340" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="420" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="500" y="35" width="60" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
-    <rect x="560" y="35" width="80" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
-
-    <!-- Labels -->
-    <text x="60" y="57" text-anchor="middle" class="fp2is-small">Frame 1</text>
-    <text x="140" y="57" text-anchor="middle" class="fp2is-small">Frame 2</text>
-    <text x="600" y="57" text-anchor="middle" class="fp2is-small">All smooth</text>
-
-    <text x="330" y="85" text-anchor="middle" class="fp2is-small">Shaders precompiled at flutter build time → no runtime compilation → no jank</text>
-  </g>
-
-  <!-- Key insight -->
-  <g transform="translate(30, 270)">
-    <rect x="0" y="0" width="660" height="25" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="4"/>
-    <text x="330" y="16" text-anchor="middle" class="fp2is-small">Impeller: Metal on iOS (mandatory), Vulkan on Android API 29+ (default). Web still uses Skia (canvaskit/skwasm).</text>
-  </g>
-</svg>
+<img src="/assets/flutter-frame-pipeline/fp2-impeller-vs-skia.svg" alt="Impeller vs Skia shader compilation" />
 </figure>
 
 ### Current Status (June 2026)

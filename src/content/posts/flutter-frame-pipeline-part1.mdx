@@ -14,7 +14,7 @@ Every frame your Flutter app renders has a deadline. On a 60Hz display, that dea
 
 This series traces the entire path from the display's VSync pulse to pixels on screen. Part 1 covers the journey from hardware signal to layout complete. By the end, you'll understand exactly what happens when you call `setState()` and why certain things make Flutter fast.
 
-## Rung 0: The Frame Budget and the Threads
+## The Frame Budget and the Threads
 
 ### The VSync Pulse
 
@@ -25,7 +25,96 @@ When the display finishes drawing the last pixel in the bottom-right corner, it 
 This pulse is the heartbeat of rendering. It tells the graphics system: "I'm ready for the next frame. Give it to me now, or wait for the next pulse."
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp1-vsync-to-dart.svg" alt="VSync signal flow from hardware through Flutter engine to Dart framework" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" style="max-width: 100%; height: auto;" role="img" aria-label="VSync signal flow from CRT monitor through Flutter engine to Dart framework">
+  <defs>
+    <marker id="fp1-v-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-v-arrow-green" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-secondary, #475569); }
+    .fp1-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp1-box { fill: var(--svg-bg, #f8fafc); stroke: var(--svg-border, #cbd5e1); stroke-width: 1.5; }
+    .fp1-blue-box { fill: var(--svg-dart-blue-fill, #dbeafe); stroke: var(--svg-dart-blue, #0175C2); stroke-width: 2; }
+    .fp1-green-box { fill: var(--svg-green-fill, #d1fae5); stroke: var(--svg-green, #10b981); stroke-width: 2; }
+    .fp1-amber-box { fill: var(--svg-amber-fill, #fef3c7); stroke: var(--svg-amber, #f59e0b); stroke-width: 2; }
+  </style>
+  <text x="360" y="28" text-anchor="middle" class="fp1-title">VSync: From Hardware Pulse to Dart Callback</text>
+  <g transform="translate(30, 50)">
+    <rect x="0" y="0" width="160" height="180" class="fp1-box" rx="8"/>
+    <text x="80" y="24" text-anchor="middle" class="fp1-label">Display Hardware</text>
+    <rect x="30" y="40" width="100" height="75" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-text-subtle, #94a3b8)" stroke-width="1.5" rx="4"/>
+    <line x1="35" y1="50" x2="125" y2="50" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.3"/>
+    <line x1="35" y1="60" x2="125" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.4"/>
+    <line x1="35" y1="70" x2="125" y2="70" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.5"/>
+    <line x1="35" y1="80" x2="100" y2="80" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+    <circle cx="100" cy="80" r="3" fill="var(--svg-dart-blue, #0175C2)"/>
+    <text x="80" y="105" text-anchor="middle" class="fp1-small">Beam scans top→bottom</text>
+    <rect x="15" y="125" width="130" height="45" class="fp1-green-box" rx="4"/>
+    <text x="80" y="145" text-anchor="middle" class="fp1-code">VBI Period</text>
+    <text x="80" y="160" text-anchor="middle" class="fp1-small">Beam resets to top-left</text>
+  </g>
+  <g transform="translate(200, 110)">
+    <line x1="0" y1="30" x2="50" y2="30" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#fp1-v-arrow-green)"/>
+    <text x="25" y="20" text-anchor="middle" class="fp1-code" fill="var(--svg-green, #10b981)">VSync</text>
+    <text x="25" y="50" text-anchor="middle" class="fp1-small">pulse</text>
+  </g>
+  <g transform="translate(260, 50)">
+    <rect x="0" y="0" width="150" height="180" class="fp1-amber-box" rx="8"/>
+    <text x="75" y="24" text-anchor="middle" class="fp1-label">Platform Layer</text>
+    <rect x="15" y="40" width="120" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="75" y="55" text-anchor="middle" class="fp1-code">CADisplayLink</text>
+    <text x="75" y="68" text-anchor="middle" class="fp1-small">(iOS)</text>
+    <rect x="15" y="85" width="120" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="75" y="100" text-anchor="middle" class="fp1-code">Choreographer</text>
+    <text x="75" y="113" text-anchor="middle" class="fp1-small">(Android)</text>
+    <line x1="75" y1="130" x2="75" y2="150" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-v-arrow)"/>
+    <text x="75" y="168" text-anchor="middle" class="fp1-code">Engine.OnVSync()</text>
+  </g>
+  <g transform="translate(420, 130)">
+    <line x1="0" y1="0" x2="40" y2="0" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-v-arrow)"/>
+  </g>
+  <g transform="translate(470, 50)">
+    <rect x="0" y="0" width="220" height="180" class="fp1-blue-box" rx="8"/>
+    <text x="110" y="24" text-anchor="middle" class="fp1-label">Dart Framework (UI Thread)</text>
+    <rect x="10" y="40" width="200" height="28" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="58" text-anchor="middle" class="fp1-code">SchedulerBinding.handleBeginFrame()</text>
+    <line x1="110" y1="68" x2="110" y2="78" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5"/>
+    <rect x="10" y="80" width="200" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="95" text-anchor="middle" class="fp1-code">Transient callbacks (Tickers)</text>
+    <line x1="110" y1="102" x2="110" y2="112" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5"/>
+    <rect x="10" y="114" width="200" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="129" text-anchor="middle" class="fp1-code">handleDrawFrame()</text>
+    <line x1="110" y1="136" x2="110" y2="146" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5"/>
+    <rect x="10" y="148" width="200" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="163" text-anchor="middle" class="fp1-code">build → layout → paint → render</text>
+  </g>
+  <g transform="translate(30, 260)">
+    <text x="330" y="0" text-anchor="middle" class="fp1-label">The 16.6ms Frame Budget (60Hz)</text>
+    <rect x="0" y="15" width="660" height="50" class="fp1-box" rx="6"/>
+    <rect x="20" y="30" width="620" height="20" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <rect x="20" y="30" width="200" height="20" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1" rx="4"/>
+    <text x="120" y="44" text-anchor="middle" class="fp1-code">UI Thread Work</text>
+    <rect x="220" y="30" width="200" height="20" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
+    <text x="320" y="44" text-anchor="middle" class="fp1-code">Raster Thread Work</text>
+    <rect x="420" y="30" width="100" height="20" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1"/>
+    <text x="470" y="44" text-anchor="middle" class="fp1-code">Idle</text>
+    <rect x="520" y="30" width="120" height="20" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1" rx="4"/>
+    <text x="580" y="44" text-anchor="middle" class="fp1-code">Next VSync</text>
+    <text x="20" y="75" text-anchor="start" class="fp1-small">0ms</text>
+    <text x="640" y="75" text-anchor="end" class="fp1-small">16.6ms</text>
+  </g>
+  <g transform="translate(30, 340)">
+    <rect x="0" y="0" width="660" height="45" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+    <text x="330" y="18" text-anchor="middle" class="fp1-label" fill="var(--svg-purple, #9333ea)">Key Insight</text>
+    <text x="330" y="35" text-anchor="middle" class="fp1-small">Both UI and Raster work must complete within 16.6ms. Miss the budget → dropped frame → visible jank.</text>
+  </g>
+</svg>
 </figure>
 
 ### Why 16.67 Milliseconds?
@@ -51,7 +140,51 @@ Flutter doesn't run everything on one thread. It spreads work across four:
 **IO Thread** — Handles asset loading, texture decoding, and image uploads. Keeps this slow work off the raster thread so it doesn't block frame production.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp1-four-threads.svg" alt="Flutter's four threads and their responsibilities" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter's four threads: Platform, UI, Raster, and IO with their responsibilities">
+  <defs>
+    <marker id="fp1-t-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1t-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1t-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1t-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1t-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp1t-warn { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-red, #dc2626); }
+  </style>
+  <text x="360" y="28" text-anchor="middle" class="fp1t-title">Flutter's Four Threads</text>
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">Platform Thread</text>
+    <text x="20" y="38" class="fp1t-small">Host OS main thread. Plugins, platform channels, embedder/OS calls.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking freezes entire app</text>
+  </g>
+  <g transform="translate(20, 115)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">UI Thread (Dart Isolate)</text>
+    <text x="20" y="38" class="fp1t-small">Your code + framework: build(), layout(), paint(). Produces the layer tree.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking causes UI jank</text>
+  </g>
+  <g transform="translate(340, 170)">
+    <line x1="0" y1="0" x2="0" y2="15" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-t-arrow)"/>
+    <text x="40" y="12" class="fp1t-code">Layer tree</text>
+  </g>
+  <g transform="translate(20, 190)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">Raster Thread (Engine)</text>
+    <text x="20" y="38" class="fp1t-small">C++ engine. Impeller/Skia rasterises layer tree to GPU commands. No Dart here.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking causes raster jank</text>
+  </g>
+  <g transform="translate(20, 255)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">IO Thread</text>
+    <text x="20" y="38" class="fp1t-small">Asset loading, texture decode, image upload. Keeps this work off the raster thread.</text>
+    <text x="560" y="30" class="fp1t-code">Async only</text>
+  </g>
+  <rect x="20" y="320" width="680" height="20" fill="none"/>
+  <text x="360" y="332" text-anchor="middle" class="fp1t-small">Misconception: The "UI thread" does not talk to the GPU. The "raster thread" runs zero Dart.</text>
+</svg>
 </figure>
 
 The crucial insight: a frame must clear **both** the UI thread and the raster thread within the budget. If either overruns, you drop the frame.
@@ -75,7 +208,7 @@ This is the exact call chain. When you understand it, you can trace any frame-re
 
 ---
 
-## Rung 1: The Three Trees
+## The Three Trees
 
 Flutter doesn't have "widgets on screen." It has three parallel tree structures, each with a different job:
 
@@ -125,7 +258,94 @@ RenderObjects do the actual work: calculating layout, painting pixels, handling 
 When an element's widget changes, it tells its render object to update. The render object might need to re-layout, repaint, or both — but it's the same object, not a fresh allocation.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp1-three-trees.svg" alt="The three trees: Widget, Element, and RenderObject" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter's three trees: Widget tree (rebuilt), Element tree (persists), RenderObject tree (mutated)">
+  <defs>
+    <marker id="fp1-3t-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-3t-arrow-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto">
+      <path d="M0,0 L4,8 L8,0 Z" fill="var(--svg-text-secondary, #475569)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp13-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp13-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp13-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp13-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp13-node { font: 600 11px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+  <text x="360" y="28" text-anchor="middle" class="fp13-title">The Three Trees: Widget → Element → RenderObject</text>
+  <g transform="translate(0, 45)">
+    <rect x="30" y="0" width="200" height="35" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+    <text x="130" y="15" text-anchor="middle" class="fp13-label">Widget Tree</text>
+    <text x="130" y="28" text-anchor="middle" class="fp13-small">Immutable. Rebuilt constantly.</text>
+    <rect x="260" y="0" width="200" height="35" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+    <text x="360" y="15" text-anchor="middle" class="fp13-label">Element Tree</text>
+    <text x="360" y="28" text-anchor="middle" class="fp13-small">Mutable. Long-lived.</text>
+    <rect x="490" y="0" width="200" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="590" y="15" text-anchor="middle" class="fp13-label">RenderObject Tree</text>
+    <text x="590" y="28" text-anchor="middle" class="fp13-small">Layout + Paint. Expensive.</text>
+  </g>
+  <g transform="translate(0, 100)">
+    <g transform="translate(30, 0)">
+      <rect x="50" y="0" width="100" height="28" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="18" text-anchor="middle" class="fp13-node">Container</text>
+      <line x1="100" y1="28" x2="100" y2="45" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="45" width="100" height="28" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="63" text-anchor="middle" class="fp13-node">Padding</text>
+      <line x1="100" y1="73" x2="100" y2="90" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="90" width="100" height="28" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="108" text-anchor="middle" class="fp13-node">Text('Hi')</text>
+      <text x="100" y="140" text-anchor="middle" class="fp13-small">New objects</text>
+      <text x="100" y="152" text-anchor="middle" class="fp13-small">every rebuild</text>
+    </g>
+    <g transform="translate(200, 0)">
+      <line x1="0" y1="14" x2="30" y2="14" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+      <line x1="0" y1="59" x2="30" y2="59" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+      <line x1="0" y1="104" x2="30" y2="104" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+    </g>
+    <g transform="translate(260, 0)">
+      <rect x="50" y="0" width="100" height="28" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="18" text-anchor="middle" class="fp13-node">Element</text>
+      <line x1="100" y1="28" x2="100" y2="45" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="45" width="100" height="28" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="63" text-anchor="middle" class="fp13-node">Element</text>
+      <line x1="100" y1="73" x2="100" y2="90" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="90" width="100" height="28" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="108" text-anchor="middle" class="fp13-node">Element</text>
+      <text x="100" y="140" text-anchor="middle" class="fp13-small">Same objects</text>
+      <text x="100" y="152" text-anchor="middle" class="fp13-small">across rebuilds</text>
+    </g>
+    <g transform="translate(430, 0)">
+      <line x1="0" y1="14" x2="30" y2="14" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+      <line x1="0" y1="59" x2="30" y2="59" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+      <line x1="0" y1="104" x2="30" y2="104" stroke="var(--svg-green, #10b981)" stroke-width="1.5" marker-end="url(#fp1-3t-arrow)"/>
+    </g>
+    <g transform="translate(490, 0)">
+      <rect x="50" y="0" width="100" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="18" text-anchor="middle" class="fp13-node">RenderBox</text>
+      <line x1="100" y1="28" x2="100" y2="45" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="45" width="100" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="63" text-anchor="middle" class="fp13-node">RenderPadding</text>
+      <line x1="100" y1="73" x2="100" y2="90" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5"/>
+      <rect x="50" y="90" width="100" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1.5" rx="4"/>
+      <text x="100" y="108" text-anchor="middle" class="fp13-node">RenderParagraph</text>
+      <text x="100" y="140" text-anchor="middle" class="fp13-small">Mutated in place</text>
+      <text x="100" y="152" text-anchor="middle" class="fp13-small">when text changes</text>
+    </g>
+  </g>
+  <g transform="translate(30, 280)">
+    <rect x="0" y="0" width="660" height="55" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+    <text x="330" y="18" text-anchor="middle" class="fp13-label" fill="var(--svg-purple, #9333ea)">The Reuse Mechanism</text>
+    <text x="330" y="35" text-anchor="middle" class="fp13-code">Element.updateChild()</text>
+    <text x="330" y="48" text-anchor="middle" class="fp13-small">If runtimeType + Key match, reuse Element and mutate RenderObject. Otherwise, tear down and rebuild.</text>
+  </g>
+  <g transform="translate(30, 345)">
+    <rect x="0" y="0" width="660" height="40" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="330" y="15" text-anchor="middle" class="fp13-code">State lives on the Element, not the Widget.</text>
+    <text x="330" y="32" text-anchor="middle" class="fp13-small">State survives rebuilds because the Element persists. A mismatched Key destroys the Element and its State.</text>
+  </g>
+</svg>
 </figure>
 
 ### Where State Lives
@@ -142,7 +362,7 @@ This is why state survives a parent's rebuild — the element is still there. An
 
 ---
 
-## Rung 2: setState → A Scheduled Frame
+## setState → A Scheduled Frame
 
 `setState()` is the most misunderstood method in Flutter. It doesn't draw anything. It doesn't even rebuild anything. It **marks the element dirty and schedules a frame**.
 
@@ -180,7 +400,95 @@ void scheduleBuildFor(Element element) {
 `ensureVisualUpdate()` calls `scheduleFrame()`, which asks the engine for the next VSync. The key insight: `scheduleFrame()` is **idempotent**. Calling it ten times before VSync arrives schedules one frame, not ten.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp1-setstate-flow.svg" alt="setState flow from marking dirty to rendering the frame" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width: 100%; height: auto;" role="img" aria-label="setState flow: from calling setState to the frame being rendered">
+  <defs>
+    <marker id="fp1-sf-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-sf-arrow-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto">
+      <path d="M0,0 L4,8 L8,0 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1sf-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1sf-label { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1sf-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1sf-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp1sf-phase { font: bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-secondary, #475569); }
+  </style>
+  <text x="360" y="24" text-anchor="middle" class="fp1sf-title">setState() → Scheduled Frame → Render</text>
+  <g transform="translate(20, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 1: Mark Dirty</text>
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">setState(callback)</text>
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">_element!.markNeedsBuild()</text>
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">BuildOwner.scheduleBuildFor()</text>
+  </g>
+  <line x1="230" y1="110" x2="255" y2="110" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow)"/>
+  <g transform="translate(260, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 2: Schedule</text>
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">ensureVisualUpdate()</text>
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">scheduleFrame()</text>
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">...waits for vsync...</text>
+  </g>
+  <line x1="470" y1="110" x2="495" y2="110" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow)"/>
+  <g transform="translate(500, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 3: VSync</text>
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">handleBeginFrame(ts)</text>
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">transientCallbacks</text>
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">handleDrawFrame()</text>
+  </g>
+  <g transform="translate(20, 190)">
+    <rect x="0" y="0" width="680" height="85" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="340" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 4: drawFrame() — The Rendering Pipeline</text>
+    <rect x="20" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="70" y="50" text-anchor="middle" class="fp1sf-code">buildScope()</text>
+    <text x="70" y="62" text-anchor="middle" class="fp1sf-small">rebuild dirty</text>
+    <line x1="125" y1="52" x2="145" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+    <rect x="150" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="200" y="50" text-anchor="middle" class="fp1sf-code">flushLayout()</text>
+    <text x="200" y="62" text-anchor="middle" class="fp1sf-small">constraints/sizes</text>
+    <line x1="255" y1="52" x2="275" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+    <rect x="280" y="35" width="115" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="338" y="50" text-anchor="middle" class="fp1sf-code">flushCompositingBits()</text>
+    <text x="338" y="62" text-anchor="middle" class="fp1sf-small">layer dirty flags</text>
+    <line x1="400" y1="52" x2="420" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+    <rect x="425" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="475" y="50" text-anchor="middle" class="fp1sf-code">flushPaint()</text>
+    <text x="475" y="62" text-anchor="middle" class="fp1sf-small">record commands</text>
+    <line x1="530" y1="52" x2="550" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+    <rect x="555" y="35" width="105" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="608" y="50" text-anchor="middle" class="fp1sf-code">compositeFrame()</text>
+    <text x="608" y="62" text-anchor="middle" class="fp1sf-small">build Scene</text>
+  </g>
+  <g transform="translate(20, 290)">
+    <line x1="340" y1="0" x2="340" y2="15" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow-down)"/>
+    <rect x="200" y="20" width="280" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="340" y="35" text-anchor="middle" class="fp1sf-code">FlutterView.render(scene)</text>
+    <text x="340" y="48" text-anchor="middle" class="fp1sf-small">Hands Scene to engine. UI thread work done.</text>
+  </g>
+  <g transform="translate(20, 340)">
+    <rect x="0" y="0" width="680" height="30" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="340" y="19" text-anchor="middle" class="fp1sf-small">Key: scheduleFrame() is idempotent. Calling setState 10 times before vsync = 1 rebuild, not 10.</text>
+  </g>
+</svg>
 </figure>
 
 ### What Happens on VSync
@@ -217,7 +525,7 @@ This is why it's safe to call `setState()` freely. The framework batches your ch
 
 ---
 
-## Rung 3: Layout — Constraints Down, Sizes Up
+## Layout — Constraints Down, Sizes Up
 
 Flutter's layout system is fast because it's simple: one pass down the tree (constraints), one pass up (sizes), and parents position their children. No constraint solver, no multiple iterations.
 
@@ -251,7 +559,75 @@ void performLayout() {
 The mantra: **Constraints go down. Sizes go up. Parent sets position.**
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp1-constraints-sizes.svg" alt="Layout constraints flowing down, sizes flowing up" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter layout: constraints flow down from parent to child, sizes flow back up">
+  <defs>
+    <marker id="fp1-cs-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto">
+      <path d="M0,0 L4,8 L8,0 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-cs-up" markerWidth="8" markerHeight="8" refX="4" refY="0" orient="auto">
+      <path d="M0,8 L4,0 L8,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1cs-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1cs-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1cs-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1cs-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+  <text x="360" y="28" text-anchor="middle" class="fp1cs-title">Layout: Constraints Down, Sizes Up</text>
+  <g transform="translate(260, 50)">
+    <rect x="0" y="0" width="200" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp1cs-label">Parent RenderObject</text>
+    <text x="100" y="38" text-anchor="middle" class="fp1cs-small">Knows max width: 400px</text>
+  </g>
+  <g transform="translate(310, 100)">
+    <line x1="0" y1="0" x2="0" y2="35" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-cs-down)"/>
+    <rect x="15" y="5" width="130" height="28" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1" rx="4"/>
+    <text x="80" y="16" text-anchor="middle" class="fp1cs-code">Constraints DOWN</text>
+    <text x="80" y="28" text-anchor="middle" class="fp1cs-small">min:0, max:400</text>
+  </g>
+  <g transform="translate(410, 100)">
+    <line x1="0" y1="35" x2="0" y2="0" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#fp1-cs-up)"/>
+    <rect x="15" y="5" width="100" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
+    <text x="65" y="16" text-anchor="middle" class="fp1cs-code">Size UP</text>
+    <text x="65" y="28" text-anchor="middle" class="fp1cs-small">width: 200</text>
+  </g>
+  <g transform="translate(260, 145)">
+    <rect x="0" y="0" width="200" height="50" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp1cs-label">Child RenderObject</text>
+    <text x="100" y="38" text-anchor="middle" class="fp1cs-small">Picks size within constraints</text>
+  </g>
+  <g transform="translate(260, 205)">
+    <line x1="100" y1="0" x2="100" y2="15" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="30" y="18" width="140" height="28" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="4"/>
+    <text x="100" y="30" text-anchor="middle" class="fp1cs-code">Parent sets position</text>
+    <text x="100" y="42" text-anchor="middle" class="fp1cs-small">offset: (100, 50)</text>
+  </g>
+  <g transform="translate(30, 70)">
+    <rect x="0" y="0" width="180" height="120" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="90" y="20" text-anchor="middle" class="fp1cs-label" fill="var(--svg-purple, #9333ea)">Relayout Boundary</text>
+    <text x="90" y="40" text-anchor="middle" class="fp1cs-small">Layout stops propagating</text>
+    <text x="90" y="55" text-anchor="middle" class="fp1cs-small">up the tree when:</text>
+    <text x="90" y="75" text-anchor="middle" class="fp1cs-code">• Constraints are tight</text>
+    <text x="90" y="90" text-anchor="middle" class="fp1cs-code">• parentUsesSize: false</text>
+    <text x="90" y="105" text-anchor="middle" class="fp1cs-code">• sizedByParent: true</text>
+  </g>
+  <g transform="translate(510, 70)">
+    <rect x="0" y="0" width="180" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="90" y="20" text-anchor="middle" class="fp1cs-label">Why Single-Pass?</text>
+    <text x="90" y="42" text-anchor="middle" class="fp1cs-small">One walk down (constraints)</text>
+    <text x="90" y="57" text-anchor="middle" class="fp1cs-small">One walk up (sizes)</text>
+    <text x="90" y="75" text-anchor="middle" class="fp1cs-small">No iteration, no solver</text>
+    <text x="90" y="95" text-anchor="middle" class="fp1cs-code">O(n) layout</text>
+    <text x="90" y="110" text-anchor="middle" class="fp1cs-small">That's why Flutter is fast</text>
+  </g>
+  <g transform="translate(30, 255)">
+    <rect x="0" y="0" width="660" height="50" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="6"/>
+    <text x="330" y="18" text-anchor="middle" class="fp1cs-label" fill="var(--svg-red, #dc2626)">Unbounded Constraints Error</text>
+    <text x="330" y="35" text-anchor="middle" class="fp1cs-small">When a child receives infinite constraints and can't choose a finite size.</text>
+    <text x="330" y="48" text-anchor="middle" class="fp1cs-code">Example: ListView inside Column without Expanded wrapper.</text>
+  </g>
+</svg>
 </figure>
 
 ### Relayout Boundaries

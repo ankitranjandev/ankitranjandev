@@ -15,7 +15,7 @@ You've traced the frame from VSync to layout (Part 1) and from paint to GPU (Par
 
 The common instinct is "make it async" or "spawn an isolate." But that only fixes one category of jank. Apply it to the wrong kind and you waste hours. This part teaches you to diagnose which thing broke and apply the correct fix.
 
-## Rung 7: Diagnosing Jank — Build vs Layout vs Raster
+## Diagnosing Jank — Build vs Layout vs Raster
 
 ### The Two-Track Mental Model
 
@@ -31,7 +31,89 @@ If the UI track is tall, the problem is in Dart. If the raster track is tall, th
 Open DevTools in profile mode (`flutter run --profile`). Go to the Performance tab. Record some interaction. You'll see two horizontal tracks:
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp3-timeline-tracks.svg" alt="DevTools timeline showing UI and Raster tracks" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="DevTools timeline showing UI track and Raster track with jank indicators">
+  <style>
+    .fp3tt-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3tt-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3tt-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3tt-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3tt-title">Reading the DevTools Performance Timeline</text>
+
+  <!-- Timeline container -->
+  <g transform="translate(30, 50)">
+    <rect x="0" y="0" width="660" height="200" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+
+    <!-- UI Track -->
+    <text x="20" y="25" class="fp3tt-label">UI Track</text>
+    <rect x="80" y="10" width="560" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+
+    <!-- Normal frames -->
+    <rect x="90" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="145" y="50" width="50" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Tall UI bar (jank) -->
+    <rect x="200" y="18" width="60" height="67" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="2"/>
+    <text x="230" y="50" text-anchor="middle" class="fp3tt-code" fill="var(--svg-red, #dc2626)">JANK</text>
+
+    <!-- More normal frames -->
+    <rect x="265" y="52" width="50" height="33" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="320" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="375" y="48" width="50" height="37" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="430" y="52" width="50" height="33" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="485" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="540" y="50" width="50" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="595" y="55" width="40" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Budget line -->
+    <line x1="85" y1="85" x2="635" y2="85" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="638" y="82" text-anchor="end" class="fp3tt-small" fill="var(--svg-amber, #f59e0b)">16.6ms</text>
+
+    <!-- Raster Track -->
+    <text x="20" y="120" class="fp3tt-label">Raster Track</text>
+    <rect x="80" y="105" width="560" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+
+    <!-- Normal frames -->
+    <rect x="90" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="145" y="150" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="200" y="152" width="50" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="255" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="310" y="148" width="50" height="32" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Tall Raster bar (jank) -->
+    <rect x="365" y="115" width="60" height="65" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="2"/>
+    <text x="395" y="147" text-anchor="middle" class="fp3tt-code" fill="var(--svg-red, #dc2626)">JANK</text>
+
+    <!-- More normal frames -->
+    <rect x="430" y="152" width="50" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="485" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="540" y="150" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="595" y="155" width="40" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Budget line -->
+    <line x1="85" y1="180" x2="635" y2="180" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" stroke-dasharray="4,3"/>
+  </g>
+
+  <!-- Annotations -->
+  <g transform="translate(30, 265)">
+    <!-- UI jank annotation -->
+    <rect x="0" y="0" width="320" height="80" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+    <text x="160" y="18" text-anchor="middle" class="fp3tt-label">UI Track Tall = Build/Compute Jank</text>
+    <text x="160" y="35" text-anchor="middle" class="fp3tt-small">Expensive build(), synchronous JSON parsing,</text>
+    <text x="160" y="48" text-anchor="middle" class="fp3tt-small">large rebuild scope, O(n²) in build</text>
+    <text x="160" y="65" text-anchor="middle" class="fp3tt-code">Fix: const, smaller scope, Isolate.run()</text>
+  </g>
+
+  <g transform="translate(370, 265)">
+    <!-- Raster jank annotation -->
+    <rect x="0" y="0" width="320" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="160" y="18" text-anchor="middle" class="fp3tt-label">Raster Track Tall = Composite Jank</text>
+    <text x="160" y="35" text-anchor="middle" class="fp3tt-small">Opacity widget (saveLayer), BackdropFilter,</text>
+    <text x="160" y="48" text-anchor="middle" class="fp3tt-small">complex clips, overdraw, many layers</text>
+    <text x="160" y="65" text-anchor="middle" class="fp3tt-code">Fix: FadeTransition, RepaintBoundary, simplify</text>
+  </g>
+</svg>
 </figure>
 
 Each bar is a frame. Green bars fit within the budget line. Red bars exceeded it. Look at which track has the tall bars:
@@ -167,7 +249,79 @@ Every stacked widget draws pixels. If you have 10 `Container`s with backgrounds 
 Use the DevTools "Highlight Repaint Rainbows" to see what's repainting. Use the "Performance Overlay" to see raster thread load.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp3-ui-vs-raster-jank.svg" alt="UI jank vs Raster jank comparison" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" style="max-width: 100%; height: auto;" role="img" aria-label="UI jank versus Raster jank: different causes and different fixes">
+  <style>
+    .fp3ur-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ur-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ur-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3ur-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3ur-title">UI Jank vs Raster Jank — Different Problems, Different Fixes</text>
+
+  <!-- UI Track Jank -->
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="330" height="330" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="165" y="25" text-anchor="middle" class="fp3ur-label">UI Track Tall</text>
+    <text x="165" y="42" text-anchor="middle" class="fp3ur-small">(Build/Layout/Compute Jank)</text>
+
+    <!-- Causes -->
+    <rect x="15" y="55" width="300" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="75" text-anchor="middle" class="fp3ur-label">Common Causes</text>
+
+    <text x="25" y="95" class="fp3ur-code">• Expensive build() — O(n²) loops</text>
+    <text x="25" y="110" class="fp3ur-code">• Synchronous JSON/image parsing</text>
+    <text x="25" y="125" class="fp3ur-code">• Large rebuild scope (setState at root)</text>
+    <text x="25" y="140" class="fp3ur-code">• ListView without itemExtent</text>
+    <text x="25" y="155" class="fp3ur-code">• Blocking main isolate with compute</text>
+    <text x="25" y="170" class="fp3ur-code">• Missing const constructors</text>
+
+    <!-- Fixes -->
+    <rect x="15" y="185" width="300" height="130" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="205" text-anchor="middle" class="fp3ur-label">Fixes</text>
+
+    <text x="25" y="225" class="fp3ur-code">• Add const constructors</text>
+    <text x="25" y="240" class="fp3ur-code">• Push setState down to smaller widgets</text>
+    <text x="25" y="255" class="fp3ur-code">• Use Isolate.run() for heavy compute</text>
+    <text x="25" y="270" class="fp3ur-code">• Add itemExtent to ListView</text>
+    <text x="25" y="285" class="fp3ur-code">• Split large widgets into smaller ones</text>
+    <text x="25" y="300" class="fp3ur-code">• Use ValueListenableBuilder locally</text>
+  </g>
+
+  <!-- Raster Track Jank -->
+  <g transform="translate(370, 50)">
+    <rect x="0" y="0" width="330" height="330" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="165" y="25" text-anchor="middle" class="fp3ur-label">Raster Track Tall</text>
+    <text x="165" y="42" text-anchor="middle" class="fp3ur-small">(Composite/GPU Jank)</text>
+
+    <!-- Causes -->
+    <rect x="15" y="55" width="300" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="75" text-anchor="middle" class="fp3ur-label">Common Causes</text>
+
+    <text x="25" y="95" class="fp3ur-code">• Opacity widget (uses saveLayer)</text>
+    <text x="25" y="110" class="fp3ur-code">• BackdropFilter (reads back pixels)</text>
+    <text x="25" y="125" class="fp3ur-code">• Complex ClipPath</text>
+    <text x="25" y="140" class="fp3ur-code">• Overdraw (many stacked widgets)</text>
+    <text x="25" y="155" class="fp3ur-code">• Too many layers (RepaintBoundary spam)</text>
+    <text x="25" y="170" class="fp3ur-code">• ShaderMask, ColorFiltered</text>
+
+    <!-- Fixes -->
+    <rect x="15" y="185" width="300" height="130" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="205" text-anchor="middle" class="fp3ur-label">Fixes</text>
+
+    <text x="25" y="225" class="fp3ur-code">• Use FadeTransition (no saveLayer)</text>
+    <text x="25" y="240" class="fp3ur-code">• Bake opacity into paint color</text>
+    <text x="25" y="255" class="fp3ur-code">• Simplify or remove BackdropFilter</text>
+    <text x="25" y="270" class="fp3ur-code">• Use ClipRect instead of ClipPath</text>
+    <text x="25" y="285" class="fp3ur-code">• Reduce stacking depth</text>
+    <text x="25" y="300" class="fp3ur-code">• Profile with "Highlight repaints"</text>
+  </g>
+
+  <!-- Key insight -->
+  <g transform="translate(20, 390)">
+    <text x="340" y="0" text-anchor="middle" class="fp3ur-code" fill="var(--svg-red, #dc2626)">Isolates do NOT help raster jank. They only help UI track compute jank.</text>
+  </g>
+</svg>
 </figure>
 
 **Teach-test:** Given a screen that's smooth on first build but janks during a fade transition, predict which track is tall and name the fix before profiling.
@@ -176,7 +330,7 @@ Use the DevTools "Highlight Repaint Rainbows" to see what's repainting. Use the 
 
 ---
 
-## Rung 8: Isolates — Where Concurrency Actually Fits
+## Isolates — Where Concurrency Actually Fits
 
 Now you understand where isolates fit: they help UI-thread compute jank only. They do nothing for raster jank, nothing for rebuild scope issues, nothing for layout costs.
 
@@ -189,7 +343,94 @@ An isolate is Dart's concurrency unit. Each isolate has:
 - **No shared mutable state** — The constraint that makes this safe.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp3-isolate-heaps.svg" alt="Isolates have separate heaps and communicate via message passing" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Dart isolates: separate heaps communicating via message passing">
+  <defs>
+    <marker id="fp3-ih-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp3-ih-arrow-back" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto">
+      <path d="M8,0 L0,4 L8,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp3ih-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ih-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ih-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3ih-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3ih-title">Isolates: Separate Heaps, Message Passing</text>
+
+  <!-- Main Isolate -->
+  <g transform="translate(40, 55)">
+    <rect x="0" y="0" width="250" height="180" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="125" y="22" text-anchor="middle" class="fp3ih-label">Main Isolate (UI Thread)</text>
+
+    <!-- Heap -->
+    <rect x="20" y="35" width="210" height="80" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="55" text-anchor="middle" class="fp3ih-code">Heap</text>
+    <text x="125" y="72" text-anchor="middle" class="fp3ih-small">Widgets, State, render objects</text>
+    <text x="125" y="87" text-anchor="middle" class="fp3ih-small">All your app objects</text>
+    <text x="125" y="102" text-anchor="middle" class="fp3ih-small">Framework internals</text>
+
+    <!-- Event Loop -->
+    <rect x="20" y="125" width="210" height="40" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="145" text-anchor="middle" class="fp3ih-code">Event Loop</text>
+    <text x="125" y="158" text-anchor="middle" class="fp3ih-small">Processes one task at a time</text>
+  </g>
+
+  <!-- Worker Isolate -->
+  <g transform="translate(430, 55)">
+    <rect x="0" y="0" width="250" height="180" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="125" y="22" text-anchor="middle" class="fp3ih-label">Worker Isolate</text>
+
+    <!-- Heap -->
+    <rect x="20" y="35" width="210" height="80" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="55" text-anchor="middle" class="fp3ih-code">Separate Heap</text>
+    <text x="125" y="72" text-anchor="middle" class="fp3ih-small">Completely independent memory</text>
+    <text x="125" y="87" text-anchor="middle" class="fp3ih-small">No shared mutable state</text>
+    <text x="125" y="102" text-anchor="middle" class="fp3ih-small">No locks, no races</text>
+
+    <!-- Event Loop -->
+    <rect x="20" y="125" width="210" height="40" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="145" text-anchor="middle" class="fp3ih-code">Event Loop</text>
+    <text x="125" y="158" text-anchor="middle" class="fp3ih-small">Own task queue</text>
+  </g>
+
+  <!-- Message passing arrows -->
+  <g transform="translate(300, 100)">
+    <!-- Send -->
+    <line x1="0" y1="0" x2="120" y2="0" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp3-ih-arrow)"/>
+    <rect x="30" y="-20" width="60" height="18" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="3"/>
+    <text x="60" y="-7" text-anchor="middle" class="fp3ih-code" fill="var(--svg-purple, #9333ea)">message</text>
+    <text x="60" y="15" text-anchor="middle" class="fp3ih-small">SendPort.send()</text>
+
+    <!-- Receive -->
+    <line x1="120" y1="50" x2="0" y2="50" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#fp3-ih-arrow-back)"/>
+    <rect x="30" y="30" width="60" height="18" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="3"/>
+    <text x="60" y="43" text-anchor="middle" class="fp3ih-code" fill="var(--svg-purple, #9333ea)">result</text>
+    <text x="60" y="65" text-anchor="middle" class="fp3ih-small">ReceivePort</text>
+
+    <!-- Copy indicator -->
+    <text x="60" y="-35" text-anchor="middle" class="fp3ih-small" fill="var(--svg-red, #dc2626)">Data is COPIED</text>
+  </g>
+
+  <!-- What can be sent -->
+  <g transform="translate(40, 250)">
+    <rect x="0" y="0" width="310" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="155" y="18" text-anchor="middle" class="fp3ih-label">Can Send</text>
+    <text x="155" y="35" text-anchor="middle" class="fp3ih-code">Primitives, List, Map, TypedData</text>
+    <text x="155" y="48" text-anchor="middle" class="fp3ih-code">SendPort, Capability</text>
+  </g>
+
+  <!-- What cannot be sent -->
+  <g transform="translate(370, 250)">
+    <rect x="0" y="0" width="310" height="55" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="1.5" rx="6"/>
+    <text x="155" y="18" text-anchor="middle" class="fp3ih-label" fill="var(--svg-red, #dc2626)">Cannot Send</text>
+    <text x="155" y="35" text-anchor="middle" class="fp3ih-code">Functions/closures (capture state)</text>
+    <text x="155" y="48" text-anchor="middle" class="fp3ih-code">Widgets, BuildContext, RenderObjects</text>
+  </g>
+</svg>
 </figure>
 
 Because there's no shared memory, there are no locks and no data races. The trade-off: communication happens by copying messages, not by sharing pointers.
@@ -280,12 +521,93 @@ Isolates don't help when:
 
 ---
 
-## Rung 9: The Synthesis — How Flutter Avoids Redoing Work
+## The Synthesis — How Flutter Avoids Redoing Work
 
 We've traced the entire pipeline. Now step back and see the pattern: Flutter is optimised to **not redo work it doesn't have to**.
 
 <figure>
-<img src="/assets/flutter-frame-pipeline/fp3-short-circuits.svg" alt="Flutter's six short-circuit optimisations" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter's six short-circuit optimisations that avoid redundant work">
+  <style>
+    .fp3sc-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3sc-label { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3sc-small { font: 9px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3sc-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3sc-title">Flutter's Short-Circuit Arsenal</text>
+  <text x="360" y="45" text-anchor="middle" class="fp3sc-small">Every optimisation avoids repeating work it doesn't have to</text>
+
+  <!-- Row 1 -->
+  <g transform="translate(20, 65)">
+    <!-- const Widget -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">const Widget</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Skip rebuild entirely</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">const Text('hello')</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Same instance = skip comparison</text>
+  </g>
+
+  <g transform="translate(250, 65)">
+    <!-- Element Reuse -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Element Reuse</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Skip Element/RenderObject creation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">Widget.canUpdate(old, new)</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Type + Key match = reuse</text>
+  </g>
+
+  <g transform="translate(480, 65)">
+    <!-- Relayout Boundary -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Relayout Boundary</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Stop layout propagation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">sizedByParent: true</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Child layout can't affect parent</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(20, 170)">
+    <!-- Repaint Boundary -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Repaint Boundary</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Stop paint propagation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">RepaintBoundary(child: ...)</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Own layer = isolated repaint</text>
+  </g>
+
+  <g transform="translate(250, 170)">
+    <!-- Dirty-List Coalescing -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Dirty-List Coalescing</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Multiple setState = one rebuild</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">scheduleFrame() idempotent</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">10 setState = 1 frame</text>
+  </g>
+
+  <g transform="translate(480, 170)">
+    <!-- Frame Scheduling -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Frame Scheduling</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Only render on VSync request</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">Nothing dirty = no frame</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Off-screen = no work</text>
+  </g>
+
+  <!-- Summary -->
+  <g transform="translate(20, 280)">
+    <rect x="0" y="0" width="680" height="85" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="340" y="22" text-anchor="middle" class="fp3sc-label">The Synthesis</text>
+    <text x="340" y="42" text-anchor="middle" class="fp3sc-small">Flutter is fast because it aggressively avoids redundant work:</text>
+    <text x="340" y="58" text-anchor="middle" class="fp3sc-code">const skips rebuilds • Element reuse skips recreation • Relayout stops layout walk</text>
+    <text x="340" y="74" text-anchor="middle" class="fp3sc-code">Repaint boundary stops paint walk • Dirty coalescing batches • VSync gates rendering</text>
+  </g>
+</svg>
 </figure>
 
 ### 1. const Widgets Skip Rebuilds

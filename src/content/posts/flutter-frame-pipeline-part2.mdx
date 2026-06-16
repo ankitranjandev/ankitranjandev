@@ -35,7 +35,7 @@ void paint(PaintingContext context, Offset offset) {
 The `canvas` here isn't connected to the screen. It's a `Canvas` that wraps a `PictureRecorder`. Every `draw` call adds an operation to an internal list. When painting finishes, `endRecording()` produces a `Picture` — an immutable, replayable recording of all those commands.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-paint-recording.svg" alt="Paint records commands into a Picture, not pixels" />
+<img src="/assets/flutter-frame-pipeline/fp2-paint-recording.svg" alt="Paint records commands into a Picture, not pixels" />
 </figure>
 
 Why record instead of draw directly? Three reasons:
@@ -83,7 +83,7 @@ Not everything goes into a single `Picture`. Some operations require separate **
 **OffsetLayer** — Created by `RepaintBoundary`. Marks a subtree that can be composited independently.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-layer-tree.svg" alt="Flutter layer tree structure" />
+<img src="/assets/flutter-frame-pipeline/fp2-layer-tree.svg" alt="Flutter layer tree structure" />
 </figure>
 
 ### RepaintBoundary
@@ -168,7 +168,7 @@ This is `FlutterView.render()` — the function that ships the scene to the engi
 This is the **boundary**. Before this call: Dart code on the UI thread. After: C++ engine code, eventually running on the raster thread. No more Dart executes for this frame.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-handoff.svg" alt="The handoff from UI thread to raster thread" />
+<img src="/assets/flutter-frame-pipeline/fp2-handoff.svg" alt="The handoff from UI thread to raster thread" />
 </figure>
 
 ### What Crosses the Boundary
@@ -212,7 +212,7 @@ While the raster thread prepares commands, the display is simultaneously scannin
 When the display finishes scanning the front buffer (reaching the bottom-right corner), it enters the **Vertical Blanking Interval (VBI)**. During this brief pause, the system swaps the buffer pointers: back becomes front, front becomes back.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-double-buffer.svg" alt="Double buffering and VSync swap" />
+<img src="/assets/flutter-frame-pipeline/fp2-double-buffer.svg" alt="Double buffering and VSync swap" />
 </figure>
 
 The swap is just a pointer change — no pixels are copied. The GPU can immediately start writing to the new back buffer while the display scans the new front buffer.
@@ -243,7 +243,7 @@ Impeller takes a fundamentally different approach: **ahead-of-time (AOT) shader 
 The shader library is small because Impeller uses a fixed set of composable shaders, not the infinite variety Skia generated dynamically.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-impeller-vs-skia.svg" alt="Impeller vs Skia shader compilation" />
+<img src="/assets/flutter-frame-pipeline/fp2-impeller-vs-skia.svg" alt="Impeller vs Skia shader compilation" />
 </figure>
 
 ### Current Status (June 2026)

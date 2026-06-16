@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter's six short-circuit optimisations that avoid redundant work">
+  <style>
+    .fp3sc-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3sc-label { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3sc-small { font: 9px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3sc-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3sc-title">Flutter's Short-Circuit Arsenal</text>
+  <text x="360" y="45" text-anchor="middle" class="fp3sc-small">Every optimisation avoids repeating work it doesn't have to</text>
+
+  <!-- Row 1 -->
+  <g transform="translate(20, 65)">
+    <!-- const Widget -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">const Widget</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Skip rebuild entirely</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">const Text('hello')</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Same instance = skip comparison</text>
+  </g>
+
+  <g transform="translate(250, 65)">
+    <!-- Element Reuse -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Element Reuse</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Skip Element/RenderObject creation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">Widget.canUpdate(old, new)</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Type + Key match = reuse</text>
+  </g>
+
+  <g transform="translate(480, 65)">
+    <!-- Relayout Boundary -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Relayout Boundary</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Stop layout propagation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">sizedByParent: true</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Child layout can't affect parent</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(20, 170)">
+    <!-- Repaint Boundary -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Repaint Boundary</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Stop paint propagation</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">RepaintBoundary(child: ...)</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Own layer = isolated repaint</text>
+  </g>
+
+  <g transform="translate(250, 170)">
+    <!-- Dirty-List Coalescing -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Dirty-List Coalescing</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Multiple setState = one rebuild</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">scheduleFrame() idempotent</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">10 setState = 1 frame</text>
+  </g>
+
+  <g transform="translate(480, 170)">
+    <!-- Frame Scheduling -->
+    <rect x="0" y="0" width="220" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="110" y="20" text-anchor="middle" class="fp3sc-label">Frame Scheduling</text>
+    <text x="110" y="38" text-anchor="middle" class="fp3sc-small">Only render on VSync request</text>
+    <rect x="15" y="48" width="190" height="32" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="110" y="62" text-anchor="middle" class="fp3sc-code">Nothing dirty = no frame</text>
+    <text x="110" y="75" text-anchor="middle" class="fp3sc-small">Off-screen = no work</text>
+  </g>
+
+  <!-- Summary -->
+  <g transform="translate(20, 280)">
+    <rect x="0" y="0" width="680" height="85" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="340" y="22" text-anchor="middle" class="fp3sc-label">The Synthesis</text>
+    <text x="340" y="42" text-anchor="middle" class="fp3sc-small">Flutter is fast because it aggressively avoids redundant work:</text>
+    <text x="340" y="58" text-anchor="middle" class="fp3sc-code">const skips rebuilds • Element reuse skips recreation • Relayout stops layout walk</text>
+    <text x="340" y="74" text-anchor="middle" class="fp3sc-code">Repaint boundary stops paint walk • Dirty coalescing batches • VSync gates rendering</text>
+  </g>
+</svg>

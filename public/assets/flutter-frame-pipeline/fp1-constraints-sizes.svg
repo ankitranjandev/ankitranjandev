@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter layout: constraints flow down from parent to child, sizes flow back up">
+  <defs>
+    <marker id="fp1-cs-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto">
+      <path d="M0,0 L4,8 L8,0 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-cs-up" markerWidth="8" markerHeight="8" refX="4" refY="0" orient="auto">
+      <path d="M0,8 L4,0 L8,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1cs-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1cs-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1cs-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1cs-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp1cs-title">Layout: Constraints Down, Sizes Up</text>
+
+  <!-- Parent -->
+  <g transform="translate(260, 50)">
+    <rect x="0" y="0" width="200" height="50" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp1cs-label">Parent RenderObject</text>
+    <text x="100" y="38" text-anchor="middle" class="fp1cs-small">Knows max width: 400px</text>
+  </g>
+
+  <!-- Down arrow with constraints -->
+  <g transform="translate(310, 100)">
+    <line x1="0" y1="0" x2="0" y2="35" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-cs-down)"/>
+    <rect x="15" y="5" width="130" height="28" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1" rx="4"/>
+    <text x="80" y="16" text-anchor="middle" class="fp1cs-code">Constraints DOWN</text>
+    <text x="80" y="28" text-anchor="middle" class="fp1cs-small">min:0, max:400</text>
+  </g>
+
+  <!-- Up arrow with size -->
+  <g transform="translate(410, 100)">
+    <line x1="0" y1="35" x2="0" y2="0" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#fp1-cs-up)"/>
+    <rect x="15" y="5" width="100" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
+    <text x="65" y="16" text-anchor="middle" class="fp1cs-code">Size UP</text>
+    <text x="65" y="28" text-anchor="middle" class="fp1cs-small">width: 200</text>
+  </g>
+
+  <!-- Child -->
+  <g transform="translate(260, 145)">
+    <rect x="0" y="0" width="200" height="50" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp1cs-label">Child RenderObject</text>
+    <text x="100" y="38" text-anchor="middle" class="fp1cs-small">Picks size within constraints</text>
+  </g>
+
+  <!-- Parent positions child -->
+  <g transform="translate(260, 205)">
+    <line x1="100" y1="0" x2="100" y2="15" stroke="var(--svg-text-secondary, #475569)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="30" y="18" width="140" height="28" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="4"/>
+    <text x="100" y="30" text-anchor="middle" class="fp1cs-code">Parent sets position</text>
+    <text x="100" y="42" text-anchor="middle" class="fp1cs-small">offset: (100, 50)</text>
+  </g>
+
+  <!-- Relayout boundary box -->
+  <g transform="translate(30, 70)">
+    <rect x="0" y="0" width="180" height="120" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="90" y="20" text-anchor="middle" class="fp1cs-label" fill="var(--svg-purple, #9333ea)">Relayout Boundary</text>
+    <text x="90" y="40" text-anchor="middle" class="fp1cs-small">Layout stops propagating</text>
+    <text x="90" y="55" text-anchor="middle" class="fp1cs-small">up the tree when:</text>
+    <text x="90" y="75" text-anchor="middle" class="fp1cs-code">• Constraints are tight</text>
+    <text x="90" y="90" text-anchor="middle" class="fp1cs-code">• parentUsesSize: false</text>
+    <text x="90" y="105" text-anchor="middle" class="fp1cs-code">• sizedByParent: true</text>
+  </g>
+
+  <!-- Why this matters box -->
+  <g transform="translate(510, 70)">
+    <rect x="0" y="0" width="180" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="90" y="20" text-anchor="middle" class="fp1cs-label">Why Single-Pass?</text>
+    <text x="90" y="42" text-anchor="middle" class="fp1cs-small">One walk down (constraints)</text>
+    <text x="90" y="57" text-anchor="middle" class="fp1cs-small">One walk up (sizes)</text>
+    <text x="90" y="75" text-anchor="middle" class="fp1cs-small">No iteration, no solver</text>
+    <text x="90" y="95" text-anchor="middle" class="fp1cs-code">O(n) layout</text>
+    <text x="90" y="110" text-anchor="middle" class="fp1cs-small">That's why Flutter is fast</text>
+  </g>
+
+  <!-- Common error callout -->
+  <g transform="translate(30, 255)">
+    <rect x="0" y="0" width="660" height="50" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="6"/>
+    <text x="330" y="18" text-anchor="middle" class="fp1cs-label" fill="var(--svg-red, #dc2626)">Unbounded Constraints Error</text>
+    <text x="330" y="35" text-anchor="middle" class="fp1cs-small">When a child receives infinite constraints and can't choose a finite size.</text>
+    <text x="330" y="48" text-anchor="middle" class="fp1cs-code">Example: ListView inside Column without Expanded wrapper.</text>
+  </g>
+</svg>

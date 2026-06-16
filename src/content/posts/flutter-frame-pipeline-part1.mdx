@@ -25,7 +25,7 @@ When the display finishes drawing the last pixel in the bottom-right corner, it 
 This pulse is the heartbeat of rendering. It tells the graphics system: "I'm ready for the next frame. Give it to me now, or wait for the next pulse."
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-vsync-to-dart.svg" alt="VSync signal flow from hardware through Flutter engine to Dart framework" />
+<img src="/assets/flutter-frame-pipeline/fp1-vsync-to-dart.svg" alt="VSync signal flow from hardware through Flutter engine to Dart framework" />
 </figure>
 
 ### Why 16.67 Milliseconds?
@@ -51,7 +51,7 @@ Flutter doesn't run everything on one thread. It spreads work across four:
 **IO Thread** — Handles asset loading, texture decoding, and image uploads. Keeps this slow work off the raster thread so it doesn't block frame production.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-four-threads.svg" alt="Flutter's four threads and their responsibilities" />
+<img src="/assets/flutter-frame-pipeline/fp1-four-threads.svg" alt="Flutter's four threads and their responsibilities" />
 </figure>
 
 The crucial insight: a frame must clear **both** the UI thread and the raster thread within the budget. If either overruns, you drop the frame.
@@ -125,7 +125,7 @@ RenderObjects do the actual work: calculating layout, painting pixels, handling 
 When an element's widget changes, it tells its render object to update. The render object might need to re-layout, repaint, or both — but it's the same object, not a fresh allocation.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-three-trees.svg" alt="The three trees: Widget, Element, and RenderObject" />
+<img src="/assets/flutter-frame-pipeline/fp1-three-trees.svg" alt="The three trees: Widget, Element, and RenderObject" />
 </figure>
 
 ### Where State Lives
@@ -180,7 +180,7 @@ void scheduleBuildFor(Element element) {
 `ensureVisualUpdate()` calls `scheduleFrame()`, which asks the engine for the next VSync. The key insight: `scheduleFrame()` is **idempotent**. Calling it ten times before VSync arrives schedules one frame, not ten.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-setstate-flow.svg" alt="setState flow from marking dirty to rendering the frame" />
+<img src="/assets/flutter-frame-pipeline/fp1-setstate-flow.svg" alt="setState flow from marking dirty to rendering the frame" />
 </figure>
 
 ### What Happens on VSync
@@ -251,7 +251,7 @@ void performLayout() {
 The mantra: **Constraints go down. Sizes go up. Parent sets position.**
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-constraints-sizes.svg" alt="Layout constraints flowing down, sizes flowing up" />
+<img src="/assets/flutter-frame-pipeline/fp1-constraints-sizes.svg" alt="Layout constraints flowing down, sizes flowing up" />
 </figure>
 
 ### Relayout Boundaries

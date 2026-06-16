@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Prose from '@/components/Prose.astro';
 import DeepDiveTOC from '@/components/DeepDiveTOC.astro';
+import DeepDiveNav from '@/components/DeepDiveNav.astro';
 import Quiz from '@/components/Quiz.astro';
 import ShareLinks from '@/components/ShareLinks.astro';
 import { formatDate } from '@/lib/utils';
@@ -11,11 +12,11 @@ export async function getStaticPaths() {
   const deepDives = await getCollection('deepDives');
   return deepDives.map((entry) => ({
     params: { slug: entry.id },
-    props: { entry },
+    props: { entry, allPosts: deepDives },
   }));
 }
 
-const { entry } = Astro.props;
+const { entry, allPosts } = Astro.props;
 const { Content } = await render(entry);
 const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
 ---
@@ -149,6 +150,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site).toString();
           description={entry.data.quiz.description}
           questions={entry.data.quiz.questions}
           subjectTitle={entry.data.title}
+        />
+
+        <!-- Post Navigation -->
+        <DeepDiveNav
+          currentId={entry.id}
+          category={entry.data.category}
+          allPosts={allPosts}
         />
       </div>
     </div>

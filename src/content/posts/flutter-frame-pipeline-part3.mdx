@@ -31,7 +31,7 @@ If the UI track is tall, the problem is in Dart. If the raster track is tall, th
 Open DevTools in profile mode (`flutter run --profile`). Go to the Performance tab. Record some interaction. You'll see two horizontal tracks:
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp3-timeline-tracks.svg" alt="DevTools timeline showing UI and Raster tracks" />
+<img src="/assets/flutter-frame-pipeline/fp3-timeline-tracks.svg" alt="DevTools timeline showing UI and Raster tracks" />
 </figure>
 
 Each bar is a frame. Green bars fit within the budget line. Red bars exceeded it. Look at which track has the tall bars:
@@ -167,7 +167,7 @@ Every stacked widget draws pixels. If you have 10 `Container`s with backgrounds 
 Use the DevTools "Highlight Repaint Rainbows" to see what's repainting. Use the "Performance Overlay" to see raster thread load.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp3-ui-vs-raster-jank.svg" alt="UI jank vs Raster jank comparison" />
+<img src="/assets/flutter-frame-pipeline/fp3-ui-vs-raster-jank.svg" alt="UI jank vs Raster jank comparison" />
 </figure>
 
 **Teach-test:** Given a screen that's smooth on first build but janks during a fade transition, predict which track is tall and name the fix before profiling.
@@ -189,7 +189,7 @@ An isolate is Dart's concurrency unit. Each isolate has:
 - **No shared mutable state** — The constraint that makes this safe.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp3-isolate-heaps.svg" alt="Isolates have separate heaps and communicate via message passing" />
+<img src="/assets/flutter-frame-pipeline/fp3-isolate-heaps.svg" alt="Isolates have separate heaps and communicate via message passing" />
 </figure>
 
 Because there's no shared memory, there are no locks and no data races. The trade-off: communication happens by copying messages, not by sharing pointers.
@@ -285,7 +285,7 @@ Isolates don't help when:
 We've traced the entire pipeline. Now step back and see the pattern: Flutter is optimised to **not redo work it doesn't have to**.
 
 <figure>
-<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp3-short-circuits.svg" alt="Flutter's six short-circuit optimisations" />
+<img src="/assets/flutter-frame-pipeline/fp3-short-circuits.svg" alt="Flutter's six short-circuit optimisations" />
 </figure>
 
 ### 1. const Widgets Skip Rebuilds

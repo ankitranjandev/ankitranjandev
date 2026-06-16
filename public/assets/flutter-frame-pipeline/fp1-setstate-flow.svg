@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width: 100%; height: auto;" role="img" aria-label="setState flow: from calling setState to the frame being rendered">
+  <defs>
+    <marker id="fp1-sf-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp1-sf-arrow-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto">
+      <path d="M0,0 L4,8 L8,0 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1sf-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1sf-label { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1sf-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1sf-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp1sf-phase { font: bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-secondary, #475569); }
+  </style>
+
+  <text x="360" y="24" text-anchor="middle" class="fp1sf-title">setState() → Scheduled Frame → Render</text>
+
+  <!-- Phase 1: Marking Dirty -->
+  <g transform="translate(20, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 1: Mark Dirty</text>
+
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">setState(callback)</text>
+
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">_element!.markNeedsBuild()</text>
+
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">BuildOwner.scheduleBuildFor()</text>
+  </g>
+
+  <!-- Arrow to Phase 2 -->
+  <line x1="230" y1="110" x2="255" y2="110" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow)"/>
+
+  <!-- Phase 2: Schedule -->
+  <g transform="translate(260, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 2: Schedule</text>
+
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">ensureVisualUpdate()</text>
+
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">scheduleFrame()</text>
+
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">...waits for vsync...</text>
+  </g>
+
+  <!-- Arrow to Phase 3 -->
+  <line x1="470" y1="110" x2="495" y2="110" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow)"/>
+
+  <!-- Phase 3: VSync Arrives -->
+  <g transform="translate(500, 45)">
+    <rect x="0" y="0" width="200" height="130" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="100" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 3: VSync</text>
+
+    <rect x="15" y="30" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="44" text-anchor="middle" class="fp1sf-code">handleBeginFrame(ts)</text>
+
+    <line x1="100" y1="52" x2="100" y2="60" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="62" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="76" text-anchor="middle" class="fp1sf-code">transientCallbacks</text>
+
+    <line x1="100" y1="84" x2="100" y2="92" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="15" y="94" width="170" height="22" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="100" y="108" text-anchor="middle" class="fp1sf-code">handleDrawFrame()</text>
+  </g>
+
+  <!-- Phase 4: Draw Frame (full width) -->
+  <g transform="translate(20, 190)">
+    <rect x="0" y="0" width="680" height="85" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="340" y="18" text-anchor="middle" class="fp1sf-phase">PHASE 4: drawFrame() — The Rendering Pipeline</text>
+
+    <!-- Pipeline steps -->
+    <rect x="20" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="70" y="50" text-anchor="middle" class="fp1sf-code">buildScope()</text>
+    <text x="70" y="62" text-anchor="middle" class="fp1sf-small">rebuild dirty</text>
+
+    <line x1="125" y1="52" x2="145" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+
+    <rect x="150" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="200" y="50" text-anchor="middle" class="fp1sf-code">flushLayout()</text>
+    <text x="200" y="62" text-anchor="middle" class="fp1sf-small">constraints/sizes</text>
+
+    <line x1="255" y1="52" x2="275" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+
+    <rect x="280" y="35" width="115" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="338" y="50" text-anchor="middle" class="fp1sf-code">flushCompositingBits()</text>
+    <text x="338" y="62" text-anchor="middle" class="fp1sf-small">layer dirty flags</text>
+
+    <line x1="400" y1="52" x2="420" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+
+    <rect x="425" y="35" width="100" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="475" y="50" text-anchor="middle" class="fp1sf-code">flushPaint()</text>
+    <text x="475" y="62" text-anchor="middle" class="fp1sf-small">record commands</text>
+
+    <line x1="530" y1="52" x2="550" y2="52" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" marker-end="url(#fp1-sf-arrow)"/>
+
+    <rect x="555" y="35" width="105" height="35" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+    <text x="608" y="50" text-anchor="middle" class="fp1sf-code">compositeFrame()</text>
+    <text x="608" y="62" text-anchor="middle" class="fp1sf-small">build Scene</text>
+  </g>
+
+  <!-- Final step -->
+  <g transform="translate(20, 290)">
+    <line x1="340" y1="0" x2="340" y2="15" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-sf-arrow-down)"/>
+
+    <rect x="200" y="20" width="280" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="340" y="35" text-anchor="middle" class="fp1sf-code">FlutterView.render(scene)</text>
+    <text x="340" y="48" text-anchor="middle" class="fp1sf-small">Hands Scene to engine. UI thread work done.</text>
+  </g>
+
+  <!-- Key insight -->
+  <g transform="translate(20, 340)">
+    <rect x="0" y="0" width="680" height="30" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="340" y="19" text-anchor="middle" class="fp1sf-small">Key: scheduleFrame() is idempotent. Calling setState 10 times before vsync = 1 rebuild, not 10.</text>
+  </g>
+</svg>

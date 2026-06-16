@@ -1,0 +1,209 @@
+---
+interface Props {
+  currentId: string;
+  category: string;
+  allPosts: Array<{
+    id: string;
+    data: {
+      title: string;
+      category: string;
+      subject: string;
+      order: number;
+      color?: string;
+    };
+  }>;
+}
+
+const { currentId, category, allPosts } = Astro.props;
+
+// Subject learning order (same as index.astro)
+const subjectOrder: Record<string, number> = {
+  // Dart learning path
+  'Dart: The Platform': 1,
+  'Dart: Data Foundations': 2,
+  'Dart: Primitive Computation': 3,
+  'Dart: Collections': 4,
+  'Dart: Type System': 5,
+  'Dart: Async': 6,
+  // Swift learning path
+  'Swift: The Platform': 1,
+  'Swift: Data Foundations': 2,
+  'Swift: Primitive Computation': 3,
+  'Swift: Collections': 4,
+  'Swift: Type System': 5,
+  'Swift: Concurrency': 6,
+  // Flutter learning path
+  'Flutter: Foundations': 1,
+  'Flutter: Widgets': 2,
+  'Flutter: State Management': 3,
+  'Flutter: Navigation': 4,
+  'Flutter: Performance': 5,
+  'Flutter: Platform Integration': 6,
+  // Kotlin learning path
+  'Kotlin: Foundations': 1,
+  'Kotlin: Type System': 2,
+  'Kotlin: Functions': 3,
+  'Kotlin: Object Model': 4,
+  'Kotlin: Collections': 5,
+  'Kotlin: Error Handling': 6,
+  'Kotlin: Concurrency': 7,
+  'Kotlin: Multiplatform': 8,
+  // Design Patterns learning path
+  'Patterns: State': 1,
+  'Patterns: Composition': 2,
+  'Patterns: Creation': 3,
+};
+
+// Filter to same category and sort by subject order, then by post order
+const categoryPosts = allPosts
+  .filter(post => post.data.category === category)
+  .sort((a, b) => {
+    const subjectA = subjectOrder[a.data.subject] ?? 999;
+    const subjectB = subjectOrder[b.data.subject] ?? 999;
+    if (subjectA !== subjectB) return subjectA - subjectB;
+    return a.data.order - b.data.order;
+  });
+
+// Find current index
+const currentIndex = categoryPosts.findIndex(post => post.id === currentId);
+
+// Get previous and next
+const prevPost = currentIndex > 0 ? categoryPosts[currentIndex - 1] : null;
+const nextPost = currentIndex < categoryPosts.length - 1 ? categoryPosts[currentIndex + 1] : null;
+
+// Category colors
+const categoryColors: Record<string, string> = {
+  'Dart': '#0175C2',
+  'Swift': '#C7411F',
+  'Design Patterns': '#9333ea',
+  'Flutter': '#02569B',
+  'Kotlin': '#7F52FF',
+  'System Design': '#dc2626',
+};
+
+const accentColor = categoryColors[category] || '#0175C2';
+---
+
+{(prevPost || nextPost) && (
+  <nav class="deep-dive-nav" aria-label="Post navigation">
+    <div class="nav-grid">
+      {prevPost ? (
+        <a href={`/deep-dives/${prevPost.id}/`} class="nav-link nav-prev">
+          <span class="nav-direction">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"/>
+              <path d="M19 12H5"/>
+            </svg>
+            Previous
+          </span>
+          <span class="nav-title">{prevPost.data.title}</span>
+        </a>
+      ) : (
+        <div class="nav-placeholder"></div>
+      )}
+
+      {nextPost ? (
+        <a href={`/deep-dives/${nextPost.id}/`} class="nav-link nav-next">
+          <span class="nav-direction">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 5 7 7-7 7"/>
+              <path d="M5 12h14"/>
+            </svg>
+          </span>
+          <span class="nav-title">{nextPost.data.title}</span>
+        </a>
+      ) : (
+        <div class="nav-placeholder"></div>
+      )}
+    </div>
+  </nav>
+)}
+
+<style define:vars={{ accentColor }}>
+  .deep-dive-nav {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .nav-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .nav-link:hover {
+    border-color: var(--accentColor);
+    background: var(--bg-elevated);
+  }
+
+  .nav-prev {
+    align-items: flex-start;
+  }
+
+  .nav-next {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  @media (max-width: 639px) {
+    .nav-next {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .nav-next .nav-direction {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+  }
+
+  .nav-direction {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--accentColor);
+  }
+
+  .nav-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .nav-placeholder {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .nav-placeholder {
+      display: block;
+    }
+  }
+</style>

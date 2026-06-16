@@ -1,0 +1,811 @@
+---
+/**
+ * Awwwards-style resume visualization component
+ * Displays career timeline, skills, and key metrics in an interactive visual format
+ */
+
+interface Experience {
+  title: string;
+  company: string;
+  period: string;
+  type: 'fulltime' | 'consultant' | 'freelance';
+  technologies: string[];
+  highlights: string[];
+}
+
+interface Skill {
+  name: string;
+  level: number; // 0-100
+  category: 'language' | 'framework' | 'tool' | 'platform';
+}
+
+const experiences: Experience[] = [
+  {
+    title: 'Senior Mobile Developer',
+    company: 'uBreathe · PasarPolis',
+    period: 'Feb 2024 – Present',
+    type: 'consultant',
+    technologies: ['Flutter', 'Dart', 'Kotlin', 'Swift', 'BLE', 'Firebase'],
+    highlights: [
+      'Custom BLE plugin for real-time IoT telemetry',
+      'Cross-platform crash triage (Flutter, Android, iOS)',
+      'Mobile security hardening (SSL pinning, AES-256)',
+    ],
+  },
+  {
+    title: 'Senior Software Engineer',
+    company: 'Kuhoo — FinTech',
+    period: 'Mar 2023 – Feb 2024',
+    type: 'fulltime',
+    technologies: ['Flutter', 'Dart', 'Clean Architecture', 'BLoC', 'Firebase', 'CI/CD'],
+    highlights: [
+      '90%+ test coverage on loan products',
+      '60% reduction in cross-team integration defects',
+      '18% decrease in loan-application abandonment',
+    ],
+  },
+  {
+    title: 'Software Engineer',
+    company: 'PasarPolis — InsurTech',
+    period: 'Jan 2020 – Feb 2023',
+    type: 'fulltime',
+    technologies: ['Flutter', 'Flutter Web/PWA', 'Kotlin', 'Swift', 'Firebase'],
+    highlights: [
+      'Policy activation failure: 67% → 5%',
+      'PWA for 50,000+ launch users in 3 weeks',
+      'Runtime-configurable forms for 8 partners',
+    ],
+  },
+  {
+    title: 'Software Engineer',
+    company: 'Ameyo — Enterprise',
+    period: 'Jan 2019 – Nov 2019',
+    type: 'fulltime',
+    technologies: ['Android (Java)', 'iOS (Swift)'],
+    highlights: [
+      'iOS Supervisor app with zero P1/P2 bugs',
+      'Mobile SDK shipped to 6 enterprise clients',
+    ],
+  },
+];
+
+const skills: Skill[] = [
+  { name: 'Flutter', level: 95, category: 'framework' },
+  { name: 'Dart', level: 95, category: 'language' },
+  { name: 'Kotlin', level: 85, category: 'language' },
+  { name: 'Swift', level: 80, category: 'language' },
+  { name: 'Clean Architecture', level: 90, category: 'tool' },
+  { name: 'BLoC', level: 92, category: 'framework' },
+  { name: 'Firebase', level: 88, category: 'platform' },
+  { name: 'CI/CD', level: 85, category: 'tool' },
+];
+
+const metrics = [
+  { value: '7+', label: 'Years Experience', icon: 'calendar' },
+  { value: '50K+', label: 'Users Served', icon: 'users' },
+  { value: '90%+', label: 'Test Coverage', icon: 'check' },
+  { value: 'dart-lang/sdk', label: 'Contributor', icon: 'code' },
+];
+
+const openSource = [
+  {
+    name: 'dart-lang/sdk',
+    role: 'Contributor',
+    description: 'FFI test migrations & dart_api_dl.h expect tests',
+  },
+  {
+    name: 'dart_abi_poc',
+    role: 'Creator',
+    description: 'FFI & ABI verification toolkit',
+  },
+];
+---
+
+<section class="resume-viz" id="resume">
+  <!-- Header with download button -->
+  <div class="resume-header">
+    <div class="resume-title-block">
+      <span class="resume-label">Resume</span>
+      <h2 class="resume-name">Ankit Ranjan</h2>
+      <p class="resume-tagline">Senior Mobile Engineer · Flutter · Kotlin · Swift</p>
+    </div>
+    <a
+      href="/Ankit_Ranjan_FullStack_Mobile.pdf"
+      download="Ankit_Ranjan_Resume.pdf"
+      class="download-btn"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Download CV</span>
+    </a>
+  </div>
+
+  <!-- Key metrics -->
+  <div class="metrics-grid">
+    {metrics.map((metric, i) => (
+      <div class="metric-card" style={`--delay: ${i * 0.1}s`}>
+        <div class="metric-icon">
+          {metric.icon === 'calendar' && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          )}
+          {metric.icon === 'users' && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          )}
+          {metric.icon === 'check' && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          )}
+          {metric.icon === 'code' && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          )}
+        </div>
+        <div class="metric-value">{metric.value}</div>
+        <div class="metric-label">{metric.label}</div>
+      </div>
+    ))}
+  </div>
+
+  <!-- Skills visualization -->
+  <div class="skills-section">
+    <h3 class="section-title">
+      <span class="title-line"></span>
+      <span>Core Technologies</span>
+      <span class="title-line"></span>
+    </h3>
+    <div class="skills-grid">
+      {skills.map((skill, i) => (
+        <div class="skill-item" style={`--delay: ${i * 0.05}s`}>
+          <div class="skill-header">
+            <span class="skill-name">{skill.name}</span>
+            <span class="skill-percent">{skill.level}%</span>
+          </div>
+          <div class="skill-bar">
+            <div class="skill-fill" style={`--level: ${skill.level}%`}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Career timeline -->
+  <div class="timeline-section">
+    <h3 class="section-title">
+      <span class="title-line"></span>
+      <span>Career Journey</span>
+      <span class="title-line"></span>
+    </h3>
+    <div class="timeline">
+      {experiences.map((exp, i) => (
+        <div class="timeline-item" style={`--delay: ${i * 0.15}s`}>
+          <div class="timeline-marker">
+            <div class="marker-dot"></div>
+            {i < experiences.length - 1 && <div class="marker-line"></div>}
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <div>
+                <span class={`exp-type exp-type--${exp.type}`}>
+                  {exp.type === 'consultant' ? 'Consultant' : exp.type === 'freelance' ? 'Freelance' : 'Full-time'}
+                </span>
+                <h4 class="exp-title">{exp.title}</h4>
+                <p class="exp-company">{exp.company}</p>
+              </div>
+              <span class="exp-period">{exp.period}</span>
+            </div>
+            <div class="exp-tech">
+              {exp.technologies.map((tech) => (
+                <span class="tech-tag">{tech}</span>
+              ))}
+            </div>
+            <ul class="exp-highlights">
+              {exp.highlights.map((highlight) => (
+                <li>{highlight}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Open source contributions -->
+  <div class="opensource-section">
+    <h3 class="section-title">
+      <span class="title-line"></span>
+      <span>Open Source</span>
+      <span class="title-line"></span>
+    </h3>
+    <div class="opensource-grid">
+      {openSource.map((project, i) => (
+        <div class="opensource-card" style={`--delay: ${i * 0.1}s`}>
+          <div class="opensource-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </div>
+          <div class="opensource-content">
+            <h4 class="opensource-name">{project.name}</h4>
+            <span class="opensource-role">{project.role}</span>
+            <p class="opensource-desc">{project.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Education & Certifications -->
+  <div class="edu-section">
+    <div class="edu-card">
+      <div class="edu-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+        </svg>
+      </div>
+      <div>
+        <h4>B.Tech, Computer Science</h4>
+        <p>A.P.J. Abdul Kalam Technical University · 2019</p>
+      </div>
+    </div>
+    <div class="edu-card">
+      <div class="edu-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div>
+        <h4>IEEE Publication</h4>
+        <p>Automation in Agriculture and IoT · 23 citations</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .resume-viz {
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .resume-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .resume-title-block {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .resume-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+  }
+
+  .resume-name {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0;
+    background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .resume-tagline {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
+  }
+
+  .download-btn:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
+    color: var(--color-accent-fg);
+  }
+
+  .download-btn svg {
+    transition: transform 0.3s ease;
+  }
+
+  .download-btn:hover svg {
+    transform: translateY(2px);
+  }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (min-width: 640px) {
+    .metrics-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .metric-card {
+    position: relative;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    text-align: center;
+    overflow: hidden;
+    animation: fadeSlideUp 0.6s ease-out forwards;
+    animation-delay: var(--delay);
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-accent), transparent);
+  }
+
+  .metric-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.75rem;
+    background: var(--color-accent);
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+    border-radius: 12px;
+    color: var(--color-accent-fg);
+  }
+
+  .metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .metric-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+
+  /* Section titles */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  .title-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Skills section */
+  .skills-section {
+    margin-bottom: 3rem;
+  }
+
+  .skills-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(1, 1fr);
+  }
+
+  @media (min-width: 640px) {
+    .skills-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .skill-item {
+    animation: fadeSlideUp 0.5s ease-out forwards;
+    animation-delay: var(--delay);
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .skill-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .skill-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+
+  .skill-percent {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+  }
+
+  .skill-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .skill-fill {
+    height: 100%;
+    width: var(--level);
+    background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+    border-radius: 3px;
+    animation: fillBar 1s ease-out forwards;
+    animation-delay: calc(var(--delay) + 0.3s);
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+
+  /* Timeline section */
+  .timeline-section {
+    margin-bottom: 3rem;
+  }
+
+  .timeline {
+    position: relative;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    animation: fadeSlideUp 0.6s ease-out forwards;
+    animation-delay: var(--delay);
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 24px;
+  }
+
+  .marker-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .marker-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(180deg, var(--color-accent) 0%, var(--border) 100%);
+    margin-top: 0.5rem;
+  }
+
+  .timeline-content {
+    flex: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+  }
+
+  .timeline-content:hover {
+    border-color: var(--text-tertiary);
+    background: var(--bg-elevated);
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .exp-type {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+
+  .exp-type--fulltime {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+
+  .exp-type--consultant {
+    background: rgba(147, 51, 234, 0.15);
+    color: #9333ea;
+  }
+
+  .dark .exp-type--consultant {
+    color: #c084fc;
+  }
+
+  .exp-type--freelance {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+  }
+
+  .exp-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .exp-company {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+  }
+
+  .exp-period {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+
+  .exp-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tech-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    background: var(--color-accent);
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--color-accent);
+    border-radius: 4px;
+  }
+
+  .exp-highlights {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: none;
+  }
+
+  .exp-highlights li {
+    position: relative;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.25rem;
+  }
+
+  .exp-highlights li::before {
+    content: '→';
+    position: absolute;
+    left: -1.25rem;
+    color: var(--color-accent);
+  }
+
+  /* Open source section */
+  .opensource-section {
+    margin-bottom: 3rem;
+  }
+
+  .opensource-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(1, 1fr);
+  }
+
+  @media (min-width: 640px) {
+    .opensource-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .opensource-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    animation: fadeSlideUp 0.5s ease-out forwards;
+    animation-delay: var(--delay);
+    opacity: 0;
+    transform: translateY(15px);
+    transition: all 0.3s ease;
+  }
+
+  .opensource-card:hover {
+    border-color: var(--text-tertiary);
+    background: var(--bg-elevated);
+  }
+
+  .opensource-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .opensource-content {
+    flex: 1;
+  }
+
+  .opensource-name {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+
+  .opensource-role {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-top: 0.25rem;
+  }
+
+  .opensource-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
+    line-height: 1.5;
+  }
+
+  /* Education section */
+  .edu-section {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(1, 1fr);
+  }
+
+  @media (min-width: 640px) {
+    .edu-section {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .edu-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .edu-card:hover {
+    border-color: var(--text-tertiary);
+  }
+
+  .edu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+    border-radius: 12px;
+    color: var(--color-accent-fg);
+    flex-shrink: 0;
+  }
+
+  .edu-card h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .edu-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+  }
+
+  /* Animations */
+  @keyframes fadeSlideUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fillBar {
+    to {
+      transform: scaleX(1);
+    }
+  }
+</style>

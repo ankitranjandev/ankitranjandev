@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" style="max-width: 100%; height: auto;" role="img" aria-label="Flutter's four threads: Platform, UI, Raster, and IO with their responsibilities">
+  <defs>
+    <marker id="fp1-t-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp1t-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1t-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp1t-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp1t-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+    .fp1t-warn { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-red, #dc2626); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp1t-title">Flutter's Four Threads</text>
+
+  <!-- Platform Thread -->
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">Platform Thread</text>
+    <text x="20" y="38" class="fp1t-small">Host OS main thread. Plugins, platform channels, embedder/OS calls.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking freezes entire app</text>
+  </g>
+
+  <!-- UI Thread -->
+  <g transform="translate(20, 115)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">UI Thread (Dart Isolate)</text>
+    <text x="20" y="38" class="fp1t-small">Your code + framework: build(), layout(), paint(). Produces the layer tree.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking causes UI jank</text>
+  </g>
+
+  <!-- Arrow from UI to Raster -->
+  <g transform="translate(340, 170)">
+    <line x1="0" y1="0" x2="0" y2="15" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp1-t-arrow)"/>
+    <text x="40" y="12" class="fp1t-code">Layer tree</text>
+  </g>
+
+  <!-- Raster Thread -->
+  <g transform="translate(20, 190)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">Raster Thread (Engine)</text>
+    <text x="20" y="38" class="fp1t-small">C++ engine. Impeller/Skia rasterises layer tree to GPU commands. No Dart here.</text>
+    <text x="530" y="30" class="fp1t-warn">Blocking causes raster jank</text>
+  </g>
+
+  <!-- IO Thread -->
+  <g transform="translate(20, 255)">
+    <rect x="0" y="0" width="680" height="55" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+    <text x="20" y="22" class="fp1t-label">IO Thread</text>
+    <text x="20" y="38" class="fp1t-small">Asset loading, texture decode, image upload. Keeps this work off the raster thread.</text>
+    <text x="560" y="30" class="fp1t-code">Async only</text>
+  </g>
+
+  <!-- Key callout -->
+  <rect x="20" y="320" width="680" height="20" fill="none"/>
+  <text x="360" y="332" text-anchor="middle" class="fp1t-small">Misconception: The "UI thread" does not talk to the GPU. The "raster thread" runs zero Dart.</text>
+</svg>

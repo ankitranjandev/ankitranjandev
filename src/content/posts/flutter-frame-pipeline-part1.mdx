@@ -1,0 +1,381 @@
+---
+title: "From VSync to Layout — How Flutter Gets a Frame Started"
+description: "Part 1 of 3: Trace the hardware VSync pulse through Flutter's engine to the Dart framework. Understand the four threads, three trees, and the rendering pipeline from first principles."
+publishedAt: 2026-06-16
+tags:
+  - flutter
+  - performance
+  - internals
+series: "Flutter Frame Pipeline"
+part: 1
+---
+
+Every frame your Flutter app renders has a deadline. On a 60Hz display, that deadline is 16.67 milliseconds. Miss it and the user sees jank — a dropped frame, a stutter, the feeling that the app is "slow."
+
+This series traces the entire path from the display's VSync pulse to pixels on screen. Part 1 covers the journey from hardware signal to layout complete. By the end, you'll understand exactly what happens when you call `setState()` and why certain things make Flutter fast.
+
+## Rung 0: The Frame Budget and the Threads
+
+### The VSync Pulse
+
+Let's start at the hardware. A display doesn't update all at once — it refreshes line by line, top to bottom, left to right. This is a holdover from CRT monitors where an electron beam physically scanned across phosphors, but modern LCDs still follow the same timing protocol.
+
+When the display finishes drawing the last pixel in the bottom-right corner, it enters a brief pause called the **Vertical Blanking Interval (VBI)**. During this pause, the display resets to start the next frame from the top-left. At this moment, it sends a synchronisation signal: the **VSync pulse**.
+
+This pulse is the heartbeat of rendering. It tells the graphics system: "I'm ready for the next frame. Give it to me now, or wait for the next pulse."
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-vsync-to-dart.svg" alt="VSync signal flow from hardware through Flutter engine to Dart framework" />
+</figure>
+
+### Why 16.67 Milliseconds?
+
+The frame budget is simple arithmetic:
+
+```
+1000ms ÷ 60Hz = 16.67ms per frame
+```
+
+A 120Hz display cuts this to 8.33ms. The maths doesn't care what you're building — miss the budget, drop the frame.
+
+### Flutter's Four Threads
+
+Flutter doesn't run everything on one thread. It spreads work across four:
+
+**Platform Thread** — The host OS's main thread. This is where plugins run, platform channels communicate, and the embedder talks to the operating system. Block this and the entire app freezes, including native views.
+
+**UI Thread** — The Dart isolate. Your code runs here, along with the framework's build, layout, and paint phases. Despite the name, this thread doesn't talk to the GPU — it produces a data structure (the layer tree) that describes what to draw.
+
+**Raster Thread** — The engine, written in C++. Takes the layer tree from the UI thread and turns it into actual GPU commands via Impeller (or Skia on older setups). No Dart runs here.
+
+**IO Thread** — Handles asset loading, texture decoding, and image uploads. Keeps this slow work off the raster thread so it doesn't block frame production.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-four-threads.svg" alt="Flutter's four threads and their responsibilities" />
+</figure>
+
+The crucial insight: a frame must clear **both** the UI thread and the raster thread within the budget. If either overruns, you drop the frame.
+
+### How VSync Reaches Dart
+
+When the display fires its VSync pulse:
+
+1. The platform's display link catches it — `CADisplayLink` on iOS, `Choreographer` on Android
+2. The Flutter engine's `OnVSync` callback fires (C++)
+3. The engine posts to the UI thread
+4. `SchedulerBinding.handleBeginFrame()` runs in Dart
+5. Transient callbacks fire (this is where `Ticker` objects update animations)
+6. `handleDrawFrame()` triggers the rendering pipeline
+
+This is the exact call chain. When you understand it, you can trace any frame-related issue back to its source.
+
+**Teach-test:** Draw the four threads and state, for each, one thing that blocks it and what the user sees when it's blocked.
+
+**Answer:** Platform thread blocked → entire app freezes (native views stop responding). UI thread blocked → UI jank, animations stutter, taps feel delayed. Raster thread blocked → frames drop even though Dart is idle, smooth animations become choppy. IO thread blocked → images load slowly, but the rest of the app continues (least visible).
+
+---
+
+## Rung 1: The Three Trees
+
+Flutter doesn't have "widgets on screen." It has three parallel tree structures, each with a different job:
+
+### Widget Tree — The Blueprint
+
+Widgets are immutable configuration objects. They describe *what* the UI should look like, not the UI itself. They're cheap to create and throw away — Flutter rebuilds them constantly.
+
+```dart
+// This is configuration, not a thing on screen
+Container(
+  color: Colors.blue,
+  child: Text('Hello'),
+)
+```
+
+Every time state changes, Flutter calls `build()` and creates fresh widget objects. This sounds wasteful until you understand the next tree.
+
+### Element Tree — The Backbone
+
+Elements are mutable, long-lived objects that bridge widgets to render objects. Each element holds:
+
+- A reference to its current widget
+- A reference to its render object (if it has one)
+- The `State` object (for `StatefulWidget`s)
+- Its position in the tree
+
+When you rebuild, Flutter doesn't throw away elements. It compares the new widget to the old one. If the `runtimeType` and `key` match, the element is **reused** — it just updates its widget reference and tells its render object to update.
+
+```dart
+// Simplified Element.updateChild logic
+if (Widget.canUpdate(oldWidget, newWidget)) {
+  // Same type and key — reuse element, update in place
+  element.update(newWidget);
+} else {
+  // Different type or key — tear down and rebuild
+  element.unmount();
+  element = newWidget.createElement();
+}
+```
+
+This is why widget rebuilds are cheap. The expensive objects (elements and render objects) persist and mutate in place.
+
+### RenderObject Tree — The Worker
+
+RenderObjects do the actual work: calculating layout, painting pixels, handling hit-testing. They know their size, their position, and how to draw themselves.
+
+When an element's widget changes, it tells its render object to update. The render object might need to re-layout, repaint, or both — but it's the same object, not a fresh allocation.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-three-trees.svg" alt="The three trees: Widget, Element, and RenderObject" />
+</figure>
+
+### Where State Lives
+
+Here's the gotcha that catches many developers: **State lives on the Element, not the Widget.**
+
+When you create a `StatefulWidget`, Flutter creates an element that holds both the widget and its `State` object. The widget gets thrown away and recreated on every rebuild, but the element (and its state) persists.
+
+This is why state survives a parent's rebuild — the element is still there. And it's why a mismatched `Key` blows state away — changing the key tells Flutter this is a *different* element, so it unmounts the old one (destroying its state) and creates a new one.
+
+**Teach-test:** Explain why moving a `StatefulWidget` to a different position in a list (without keys) can make its state "jump" to the wrong item.
+
+**Answer:** Flutter matches elements by position and type. If you have a list `[A, B, C]` and remove `B` to get `[A, C]`, Flutter sees: position 0 still has type A (keep), position 1 still has type C-same-as-B's-type (keep and update). The element that was at position 1 (with B's state) now gets widget C. The state didn't move — the widget moved past it. Adding keys fixes this because Flutter matches by key, not position.
+
+---
+
+## Rung 2: setState → A Scheduled Frame
+
+`setState()` is the most misunderstood method in Flutter. It doesn't draw anything. It doesn't even rebuild anything. It **marks the element dirty and schedules a frame**.
+
+### The Exact Call Chain
+
+When you call `setState()`:
+
+```dart
+void setState(VoidCallback fn) {
+  fn();  // Run your callback first
+  _element!.markNeedsBuild();
+}
+```
+
+`markNeedsBuild()` adds this element to the `BuildOwner`'s dirty list:
+
+```dart
+void markNeedsBuild() {
+  if (_dirty) return;  // Already marked
+  _dirty = true;
+  owner!.scheduleBuildFor(this);
+}
+```
+
+`scheduleBuildFor` ensures a frame is scheduled:
+
+```dart
+void scheduleBuildFor(Element element) {
+  _dirtyElements.add(element);
+  // ...
+  SchedulerBinding.instance.ensureVisualUpdate();
+}
+```
+
+`ensureVisualUpdate()` calls `scheduleFrame()`, which asks the engine for the next VSync. The key insight: `scheduleFrame()` is **idempotent**. Calling it ten times before VSync arrives schedules one frame, not ten.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-setstate-flow.svg" alt="setState flow from marking dirty to rendering the frame" />
+</figure>
+
+### What Happens on VSync
+
+When the VSync pulse arrives:
+
+1. `handleBeginFrame(timestamp)` — fires transient callbacks (Tickers for animations)
+2. `handleDrawFrame()` — runs the rendering pipeline
+3. `drawFrame()` does the actual work:
+   - `buildScope()` — rebuilds only the dirty elements, in tree order
+   - `flushLayout()` — recalculates sizes and positions
+   - `flushCompositingBits()` — marks which layers need updating
+   - `flushPaint()` — records drawing commands into layers
+   - `compositeFrame()` — builds the Scene and hands it to the engine
+
+The last step, `FlutterView.render(scene)`, is where the UI thread's work ends. The Scene (a native pointer to the layer tree) crosses to the raster thread.
+
+### The Coalescing Insight
+
+```dart
+// This triggers ONE rebuild, not three
+setState(() => count++);
+setState(() => count++);
+setState(() => count++);
+```
+
+All three calls mark the same element dirty and schedule a frame. But the frame is coalesced — Flutter rebuilds once with the final state.
+
+This is why it's safe to call `setState()` freely. The framework batches your changes.
+
+**Teach-test:** Trace what happens if you call `setState()` inside `build()`.
+
+**Answer:** It throws an exception. During `buildScope()`, the framework is walking dirty elements and calling their `build()` methods. If `build()` calls `setState()`, it would mark the element dirty *while the dirty list is being processed*. Flutter detects this and throws `setState() or markNeedsBuild() called during build`. The fix: defer state changes to after the build phase (use `addPostFrameCallback` or restructure your logic).
+
+---
+
+## Rung 3: Layout — Constraints Down, Sizes Up
+
+Flutter's layout system is fast because it's simple: one pass down the tree (constraints), one pass up (sizes), and parents position their children. No constraint solver, no multiple iterations.
+
+### The Protocol
+
+Every `RenderObject` follows the same protocol:
+
+1. Parent calls `child.layout(constraints)`
+2. Child runs `performLayout()`, choosing a size within the constraints
+3. Child stores its size in `size`
+4. Parent reads `child.size` and positions the child using `parentData`
+
+```dart
+// Inside a RenderBox
+@override
+void performLayout() {
+  // We receive constraints from our parent
+  // constraints.minWidth, constraints.maxWidth, etc.
+
+  // If we have children, pass constraints down
+  child.layout(BoxConstraints(maxWidth: constraints.maxWidth));
+
+  // Choose our own size within constraints
+  size = Size(
+    constraints.constrainWidth(child.size.width + padding),
+    constraints.constrainHeight(child.size.height + padding),
+  );
+}
+```
+
+The mantra: **Constraints go down. Sizes go up. Parent sets position.**
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp1-constraints-sizes.svg" alt="Layout constraints flowing down, sizes flowing up" />
+</figure>
+
+### Relayout Boundaries
+
+Not every change needs to re-layout the entire ancestor chain. Flutter uses **relayout boundaries** to stop propagation.
+
+A render object becomes a relayout boundary when:
+
+- Its constraints are **tight** (min equals max — size is fixed regardless of child)
+- `parentUsesSize` is **false** (parent doesn't care about this child's size)
+- `sizedByParent` is **true** (size is determined entirely by constraints, not content)
+
+Inside a relayout boundary, a child re-laying-out can't affect the parent's size, so Flutter doesn't walk further up.
+
+### The Unbounded Constraints Error
+
+```dart
+// This throws "Vertical viewport was given unbounded height"
+Column(
+  children: [
+    ListView(children: [/* ... */]),  // ListView needs bounded height
+  ],
+)
+```
+
+A `Column` passes unbounded height to its children ("be as tall as you want"). `ListView` needs to know its height so it can virtualise, but it received `double.infinity`. It can't choose a finite size, so it throws.
+
+The fix: constrain the ListView with `Expanded` or a fixed height:
+
+```dart
+Column(
+  children: [
+    Expanded(  // Gives bounded height
+      child: ListView(children: [/* ... */]),
+    ),
+  ],
+)
+```
+
+Understanding the layout protocol lets you diagnose these errors instantly. The child couldn't pick a size because it received unbounded constraints.
+
+**Teach-test:** Explain why `Expanded` works only inside `Row`/`Column`/`Flex` and nowhere else.
+
+**Answer:** `Expanded` is a `ParentDataWidget` that sets `FlexParentData.flex` on its child. The flex layout algorithm in `RenderFlex` (the render object for Row/Column/Flex) reads this data and allocates space proportionally among expanded children. Other layout algorithms don't read `FlexParentData`, so `Expanded` has no effect — it's just ignored. Putting `Expanded` inside a `Stack` does nothing because `RenderStack` uses `StackParentData`, not `FlexParentData`.
+
+---
+
+## The Code That Ties It Together
+
+Here's a minimal example showing the Ticker/VSync chain in action:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+
+class VsyncDemo extends StatefulWidget {
+  const VsyncDemo({super.key});
+
+  @override
+  State<VsyncDemo> createState() => _VsyncDemoState();
+}
+
+class _VsyncDemoState extends State<VsyncDemo>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ticker hooks into SchedulerBinding's transient callbacks
+    // It fires once per VSync while running
+    _ticker = createTicker((elapsed) {
+      setState(() {
+        _elapsed = elapsed;
+      });
+    });
+    _ticker.start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'Elapsed: ${_elapsed.inMilliseconds}ms',
+        style: Theme.of(context).textTheme.headlineMedium,
+      ),
+    );
+  }
+}
+```
+
+What happens each frame:
+
+1. VSync pulse arrives → engine posts to UI thread
+2. `handleBeginFrame()` runs transient callbacks → `Ticker` fires
+3. Ticker callback calls `setState()` → marks element dirty
+4. `handleDrawFrame()` runs → `buildScope()` rebuilds the dirty element
+5. `flushLayout()` → `Text` measures its new string
+6. `flushPaint()` → records draw commands
+7. `compositeFrame()` → hands Scene to raster thread
+
+The mixin `SingleTickerProviderStateMixin` does one crucial thing: it mutes the ticker when the widget is off-screen (via `TickerMode`). This is the "vsync" argument to `AnimationController` — it's not just naming convention, it's literally tying the animation to the display's refresh cycle and automatically pausing when invisible.
+
+---
+
+## Key Takeaways
+
+1. **The frame budget is 16.67ms (60Hz) or 8.33ms (120Hz).** Both UI and raster threads must finish within it.
+
+2. **The "UI thread" runs Dart and produces a layer tree. The "raster thread" turns that into GPU commands.** Conflating them leads to wrong optimisation strategies.
+
+3. **Widgets are thrown away constantly. Elements persist.** The diff happens at the element level, and render objects are mutated in place.
+
+4. **`setState()` marks dirty and schedules a frame.** It doesn't rebuild immediately, and multiple calls coalesce into one frame.
+
+5. **Layout is single-pass: constraints down, sizes up.** This is why Flutter is fast, and why unbounded constraint errors happen.
+
+---
+
+**Next in Part 2:** We leave the UI thread. Paint records commands into layers. The `SceneBuilder` assembles a Scene. `FlutterView.render()` hands it to the engine. And on the raster thread, Impeller turns those layers into Metal/Vulkan GPU commands. We'll trace exactly where Skia's shader compilation jank came from and why Impeller eliminated it.

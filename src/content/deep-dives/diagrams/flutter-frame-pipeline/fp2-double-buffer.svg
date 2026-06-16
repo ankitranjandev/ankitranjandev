@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" style="max-width: 100%; height: auto;" role="img" aria-label="Double buffering: GPU draws to back buffer while display reads front buffer, swap during VBI">
+  <defs>
+    <marker id="fp2-db-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp2-db-arrow-green" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp2db-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp2db-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp2db-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp2db-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp2db-title">Double Buffering and the VSync Swap</text>
+
+  <!-- During Frame -->
+  <g transform="translate(30, 50)">
+    <rect x="0" y="0" width="310" height="165" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="155" y="22" text-anchor="middle" class="fp2db-label">During Frame (Active Rendering)</text>
+
+    <!-- Front Buffer -->
+    <g transform="translate(20, 35)">
+      <rect x="0" y="0" width="120" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Front Buffer</text>
+
+      <!-- Scan lines -->
+      <line x1="10" y1="35" x2="110" y2="35" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.4"/>
+      <line x1="10" y1="45" x2="110" y2="45" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="1.5" opacity="0.5"/>
+      <line x1="10" y1="55" x2="70" y2="55" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2"/>
+      <circle cx="70" cy="55" r="3" fill="var(--svg-dart-blue, #0175C2)"/>
+
+      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Display reads this</text>
+    </g>
+
+    <!-- Back Buffer -->
+    <g transform="translate(170, 35)">
+      <rect x="0" y="0" width="120" height="80" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Back Buffer</text>
+
+      <!-- Drawing indicator -->
+      <rect x="15" y="35" width="30" height="25" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1.5" rx="3"/>
+      <rect x="50" y="35" width="30" height="25" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1.5" rx="3"/>
+
+      <text x="60" y="75" text-anchor="middle" class="fp2db-small">GPU writes here</text>
+    </g>
+
+    <!-- Explanation -->
+    <text x="155" y="135" text-anchor="middle" class="fp2db-small">Display scans front buffer top→bottom</text>
+    <text x="155" y="150" text-anchor="middle" class="fp2db-small">GPU simultaneously draws next frame to back</text>
+  </g>
+
+  <!-- VSync Moment -->
+  <g transform="translate(380, 50)">
+    <rect x="0" y="0" width="310" height="165" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="8"/>
+    <text x="155" y="22" text-anchor="middle" class="fp2db-label" fill="var(--svg-purple, #9333ea)">VSync Moment (VBI Period)</text>
+
+    <!-- Front becomes Back -->
+    <g transform="translate(20, 35)">
+      <rect x="0" y="0" width="120" height="80" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="6"/>
+      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Was Front</text>
+      <text x="60" y="40" text-anchor="middle" class="fp2db-code">→ Back</text>
+      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Now available for GPU</text>
+    </g>
+
+    <!-- Swap arrow -->
+    <g transform="translate(145, 65)">
+      <line x1="0" y1="10" x2="20" y2="10" stroke="var(--svg-purple, #9333ea)" stroke-width="2" marker-end="url(#fp2-db-arrow)"/>
+      <line x1="20" y1="20" x2="0" y2="20" stroke="var(--svg-purple, #9333ea)" stroke-width="2" marker-end="url(#fp2-db-arrow)"/>
+      <text x="10" y="0" text-anchor="middle" class="fp2db-code" fill="var(--svg-purple, #9333ea)">SWAP</text>
+    </g>
+
+    <!-- Back becomes Front -->
+    <g transform="translate(170, 35)">
+      <rect x="0" y="0" width="120" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+      <text x="60" y="20" text-anchor="middle" class="fp2db-code">Was Back</text>
+      <text x="60" y="40" text-anchor="middle" class="fp2db-code">→ Front</text>
+      <text x="60" y="75" text-anchor="middle" class="fp2db-small">Now scanned by display</text>
+    </g>
+
+    <!-- Explanation -->
+    <text x="155" y="135" text-anchor="middle" class="fp2db-small">Pointers swap instantaneously</text>
+    <text x="155" y="150" text-anchor="middle" class="fp2db-small">No pixel copying — just address change</text>
+  </g>
+
+  <!-- Why tearing happens -->
+  <g transform="translate(30, 230)">
+    <rect x="0" y="0" width="310" height="90" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="8"/>
+    <text x="155" y="22" text-anchor="middle" class="fp2db-label" fill="var(--svg-red, #dc2626)">Without VSync: Tearing</text>
+    <text x="155" y="45" text-anchor="middle" class="fp2db-small">If GPU writes to the buffer being scanned:</text>
+    <text x="155" y="60" text-anchor="middle" class="fp2db-small">top half = old frame, bottom half = new frame</text>
+    <text x="155" y="75" text-anchor="middle" class="fp2db-small">Visible as a horizontal "tear" line</text>
+  </g>
+
+  <!-- Triple buffering note -->
+  <g transform="translate(380, 230)">
+    <rect x="0" y="0" width="310" height="90" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="155" y="22" text-anchor="middle" class="fp2db-label">Triple Buffering (Modern)</text>
+    <text x="155" y="45" text-anchor="middle" class="fp2db-small">Front (scanning) + Back 1 (queued) + Back 2 (rendering)</text>
+    <text x="155" y="60" text-anchor="middle" class="fp2db-small">GPU always has a buffer to draw to</text>
+    <text x="155" y="75" text-anchor="middle" class="fp2db-small">Smoother frame pacing, but more latency</text>
+  </g>
+
+  <!-- Timeline -->
+  <g transform="translate(30, 340)">
+    <rect x="0" y="0" width="660" height="85" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+    <text x="330" y="20" text-anchor="middle" class="fp2db-label">Frame Timeline</text>
+
+    <!-- Timeline bar -->
+    <rect x="30" y="35" width="600" height="25" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+
+    <!-- Frame 1 -->
+    <rect x="30" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="4"/>
+    <text x="105" y="52" text-anchor="middle" class="fp2db-code">Frame N displayed</text>
+
+    <!-- VSync -->
+    <rect x="180" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
+    <text x="182" y="75" text-anchor="middle" class="fp2db-small" fill="var(--svg-purple, #9333ea)">VSync</text>
+
+    <!-- Frame 2 -->
+    <rect x="185" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
+    <text x="260" y="52" text-anchor="middle" class="fp2db-code">Frame N+1 displayed</text>
+
+    <!-- VSync 2 -->
+    <rect x="335" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
+
+    <!-- Frame 3 -->
+    <rect x="340" y="35" width="150" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1"/>
+    <text x="415" y="52" text-anchor="middle" class="fp2db-code">Frame N+2 displayed</text>
+
+    <!-- VSync 3 -->
+    <rect x="490" y="30" width="5" height="35" fill="var(--svg-purple, #9333ea)" rx="2"/>
+
+    <!-- Continue -->
+    <text x="560" y="52" text-anchor="middle" class="fp2db-small">...</text>
+  </g>
+</svg>

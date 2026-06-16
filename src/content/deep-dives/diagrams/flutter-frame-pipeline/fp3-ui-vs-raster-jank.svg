@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" style="max-width: 100%; height: auto;" role="img" aria-label="UI jank versus Raster jank: different causes and different fixes">
+  <style>
+    .fp3ur-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ur-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ur-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3ur-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3ur-title">UI Jank vs Raster Jank — Different Problems, Different Fixes</text>
+
+  <!-- UI Track Jank -->
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="330" height="330" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="165" y="25" text-anchor="middle" class="fp3ur-label">UI Track Tall</text>
+    <text x="165" y="42" text-anchor="middle" class="fp3ur-small">(Build/Layout/Compute Jank)</text>
+
+    <!-- Causes -->
+    <rect x="15" y="55" width="300" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="75" text-anchor="middle" class="fp3ur-label">Common Causes</text>
+
+    <text x="25" y="95" class="fp3ur-code">• Expensive build() — O(n²) loops</text>
+    <text x="25" y="110" class="fp3ur-code">• Synchronous JSON/image parsing</text>
+    <text x="25" y="125" class="fp3ur-code">• Large rebuild scope (setState at root)</text>
+    <text x="25" y="140" class="fp3ur-code">• ListView without itemExtent</text>
+    <text x="25" y="155" class="fp3ur-code">• Blocking main isolate with compute</text>
+    <text x="25" y="170" class="fp3ur-code">• Missing const constructors</text>
+
+    <!-- Fixes -->
+    <rect x="15" y="185" width="300" height="130" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="205" text-anchor="middle" class="fp3ur-label">Fixes</text>
+
+    <text x="25" y="225" class="fp3ur-code">• Add const constructors</text>
+    <text x="25" y="240" class="fp3ur-code">• Push setState down to smaller widgets</text>
+    <text x="25" y="255" class="fp3ur-code">• Use Isolate.run() for heavy compute</text>
+    <text x="25" y="270" class="fp3ur-code">• Add itemExtent to ListView</text>
+    <text x="25" y="285" class="fp3ur-code">• Split large widgets into smaller ones</text>
+    <text x="25" y="300" class="fp3ur-code">• Use ValueListenableBuilder locally</text>
+  </g>
+
+  <!-- Raster Track Jank -->
+  <g transform="translate(370, 50)">
+    <rect x="0" y="0" width="330" height="330" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="165" y="25" text-anchor="middle" class="fp3ur-label">Raster Track Tall</text>
+    <text x="165" y="42" text-anchor="middle" class="fp3ur-small">(Composite/GPU Jank)</text>
+
+    <!-- Causes -->
+    <rect x="15" y="55" width="300" height="120" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="75" text-anchor="middle" class="fp3ur-label">Common Causes</text>
+
+    <text x="25" y="95" class="fp3ur-code">• Opacity widget (uses saveLayer)</text>
+    <text x="25" y="110" class="fp3ur-code">• BackdropFilter (reads back pixels)</text>
+    <text x="25" y="125" class="fp3ur-code">• Complex ClipPath</text>
+    <text x="25" y="140" class="fp3ur-code">• Overdraw (many stacked widgets)</text>
+    <text x="25" y="155" class="fp3ur-code">• Too many layers (RepaintBoundary spam)</text>
+    <text x="25" y="170" class="fp3ur-code">• ShaderMask, ColorFiltered</text>
+
+    <!-- Fixes -->
+    <rect x="15" y="185" width="300" height="130" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="165" y="205" text-anchor="middle" class="fp3ur-label">Fixes</text>
+
+    <text x="25" y="225" class="fp3ur-code">• Use FadeTransition (no saveLayer)</text>
+    <text x="25" y="240" class="fp3ur-code">• Bake opacity into paint color</text>
+    <text x="25" y="255" class="fp3ur-code">• Simplify or remove BackdropFilter</text>
+    <text x="25" y="270" class="fp3ur-code">• Use ClipRect instead of ClipPath</text>
+    <text x="25" y="285" class="fp3ur-code">• Reduce stacking depth</text>
+    <text x="25" y="300" class="fp3ur-code">• Profile with "Highlight repaints"</text>
+  </g>
+
+  <!-- Key insight -->
+  <g transform="translate(20, 390)">
+    <text x="340" y="0" text-anchor="middle" class="fp3ur-code" fill="var(--svg-red, #dc2626)">Isolates do NOT help raster jank. They only help UI track compute jank.</text>
+  </g>
+</svg>

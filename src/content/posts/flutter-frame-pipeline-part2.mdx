@@ -1,0 +1,322 @@
+---
+title: "From Paint to Pixels — The Raster Thread and Impeller"
+description: "Part 2 of 3: Follow the layer tree from the paint phase through SceneBuilder, across the thread boundary, and into Impeller's GPU command generation. Understand double buffering and why precompiled shaders eliminated first-run jank."
+publishedAt: 2026-06-16
+tags:
+  - flutter
+  - performance
+  - internals
+  - impeller
+series: "Flutter Frame Pipeline"
+part: 2
+---
+
+In Part 1, we traced the VSync pulse through Flutter's engine to the Dart framework, watched `setState()` mark elements dirty, and saw layout calculate sizes. The UI thread's work ended at layout. Now we enter the territory where many Flutter developers get fuzzy: paint, compositing, and the raster thread.
+
+By the end of this part, you'll understand exactly what happens between `flushPaint()` and pixels appearing on the display — and why Impeller fixed a class of jank that Skia couldn't.
+
+## Rung 4: Paint and the Layer Tree
+
+### Paint Is Recording, Not Drawing
+
+Here's the key insight: when a RenderObject's `paint()` method runs, it doesn't draw pixels to the screen. It **records drawing commands** into a data structure.
+
+```dart
+@override
+void paint(PaintingContext context, Offset offset) {
+  // This doesn't draw — it records the command
+  context.canvas.drawRect(
+    offset & size,
+    Paint()..color = Colors.blue,
+  );
+}
+```
+
+The `canvas` here isn't connected to the screen. It's a `Canvas` that wraps a `PictureRecorder`. Every `draw` call adds an operation to an internal list. When painting finishes, `endRecording()` produces a `Picture` — an immutable, replayable recording of all those commands.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-paint-recording.svg" alt="Paint records commands into a Picture, not pixels" />
+</figure>
+
+Why record instead of draw directly? Three reasons:
+
+1. **Caching** — A `Picture` can be replayed multiple times without re-executing the Dart paint code
+2. **Compositing** — Pictures can be layered, transformed, and blended by the compositor
+3. **Thread boundary** — The `Picture` can be shipped to the raster thread while the UI thread moves on
+
+### The PaintingContext
+
+When `flushPaint()` runs, it walks the dirty render objects and calls their `paint()` methods. Each gets a `PaintingContext` which provides:
+
+- **canvas** — The recording canvas
+- **pushLayer()** — Create a new compositing layer
+- **paintChild()** — Paint a child render object
+
+```dart
+// Simplified paint method
+@override
+void paint(PaintingContext context, Offset offset) {
+  // Draw our own content
+  context.canvas.drawRect(offset & size, _paint);
+
+  // Paint children
+  if (child != null) {
+    context.paintChild(child!, offset);
+  }
+}
+```
+
+### Layer Types
+
+Not everything goes into a single `Picture`. Some operations require separate **layers** that the compositor handles specially:
+
+**PictureLayer** — Holds a `Picture`. This is where most drawing commands land.
+
+**TransformLayer** — Applies a matrix transform to all descendants. Used by `Transform` widgets.
+
+**OpacityLayer** — Applies alpha blending. Used by the `Opacity` widget. This requires `saveLayer` internally, which is expensive.
+
+**ClipRectLayer / ClipPathLayer** — Clips descendants to a rectangle or arbitrary path.
+
+**BackdropFilter** — Applies effects to content *behind* this layer. Very expensive because it must read back previously rendered content.
+
+**OffsetLayer** — Created by `RepaintBoundary`. Marks a subtree that can be composited independently.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-layer-tree.svg" alt="Flutter layer tree structure" />
+</figure>
+
+### RepaintBoundary
+
+When you wrap a widget in `RepaintBoundary`, Flutter creates an `OffsetLayer` at that point in the tree. This layer holds its own `Picture` that's composited as a unit.
+
+The benefit: when only that subtree needs repainting, Flutter re-records just its `Picture` and re-composites. Siblings don't repaint.
+
+```dart
+// An animation inside a RepaintBoundary doesn't cause
+// the rest of the page to repaint
+RepaintBoundary(
+  child: SpinningWidget(), // Only this repaints each frame
+)
+```
+
+The cost: each layer consumes memory and adds a compositing step. Don't wrap everything — wrap things that repaint on a different cadence than their surroundings.
+
+**Teach-test:** Explain when adding a `RepaintBoundary` hurts performance.
+
+**Answer:** RepaintBoundary hurts when the wrapped content repaints in sync with its siblings anyway (you added a layer for no isolation benefit), when the content is simple enough that repainting is cheaper than the compositing overhead, or when you create so many layers that memory and compositor time dominate. Profile with DevTools' "Highlight repaints" to see actual paint regions before adding boundaries.
+
+---
+
+## Rung 5: The Handoff — Compositing to Scene
+
+After `flushPaint()`, we have a tree of layers. Now `compositeFrame()` must turn this into a `Scene` and hand it to the engine.
+
+### The SceneBuilder API
+
+`SceneBuilder` is the low-level `dart:ui` API for building a `Scene`. It's a stack-based builder:
+
+```dart
+// This is what compositeFrame() does internally
+final builder = SceneBuilder();
+
+// Push a transform for device pixel ratio
+builder.pushTransform(devicePixelRatioMatrix);
+
+// Add layers by walking the tree
+rootLayer.addToScene(builder);
+
+// Pop the transform
+builder.pop();
+
+// Build the scene
+final scene = builder.build();
+```
+
+Each layer type knows how to add itself:
+
+```dart
+// PictureLayer
+@override
+void addToScene(SceneBuilder builder) {
+  builder.addPicture(offset, picture);
+}
+
+// OpacityLayer
+@override
+void addToScene(SceneBuilder builder) {
+  builder.pushOpacity(alpha);
+  for (final child in children) {
+    child.addToScene(builder);
+  }
+  builder.pop();
+}
+```
+
+### The render() Call
+
+After building the `Scene`, `RenderView.compositeFrame()` calls:
+
+```dart
+_view.render(scene);
+```
+
+This is `FlutterView.render()` — the function that ships the scene to the engine. Here's what the API docs say:
+
+> "Updates the application's rendering on the GPU with the newly provided Scene."
+
+This is the **boundary**. Before this call: Dart code on the UI thread. After: C++ engine code, eventually running on the raster thread. No more Dart executes for this frame.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-handoff.svg" alt="The handoff from UI thread to raster thread" />
+</figure>
+
+### What Crosses the Boundary
+
+The `Scene` isn't literally sent across threads — it's a handle to native engine structures. When you call `render(scene)`:
+
+1. The Dart `Scene` object wraps a pointer to a C++ `LayerTree`
+2. `render()` posts this `LayerTree` to the raster thread's task queue
+3. The UI thread can now start work on the next frame
+4. The raster thread picks up the `LayerTree` when ready
+
+This pipelining means the UI thread and raster thread can work in parallel on different frames.
+
+**Teach-test:** Name the one function call that marks the UI→raster handoff.
+
+**Answer:** `FlutterView.render(scene)` (historically `window.render(scene)`). This is the last Dart code for the frame. Everything after runs in C++ on the raster thread.
+
+---
+
+## Rung 6: The Raster Thread and Impeller
+
+Now we're in engine territory. The raster thread receives the `LayerTree` and must turn it into GPU commands.
+
+### What the Raster Thread Does
+
+1. **Walks the LayerTree** — Each layer type has a corresponding C++ class
+2. **Builds a DisplayList** — Impeller's internal command format, more efficient than the layer representation
+3. **Encodes GPU commands** — Translates the DisplayList into Metal (iOS) or Vulkan (Android) commands
+4. **Submits to GPU** — Hands the command buffer to the graphics driver
+
+The raster thread runs on the CPU — it's *preparing* GPU work, not running on the GPU itself. The actual pixel-pushing happens when the GPU executes those commands.
+
+### Double Buffering
+
+While the raster thread prepares commands, the display is simultaneously scanning out a previous frame. This works through **double buffering**:
+
+**Front Buffer** — The image currently being read by the display, scanned top-to-bottom, left-to-right.
+
+**Back Buffer** — The buffer the GPU is writing to. Not visible until the swap.
+
+When the display finishes scanning the front buffer (reaching the bottom-right corner), it enters the **Vertical Blanking Interval (VBI)**. During this brief pause, the system swaps the buffer pointers: back becomes front, front becomes back.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-double-buffer.svg" alt="Double buffering and VSync swap" />
+</figure>
+
+The swap is just a pointer change — no pixels are copied. The GPU can immediately start writing to the new back buffer while the display scans the new front buffer.
+
+**Why VSync matters:** Without synchronising to VSync, the GPU might write to the front buffer while it's being scanned. Result: the top half shows one frame, the bottom half shows another — **tearing**. VSync forces the GPU to wait for the swap point.
+
+Modern systems often use **triple buffering**: front + back1 + back2. While the display scans front and back1 is queued for the next VSync, the GPU writes to back2. This keeps the GPU busy and smooths frame pacing, at the cost of slightly more latency.
+
+### Why Skia Had Shader Jank
+
+Here's the problem Impeller solved. Skia (Flutter's previous graphics backend) compiled shaders **at runtime**:
+
+1. Your app starts with basic effects — shaders compile quickly, no visible jank
+2. First time a blur effect appears → Skia must compile the blur shader
+3. Shader compilation takes 20-100ms → the frame misses its 16.6ms deadline → jank
+4. Subsequent frames are smooth because the shader is cached
+
+This "first-run jank" was maddening. The app would jank the first time you used a feature, then be smooth forever. Profiling showed the issue, but you couldn't fix it from Dart — the compilation happened in the graphics driver.
+
+### How Impeller Fixes It
+
+Impeller takes a fundamentally different approach: **ahead-of-time (AOT) shader compilation**.
+
+1. At `flutter build` time, Impeller compiles all its shaders to SPIRV/Metal
+2. The compiled shaders are bundled with the app
+3. At runtime, there's no shader compilation — the GPU just executes the pre-built programs
+
+The shader library is small because Impeller uses a fixed set of composable shaders, not the infinite variety Skia generated dynamically.
+
+<figure>
+<img src="/src/content/deep-dives/diagrams/flutter-frame-pipeline/fp2-impeller-vs-skia.svg" alt="Impeller vs Skia shader compilation" />
+</figure>
+
+### Current Status (June 2026)
+
+- **iOS**: Impeller only. Skia removed. No opt-out.
+- **Android API 29+**: Impeller default with Vulkan. Opt-out deprecated in 3.38.
+- **Android < API 29**: Legacy Skia with OpenGL fallback.
+- **Web**: Still Skia (canvaskit/skwasm). Impeller for web is in progress.
+
+**Teach-test:** Explain, mechanism-level, why Skia produced first-run animation jank and why precompiling shaders removes it.
+
+**Answer:** Skia used a just-in-time model: when the rasteriser encountered a new combination of effects (gradient + blur + blend mode), it asked the GPU driver to compile a shader program. Driver shader compilation is synchronous and can take tens of milliseconds — far beyond the 16.67ms frame budget. The frame stalls waiting for the compile, so it drops. Once compiled, the shader is cached, so subsequent frames are fast. Impeller precompiles a fixed shader library at build time, so the GPU never needs to compile during app execution. No runtime compilation → no compilation stalls → no first-run jank.
+
+---
+
+## Putting It Together: A Frame's Journey Through Raster
+
+Let's trace a single frame through Part 2's territory:
+
+```
+1. flushPaint() walks dirty RenderObjects
+   → Each calls paint(), recording to Canvas
+   → Canvas is wrapping a PictureRecorder
+   → Pictures accumulate in PictureLayers
+
+2. Layer tree is complete
+   → TransformLayer at root (device pixel ratio)
+   → OffsetLayers from RepaintBoundaries
+   → OpacityLayers, ClipLayers for effects
+   → PictureLayers holding the actual draws
+
+3. compositeFrame() runs
+   → Creates SceneBuilder
+   → Each layer calls addToScene()
+   → builder.build() produces Scene (native handle)
+   → FlutterView.render(scene) posts to raster thread
+   → UI thread is done, can start next frame
+
+4. Raster thread picks up LayerTree
+   → Walks layers, builds DisplayList
+   → Impeller encodes Metal/Vulkan commands
+   → Commands submitted to GPU
+
+5. GPU executes commands
+   → Draws to back buffer
+   → Waits for VSync
+   → Buffers swap
+   → Display scans new frame
+```
+
+If either the UI thread or the raster thread takes longer than 16.6ms, the frame drops. But they're different fixes:
+
+- UI thread slow → reduce build/paint work in Dart
+- Raster thread slow → reduce layer complexity, avoid expensive composite ops
+
+That distinction is the key to Part 3.
+
+---
+
+## Key Takeaways
+
+1. **Paint records commands into Pictures, not pixels.** The recording is what allows caching, compositing, and threading.
+
+2. **The layer tree is the output of paint.** Each layer type (Picture, Transform, Opacity, Clip) has specific composite behaviour.
+
+3. **RepaintBoundary creates isolation.** It's a trade-off: memory for a layer vs. avoiding sibling repaints.
+
+4. **`FlutterView.render(scene)` is the boundary.** Before: Dart on UI thread. After: C++ on raster thread.
+
+5. **Double/triple buffering prevents tearing.** The swap happens during VBI; VSync synchronises GPU writes to display reads.
+
+6. **Impeller precompiles shaders at build time.** This eliminates Skia's runtime shader compilation jank.
+
+---
+
+**Next in Part 3:** Now that you understand the full pipeline, we diagnose when it breaks. How to read the DevTools timeline. What makes the UI track tall versus the raster track. When isolates help and when they're useless. And the full arsenal of short-circuits Flutter uses to avoid redundant work.

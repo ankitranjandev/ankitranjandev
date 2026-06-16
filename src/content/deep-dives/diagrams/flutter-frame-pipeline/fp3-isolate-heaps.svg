@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width: 100%; height: auto;" role="img" aria-label="Dart isolates: separate heaps communicating via message passing">
+  <defs>
+    <marker id="fp3-ih-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+    <marker id="fp3-ih-arrow-back" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto">
+      <path d="M8,0 L0,4 L8,8 Z" fill="var(--svg-green, #10b981)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp3ih-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ih-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3ih-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3ih-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3ih-title">Isolates: Separate Heaps, Message Passing</text>
+
+  <!-- Main Isolate -->
+  <g transform="translate(40, 55)">
+    <rect x="0" y="0" width="250" height="180" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="125" y="22" text-anchor="middle" class="fp3ih-label">Main Isolate (UI Thread)</text>
+
+    <!-- Heap -->
+    <rect x="20" y="35" width="210" height="80" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="55" text-anchor="middle" class="fp3ih-code">Heap</text>
+    <text x="125" y="72" text-anchor="middle" class="fp3ih-small">Widgets, State, render objects</text>
+    <text x="125" y="87" text-anchor="middle" class="fp3ih-small">All your app objects</text>
+    <text x="125" y="102" text-anchor="middle" class="fp3ih-small">Framework internals</text>
+
+    <!-- Event Loop -->
+    <rect x="20" y="125" width="210" height="40" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="145" text-anchor="middle" class="fp3ih-code">Event Loop</text>
+    <text x="125" y="158" text-anchor="middle" class="fp3ih-small">Processes one task at a time</text>
+  </g>
+
+  <!-- Worker Isolate -->
+  <g transform="translate(430, 55)">
+    <rect x="0" y="0" width="250" height="180" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="125" y="22" text-anchor="middle" class="fp3ih-label">Worker Isolate</text>
+
+    <!-- Heap -->
+    <rect x="20" y="35" width="210" height="80" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="55" text-anchor="middle" class="fp3ih-code">Separate Heap</text>
+    <text x="125" y="72" text-anchor="middle" class="fp3ih-small">Completely independent memory</text>
+    <text x="125" y="87" text-anchor="middle" class="fp3ih-small">No shared mutable state</text>
+    <text x="125" y="102" text-anchor="middle" class="fp3ih-small">No locks, no races</text>
+
+    <!-- Event Loop -->
+    <rect x="20" y="125" width="210" height="40" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" rx="6"/>
+    <text x="125" y="145" text-anchor="middle" class="fp3ih-code">Event Loop</text>
+    <text x="125" y="158" text-anchor="middle" class="fp3ih-small">Own task queue</text>
+  </g>
+
+  <!-- Message passing arrows -->
+  <g transform="translate(300, 100)">
+    <!-- Send -->
+    <line x1="0" y1="0" x2="120" y2="0" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp3-ih-arrow)"/>
+    <rect x="30" y="-20" width="60" height="18" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="3"/>
+    <text x="60" y="-7" text-anchor="middle" class="fp3ih-code" fill="var(--svg-purple, #9333ea)">message</text>
+    <text x="60" y="15" text-anchor="middle" class="fp3ih-small">SendPort.send()</text>
+
+    <!-- Receive -->
+    <line x1="120" y1="50" x2="0" y2="50" stroke="var(--svg-green, #10b981)" stroke-width="2" marker-end="url(#fp3-ih-arrow-back)"/>
+    <rect x="30" y="30" width="60" height="18" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="1" rx="3"/>
+    <text x="60" y="43" text-anchor="middle" class="fp3ih-code" fill="var(--svg-purple, #9333ea)">result</text>
+    <text x="60" y="65" text-anchor="middle" class="fp3ih-small">ReceivePort</text>
+
+    <!-- Copy indicator -->
+    <text x="60" y="-35" text-anchor="middle" class="fp3ih-small" fill="var(--svg-red, #dc2626)">Data is COPIED</text>
+  </g>
+
+  <!-- What can be sent -->
+  <g transform="translate(40, 250)">
+    <rect x="0" y="0" width="310" height="55" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="155" y="18" text-anchor="middle" class="fp3ih-label">Can Send</text>
+    <text x="155" y="35" text-anchor="middle" class="fp3ih-code">Primitives, List, Map, TypedData</text>
+    <text x="155" y="48" text-anchor="middle" class="fp3ih-code">SendPort, Capability</text>
+  </g>
+
+  <!-- What cannot be sent -->
+  <g transform="translate(370, 250)">
+    <rect x="0" y="0" width="310" height="55" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="1.5" rx="6"/>
+    <text x="155" y="18" text-anchor="middle" class="fp3ih-label" fill="var(--svg-red, #dc2626)">Cannot Send</text>
+    <text x="155" y="35" text-anchor="middle" class="fp3ih-code">Functions/closures (capture state)</text>
+    <text x="155" y="48" text-anchor="middle" class="fp3ih-code">Widgets, BuildContext, RenderObjects</text>
+  </g>
+</svg>

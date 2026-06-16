@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" style="max-width: 100%; height: auto;" role="img" aria-label="Paint phase: Canvas records commands into a Picture, not pixels">
+  <defs>
+    <marker id="fp2-pr-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--svg-dart-blue, #0175C2)"/>
+    </marker>
+  </defs>
+  <style>
+    .fp2pr-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp2pr-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp2pr-small { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp2pr-code { font: 600 10px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp2pr-title">Paint: Recording Commands, Not Drawing Pixels</text>
+
+  <!-- PictureRecorder + Canvas -->
+  <g transform="translate(30, 55)">
+    <rect x="0" y="0" width="180" height="140" fill="var(--svg-amber-fill, #fef3c7)" stroke="var(--svg-amber, #f59e0b)" stroke-width="2" rx="8"/>
+    <text x="90" y="22" text-anchor="middle" class="fp2pr-label">PictureRecorder</text>
+
+    <rect x="15" y="35" width="150" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="90" y="55" text-anchor="middle" class="fp2pr-label">Canvas</text>
+    <text x="90" y="75" text-anchor="middle" class="fp2pr-small">Records draw calls</text>
+    <text x="90" y="90" text-anchor="middle" class="fp2pr-small">as commands, not</text>
+    <text x="90" y="105" text-anchor="middle" class="fp2pr-small">as pixels</text>
+  </g>
+
+  <!-- Draw commands flowing in -->
+  <g transform="translate(230, 55)">
+    <rect x="0" y="0" width="200" height="140" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp2pr-label">Draw Commands</text>
+
+    <text x="100" y="48" text-anchor="middle" class="fp2pr-code">canvas.drawRect(...)</text>
+    <text x="100" y="68" text-anchor="middle" class="fp2pr-code">canvas.drawLine(...)</text>
+    <text x="100" y="88" text-anchor="middle" class="fp2pr-code">canvas.drawParagraph(...)</text>
+    <text x="100" y="108" text-anchor="middle" class="fp2pr-code">canvas.drawImage(...)</text>
+    <text x="100" y="128" text-anchor="middle" class="fp2pr-code">canvas.clipPath(...)</text>
+  </g>
+
+  <!-- Arrow to Picture -->
+  <g transform="translate(440, 115)">
+    <line x1="0" y1="0" x2="35" y2="0" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" marker-end="url(#fp2-pr-arrow)"/>
+    <text x="18" y="-8" text-anchor="middle" class="fp2pr-code">.endRecording()</text>
+  </g>
+
+  <!-- Picture output -->
+  <g transform="translate(490, 55)">
+    <rect x="0" y="0" width="200" height="140" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="8"/>
+    <text x="100" y="22" text-anchor="middle" class="fp2pr-label">Picture</text>
+
+    <rect x="15" y="35" width="170" height="90" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1.5" rx="6"/>
+    <text x="100" y="58" text-anchor="middle" class="fp2pr-small">Immutable recording of</text>
+    <text x="100" y="75" text-anchor="middle" class="fp2pr-small">all draw commands</text>
+    <text x="100" y="95" text-anchor="middle" class="fp2pr-small">No pixels yet — just</text>
+    <text x="100" y="112" text-anchor="middle" class="fp2pr-small">a list of operations</text>
+  </g>
+
+  <!-- Key insight -->
+  <g transform="translate(30, 215)">
+    <rect x="0" y="0" width="660" height="70" fill="var(--svg-purple-fill, #f3e8ff)" stroke="var(--svg-purple, #9333ea)" stroke-width="2" rx="6"/>
+    <text x="330" y="20" text-anchor="middle" class="fp2pr-label" fill="var(--svg-purple, #9333ea)">Why Recording Matters</text>
+    <text x="330" y="40" text-anchor="middle" class="fp2pr-small">The Picture can be replayed multiple times, cached, or composited with other Pictures.</text>
+    <text x="330" y="55" text-anchor="middle" class="fp2pr-small">This is how RepaintBoundary works — it caches the Picture and only re-records when needed.</text>
+  </g>
+</svg>

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width: 100%; height: auto;" role="img" aria-label="DevTools timeline showing UI track and Raster track with jank indicators">
+  <style>
+    .fp3tt-title { font: bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3tt-label { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text, #1e293b); }
+    .fp3tt-small { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; fill: var(--svg-text-muted, #64748b); }
+    .fp3tt-code { font: 600 9px "SF Mono", Menlo, Monaco, monospace; fill: var(--svg-text, #1e293b); }
+  </style>
+
+  <text x="360" y="28" text-anchor="middle" class="fp3tt-title">Reading the DevTools Performance Timeline</text>
+
+  <!-- Timeline container -->
+  <g transform="translate(30, 50)">
+    <rect x="0" y="0" width="660" height="200" fill="var(--svg-bg, #f8fafc)" stroke="var(--svg-border, #cbd5e1)" stroke-width="2" rx="8"/>
+
+    <!-- UI Track -->
+    <text x="20" y="25" class="fp3tt-label">UI Track</text>
+    <rect x="80" y="10" width="560" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+
+    <!-- Normal frames -->
+    <rect x="90" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="145" y="50" width="50" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Tall UI bar (jank) -->
+    <rect x="200" y="18" width="60" height="67" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="2"/>
+    <text x="230" y="50" text-anchor="middle" class="fp3tt-code" fill="var(--svg-red, #dc2626)">JANK</text>
+
+    <!-- More normal frames -->
+    <rect x="265" y="52" width="50" height="33" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="320" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="375" y="48" width="50" height="37" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="430" y="52" width="50" height="33" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="485" y="55" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="540" y="50" width="50" height="35" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="595" y="55" width="40" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Budget line -->
+    <line x1="85" y1="85" x2="635" y2="85" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="638" y="82" text-anchor="end" class="fp3tt-small" fill="var(--svg-amber, #f59e0b)">16.6ms</text>
+
+    <!-- Raster Track -->
+    <text x="20" y="120" class="fp3tt-label">Raster Track</text>
+    <rect x="80" y="105" width="560" height="80" fill="var(--svg-bg-secondary, #f1f5f9)" stroke="var(--svg-border, #cbd5e1)" stroke-width="1" rx="4"/>
+
+    <!-- Normal frames -->
+    <rect x="90" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="145" y="150" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="200" y="152" width="50" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="255" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="310" y="148" width="50" height="32" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Tall Raster bar (jank) -->
+    <rect x="365" y="115" width="60" height="65" fill="var(--svg-red-fill, #fee2e2)" stroke="var(--svg-red, #dc2626)" stroke-width="2" rx="2"/>
+    <text x="395" y="147" text-anchor="middle" class="fp3tt-code" fill="var(--svg-red, #dc2626)">JANK</text>
+
+    <!-- More normal frames -->
+    <rect x="430" y="152" width="50" height="28" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="485" y="155" width="50" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="540" y="150" width="50" height="30" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+    <rect x="595" y="155" width="40" height="25" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="1" rx="2"/>
+
+    <!-- Budget line -->
+    <line x1="85" y1="180" x2="635" y2="180" stroke="var(--svg-amber, #f59e0b)" stroke-width="1.5" stroke-dasharray="4,3"/>
+  </g>
+
+  <!-- Annotations -->
+  <g transform="translate(30, 265)">
+    <!-- UI jank annotation -->
+    <rect x="0" y="0" width="320" height="80" fill="var(--svg-dart-blue-fill, #dbeafe)" stroke="var(--svg-dart-blue, #0175C2)" stroke-width="2" rx="6"/>
+    <text x="160" y="18" text-anchor="middle" class="fp3tt-label">UI Track Tall = Build/Compute Jank</text>
+    <text x="160" y="35" text-anchor="middle" class="fp3tt-small">Expensive build(), synchronous JSON parsing,</text>
+    <text x="160" y="48" text-anchor="middle" class="fp3tt-small">large rebuild scope, O(n²) in build</text>
+    <text x="160" y="65" text-anchor="middle" class="fp3tt-code">Fix: const, smaller scope, Isolate.run()</text>
+  </g>
+
+  <g transform="translate(370, 265)">
+    <!-- Raster jank annotation -->
+    <rect x="0" y="0" width="320" height="80" fill="var(--svg-green-fill, #d1fae5)" stroke="var(--svg-green, #10b981)" stroke-width="2" rx="6"/>
+    <text x="160" y="18" text-anchor="middle" class="fp3tt-label">Raster Track Tall = Composite Jank</text>
+    <text x="160" y="35" text-anchor="middle" class="fp3tt-small">Opacity widget (saveLayer), BackdropFilter,</text>
+    <text x="160" y="48" text-anchor="middle" class="fp3tt-small">complex clips, overdraw, many layers</text>
+    <text x="160" y="65" text-anchor="middle" class="fp3tt-code">Fix: FadeTransition, RepaintBoundary, simplify</text>
+  </g>
+</svg>
